@@ -1,0 +1,7 @@
+﻿,herbivores,youngScrub,matureScrub,sapling,matureTree,grassHerbs
+herbivores,0,1,0,1,0,1
+youngScrub,-1,0,0,0,0,0
+matureScrub,0,0,0,0,0,0
+sapling,-1,0,0,0,0,0
+matureTree,0,0,0,0,0,1
+grassHerbs,-1,0,0,0,0,1
