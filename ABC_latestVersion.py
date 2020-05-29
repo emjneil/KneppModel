@@ -7,10 +7,7 @@ import numpy as np
 import itertools as IT
 import string
 
-
-# push through Git 
 # look up Python profiling 
-# figure out how to split array and pull row number - ask Ernesto?
 # figure out adding variables as globals in the function
 
 ##### ------- Define the function -------------
