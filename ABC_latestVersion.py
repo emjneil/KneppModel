@@ -7,15 +7,11 @@ import numpy as np
 import itertools as IT
 import string
 
-
-# push through Git 
 # look up Python profiling 
-# figure out how to split array and pull row number - ask Ernesto?
 # figure out adding variables as globals in the function
 
 ##### ------- Define the function -------------
 
-# add extra globals to network? giving errors - maybe an ordering thing or that I'm passing through rows already before calling ODE instead of passing other args
 def ecoNetwork(X, t=0):
 
 #define new array to return
