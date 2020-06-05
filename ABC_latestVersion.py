@@ -8,11 +8,6 @@ import itertools as IT
 import string
 import networkx as nx
 
-# check that this one is running with correct files
-# check issue of negatives
-# why double plots? 
-# why slow?
-# try switching to 3 nodes and simplify
 
 ##### ------- Define the function -------------
 
@@ -42,7 +37,7 @@ def ecoNetwork(X, t, interaction_strength_chunk, rowContents_growth):
 
 
 # Define the number of simulations to try
-NUMBER_OF_SIMULATIONS = 1
+NUMBER_OF_SIMULATIONS = 4
 
 # ------ Generate the interaction pairs ------
 
@@ -94,30 +89,19 @@ interaction_strength = interaction_strength.sort_values(by=['x', 'y'], ascending
 interaction_strength.index = species * NUMBER_OF_SIMULATIONS
 interaction_strength.columns = species
 
+
 # # ------- Define the parameters to try in the first ABC ------
 
 
 # # --- GROWTH RATES
 growthRates_csv = pd.read_csv('./growthRates.csv')
 # generate new dataframe with random uniform distribution
-growthRates = pd.DataFrame(np.random.rand(NUMBER_OF_SIMULATIONS, growthRates_csv.shape[1]),
-                           columns=growthRates_csv.columns)
-# max-min
-ranges = growthRates_csv.iloc[1] - growthRates_csv.iloc[0]
-# rescale
-growthRates = (growthRates + growthRates_csv.iloc[0]) * ranges
+growthRates = pd.DataFrame(np.random.uniform(low=growthRates_csv.iloc[0],high=growthRates_csv.iloc[1], size=(NUMBER_OF_SIMULATIONS, interaction_length)),columns=growthRates_csv.columns)
 
 # # --- INITIAL NUMBERS
 initial_numbers_csv = pd.read_csv('./initial_numbers.csv')
-print(initial_numbers_csv.herbivores)
 # generate new dataframe with random uniform distribution
-X0 = pd.DataFrame(np.random.rand(NUMBER_OF_SIMULATIONS,
-                                 initial_numbers_csv.shape[1]),
-                  columns=initial_numbers_csv.columns)
-# max-min
-ranges2 = initial_numbers_csv.iloc[1] - initial_numbers_csv.iloc[0]
-# rescale
-X0_dataFrame = (X0 + initial_numbers_csv.iloc[0]) * ranges2
+X0 = pd.DataFrame(np.random.uniform(low=initial_numbers_csv.iloc[0],high=initial_numbers_csv.iloc[1], size=(NUMBER_OF_SIMULATIONS, interaction_length)),columns=initial_numbers_csv.columns)
 
 
 ###### --------- Solve the ODE-----------
@@ -128,20 +112,16 @@ t = np.linspace(0, 5, 50)
 all_runs = []
 
 # loop through each row of data
-for (rowNumber, rowContents_X0), (rowNumber, rowContents_growth), (interaction_strength_chunk) in zip(X0_dataFrame.iterrows(),
+for (rowNumber, rowContents_X0), (rowNumber, rowContents_growth), (interaction_strength_chunk) in zip(X0.iterrows(),
                                                                                                       growthRates.iterrows(),
                                                                                                       np.array_split(
                                                                                                               interaction_strength,
                                                                                                               NUMBER_OF_SIMULATIONS)):
-    print(rowContents_X0)
-    print(rowContents_growth)
-    print(interaction_strength_chunk)
     first_ABC = integrate.odeint(ecoNetwork, rowContents_X0, t, args=(interaction_strength_chunk, rowContents_growth))
     # append to list
     all_runs = np.append(all_runs, first_ABC)
 
 final_runs = pd.DataFrame(all_runs.reshape(NUMBER_OF_SIMULATIONS * 50, len(species)), columns=species)
-print(final_runs)
 
 
 ###### --------- Filter out unrealistic runs -----------
@@ -154,13 +134,10 @@ print(final_runs)
 
 # # ##### ------ Plotting Populations ---------
 
-herbivores, youngScrub, matureScrub, sapling, matureTree, grassHerbs = first_ABC.T
+herbivores, youngScrub, matureScrub = first_ABC.T
 plt.plot(t, herbivores, label = 'Herbivores')
-plt.plot(t, matureScrub, label = 'Mature scrub')
 plt.plot(t, youngScrub, label = 'Young scrub')
-plt.plot(t, matureTree, label = 'Mature trees')
-plt.plot(t, sapling, label = 'Saplings')
-plt.plot(t, grassHerbs, label = 'Grass and herbaceous plants')
+plt.plot(t, matureScrub, label = 'Mature scrub')
 plt.legend(loc='upper right')
 plt.show()
 
