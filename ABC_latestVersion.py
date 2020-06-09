@@ -37,7 +37,7 @@ def ecoNetwork(X, t, interaction_strength_chunk, rowContents_growth):
 
 
 # Define the number of simulations to try
-NUMBER_OF_SIMULATIONS = 4
+NUMBER_OF_SIMULATIONS = 5
 
 # ------ Generate the interaction pairs ------
 
@@ -104,6 +104,7 @@ initial_numbers_csv = pd.read_csv('./initial_numbers.csv')
 X0 = pd.DataFrame(np.random.uniform(low=initial_numbers_csv.iloc[0],high=initial_numbers_csv.iloc[1], size=(NUMBER_OF_SIMULATIONS, interaction_length)),columns=initial_numbers_csv.columns)
 
 
+
 ###### --------- Solve the ODE-----------
 
 # Define time points: first 5 years, 2000-2004
@@ -117,12 +118,16 @@ for (rowNumber, rowContents_X0), (rowNumber, rowContents_growth), (interaction_s
                                                                                                       np.array_split(
                                                                                                               interaction_strength,
                                                                                                               NUMBER_OF_SIMULATIONS)):
+    # print(rowContents_X0)
+    # print(rowContents_growth)
+    # print(interaction_strength_chunk)
+
     first_ABC = integrate.odeint(ecoNetwork, rowContents_X0, t, args=(interaction_strength_chunk, rowContents_growth))
     # append to list
     all_runs = np.append(all_runs, first_ABC)
 
 final_runs = pd.DataFrame(all_runs.reshape(NUMBER_OF_SIMULATIONS * 50, len(species)), columns=species)
-
+# print(final_runs)
 
 ###### --------- Filter out unrealistic runs -----------
 
@@ -134,10 +139,10 @@ final_runs = pd.DataFrame(all_runs.reshape(NUMBER_OF_SIMULATIONS * 50, len(speci
 
 # # ##### ------ Plotting Populations ---------
 
-herbivores, youngScrub, matureScrub = first_ABC.T
+herbivores, youngScrub, matureScrub, woodland = first_ABC.T
 plt.plot(t, herbivores, label = 'Herbivores')
 plt.plot(t, youngScrub, label = 'Young scrub')
 plt.plot(t, matureScrub, label = 'Mature scrub')
+plt.plot(t, woodland, label = 'Woodland')
 plt.legend(loc='upper right')
 plt.show()
-
