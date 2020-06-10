@@ -1,5 +1,6 @@
-﻿,herbivores,youngScrub,matureScrub,woodland
-herbivores,0,1,1,1
-youngScrub,-1,0,0,0
-matureScrub,-1,0,0,0
-woodland,0,-1,0,0
+﻿,herbivores,youngScrub,matureScrub,woodland,fox
+herbivores,0,1,1,1,-1
+youngScrub,-1,0,0,0,0
+matureScrub,-1,0,0,0,0
+woodland,0,-1,0,0,0
+fox,1,0,0,0,0
