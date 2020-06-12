@@ -37,7 +37,7 @@ def ecoNetwork(X, t, interaction_strength_chunk, rowContents_growth):
 
 
 # Define the number of simulations to try. Bode et al. ran a million
-NUMBER_OF_SIMULATIONS = 5
+NUMBER_OF_SIMULATIONS = 15
 
 
 # ------ Generate the interaction pairs ------
@@ -141,21 +141,23 @@ t = np.linspace(0, 10, 100)
 all_runs = []
 
 # all_parameters = pd.concat([X0, growthRates, interaction_strength])
-
+all_parameters = []
 # loop through each row of data
 for (rowNumber, rowContents_X0), (rowNumber, rowContents_growth), (interaction_strength_chunk) in zip(X0.iterrows(),growthRates.iterrows(),np.array_split(interaction_strength,NUMBER_OF_SIMULATIONS)):
-    # parameters_used = pd.concat([rowContents_X0, rowContents_growth, interaction_strength_chunk])
-    # all_parameters['id'] = list(range(NUMBER_OF_SIMULATIONS)*2)
-    # print(rowContents_X0)
-    # print(rowContents_growth)
-    # print(interaction_strength_chunk)
-
+    parameters_used = pd.concat([rowContents_X0, rowContents_growth, interaction_strength_chunk])
     first_ABC = integrate.odeint(ecoNetwork, rowContents_X0, t, args=(interaction_strength_chunk, rowContents_growth))
-    # append to list
+    # append all the runs
     all_runs = np.append(all_runs, first_ABC)
+    # append all the parameters
+    all_parameters.append(parameters_used)
     # parameters_used.append(all_parameters, parameters_used)
 
+# check the final runs
 final_runs = pd.DataFrame(all_runs.reshape(NUMBER_OF_SIMULATIONS * 100, len(species)), columns=species)
+# append all the data to a datacrame
+all_parameters = pd.concat(all_parameters)
+# add ID to all_parameters
+all_parameters['ID'] = ([(x+1) for x in range(NUMBER_OF_SIMULATIONS) for _ in range(len(parameters_used))])
 
 
 ##### ------ Plotting Populations ---------
@@ -171,18 +173,19 @@ plt.show()
 
 ###### --------- Filter out unrealistic runs -----------
 
-# # select only the last run (filter to the year 2009)
-# accepted_simulations = final_runs.iloc[99::100, :]
-# # assign conditions
+# select only the last run (filter to the year 2009)
+accepted_simulations = final_runs.iloc[99::100, :]
+print(accepted_simulations)
+# assign conditions
 # cond1 = accepted_simulations["woodland"] < 20 & accepted_simulations["woodland"] > 14
 # cond2 = accepted_simulations["matureScrub"] < 10 & accepted_simulations["matureScrub"] > 1
-# # cond3 = accepted_simulations["matureScrub"] < 10 & accepted_simulations["matureScrub"] > 1
+# cond3 = accepted_simulations["matureScrub"] < 10 & accepted_simulations["matureScrub"] > 1
 
-# # make accepted_simulations only those that meet the conditions in 2009
+# make accepted_simulations only those that meet the conditions in 2009
 # accepted_simulations = accepted_simulations[cond1 & cond2]
 
+# pull ID number of the accepted simulations
 
-# pull row number of the accepted simulations
 # final_runs - add "accepted" and "rejected" to the ones that match accepted_simulations
 # accepted_parameters <- all_parameters, filter the row from accepted_simulations
 
