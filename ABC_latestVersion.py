@@ -8,7 +8,6 @@ import itertools as IT
 import string
 import networkx as nx
 
-
 ##### ------- Define the function -------------
 
 def ecoNetwork(X, t, interaction_strength_chunk, rowContents_growth):
@@ -37,7 +36,7 @@ def ecoNetwork(X, t, interaction_strength_chunk, rowContents_growth):
 
 
 # Define the number of simulations to try. Bode et al. ran a million
-NUMBER_OF_SIMULATIONS = 15
+NUMBER_OF_SIMULATIONS = 10
 
 
 # ------ Generate the interaction pairs ------
@@ -50,15 +49,9 @@ species = list(interactionMatrix_csv.columns.values)
 interaction_length = len(interactionMatrix_csv)
 
 
-# # --- make networkX visual of parameter matrix --
-# networkVisual = nx.Graph()
-# # add nodes
-# nx.set_node_attributes(networkVisual, species)
-# # add edges
-# networkVisual.add_edge()
-# # show plot
-# nx.draw(networkVisual, with_labels=True)
-# plot.draw()
+# --- make networkX visual of parameter matrix --
+# G = nx.DiGraph(interactionMatrix_csv.values)
+# nx.draw(G)
 # plt.show()
 
 
@@ -111,12 +104,6 @@ interaction_strength = interaction_strength.sort_values(by=['runs', 'y'], ascend
 interaction_strength.columns = species
 interaction_strength.index = species * NUMBER_OF_SIMULATIONS
 
-# this makes interaction_strength a 3D array
-#   interaction_strength["species"] = species*NUMBER_OF_SIMULATIONS
-#   interaction_strength = interaction_strength.reset_index().set_index(["runs","species"])
-#   del interaction_strength['y']
-
-
 
 
 # # ------- Define the parameters to try in the first ABC ------
@@ -131,7 +118,8 @@ growthRates = pd.DataFrame(np.random.uniform(low=growthRates_csv.iloc[0],high=gr
 initial_numbers_csv = pd.read_csv('./initial_numbers.csv')
 # generate new dataframe with random uniform distribution
 X0 = pd.DataFrame(np.random.uniform(low=initial_numbers_csv.iloc[0],high=initial_numbers_csv.iloc[1], size=(NUMBER_OF_SIMULATIONS, interaction_length)),columns=initial_numbers_csv.columns)
-
+# normalize the data to 0-1
+X0 = X0.div(X0.sum(axis=1), axis=0)
 
 ###### --------- Solve the ODE-----------
 
@@ -139,9 +127,8 @@ X0 = pd.DataFrame(np.random.uniform(low=initial_numbers_csv.iloc[0],high=initial
 t = np.linspace(0, 10, 100)
 
 all_runs = []
-
-# all_parameters = pd.concat([X0, growthRates, interaction_strength])
 all_parameters = []
+
 # loop through each row of data
 for (rowNumber, rowContents_X0), (rowNumber, rowContents_growth), (interaction_strength_chunk) in zip(X0.iterrows(),growthRates.iterrows(),np.array_split(interaction_strength,NUMBER_OF_SIMULATIONS)):
     parameters_used = pd.concat([rowContents_X0, rowContents_growth, interaction_strength_chunk])
@@ -150,23 +137,23 @@ for (rowNumber, rowContents_X0), (rowNumber, rowContents_growth), (interaction_s
     all_runs = np.append(all_runs, first_ABC)
     # append all the parameters
     all_parameters.append(parameters_used)
-    # parameters_used.append(all_parameters, parameters_used)
-
 # check the final runs
 final_runs = pd.DataFrame(all_runs.reshape(NUMBER_OF_SIMULATIONS * 100, len(species)), columns=species)
-# append all the data to a datacrame
+# append all the parameters to a dataframe
 all_parameters = pd.concat(all_parameters)
 # add ID to all_parameters
 all_parameters['ID'] = ([(x+1) for x in range(NUMBER_OF_SIMULATIONS) for _ in range(len(parameters_used))])
 
 
 ##### ------ Plotting Populations ---------
-herbivores, youngScrub, matureScrub, woodland, fox = first_ABC.T
-plt.plot(t, herbivores, label = 'Rabbit')
-plt.plot(t, youngScrub, label = 'Grassland')
-plt.plot(t, matureScrub, label = 'Tree Sapling')
+fallowDeer, longhornCattle, youngScrub, matureScrub, woodland, fox, rabbits = first_ABC.T
+plt.plot(t, fallowDeer, label = 'Fallow deer')
+plt.plot(t, longhornCattle, label = 'Longhorn cattle')
+plt.plot(t, youngScrub, label = 'Young Scrub')
+plt.plot(t, matureScrub, label = 'Mature Scrub')
 plt.plot(t, woodland, label = 'Woodland')
 plt.plot(t, fox, label = 'Fox')
+plt.plot(t, rabbits, label = 'Rabbits')
 plt.legend(loc='upper right')
 plt.show()
 
@@ -176,7 +163,8 @@ plt.show()
 # select only the last run (filter to the year 2009)
 accepted_simulations = final_runs.iloc[99::100, :]
 print(accepted_simulations)
-# assign conditions
+#  assign conditions - MAKE SURE THESE ARE ALSO NORMALIZED 
+
 # cond1 = accepted_simulations["woodland"] < 20 & accepted_simulations["woodland"] > 14
 # cond2 = accepted_simulations["matureScrub"] < 10 & accepted_simulations["matureScrub"] > 1
 # cond3 = accepted_simulations["matureScrub"] < 10 & accepted_simulations["matureScrub"] > 1
@@ -189,6 +177,6 @@ print(accepted_simulations)
 # final_runs - add "accepted" and "rejected" to the ones that match accepted_simulations
 # accepted_parameters <- all_parameters, filter the row from accepted_simulations
 
-
+# re-normalize the data
 
 # # ###### --------- Take posteriors of runs and plug into next  -----------

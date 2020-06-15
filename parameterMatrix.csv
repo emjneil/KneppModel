@@ -1,6 +1,8 @@
-﻿,herbivores,youngScrub,matureScrub,woodland,fox
-herbivores,0,1,1,1,-1
-youngScrub,-1,0,0,0,0
-matureScrub,-1,0,0,0,0
-woodland,0,-1,0,0,0
-fox,1,0,0,0,0
+﻿,fallowDeer,longhornCattle,youngScrub,matureScrub,woodland,fox,rabbits
+fallowDeer,0,0,-1,-1,-1,0,0
+longhornCattle,0,0,-1,-1,-1,0,0
+youngScrub,1,1,0,0,0,0,1
+matureScrub,1,1,0,0,0,0,0
+woodland,0,0,1,0,0,0,0
+fox,0,0,0,0,0,0,0
+rabbits,0,0,-1,-1,0,1,0
