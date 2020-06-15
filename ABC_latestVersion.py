@@ -38,7 +38,6 @@ def ecoNetwork(X, t, interaction_strength_chunk, rowContents_growth):
 # Define the number of simulations to try. Bode et al. ran a million
 NUMBER_OF_SIMULATIONS = 10
 
-
 # ------ Generate the interaction pairs ------
 
 # PARAMETER MATRIX
@@ -50,9 +49,13 @@ interaction_length = len(interactionMatrix_csv)
 
 
 # --- make networkX visual of parameter matrix --
-# G = nx.DiGraph(interactionMatrix_csv.values)
-# nx.draw(G)
-# plt.show()
+species_dict = {k: v for v, k in enumerate(species)}
+networkVisual = nx.DiGraph(interactionMatrix_csv)
+# increase distance between nodes
+pos = nx.spring_layout(networkVisual, scale=2)
+# draw graph
+nx.draw(networkVisual, pos, with_labels=True, font_size = 8, node_size = 5000)
+plt.show()
 
 
 # pull the original sign / number from csv
@@ -114,12 +117,14 @@ growthRates_csv = pd.read_csv('./growthRates.csv')
 # generate new dataframe with random uniform distribution
 growthRates = pd.DataFrame(np.random.uniform(low=growthRates_csv.iloc[0],high=growthRates_csv.iloc[1], size=(NUMBER_OF_SIMULATIONS, interaction_length)),columns=growthRates_csv.columns)
 
+
 # # --- INITIAL NUMBERS
 initial_numbers_csv = pd.read_csv('./initial_numbers.csv')
 # generate new dataframe with random uniform distribution
-X0 = pd.DataFrame(np.random.uniform(low=initial_numbers_csv.iloc[0],high=initial_numbers_csv.iloc[1], size=(NUMBER_OF_SIMULATIONS, interaction_length)),columns=initial_numbers_csv.columns)
+X0_raw = pd.DataFrame(np.random.uniform(low=initial_numbers_csv.iloc[0],high=initial_numbers_csv.iloc[1], size=(NUMBER_OF_SIMULATIONS, interaction_length)),columns=initial_numbers_csv.columns)
 # normalize the data to 0-1
-X0 = X0.div(X0.sum(axis=1), axis=0)
+X0 = X0_raw.div(X0_raw.sum(axis=1), axis=0)
+
 
 ###### --------- Solve the ODE-----------
 
@@ -163,6 +168,7 @@ plt.show()
 # select only the last run (filter to the year 2009)
 accepted_simulations = final_runs.iloc[99::100, :]
 print(accepted_simulations)
+
 #  assign conditions - MAKE SURE THESE ARE ALSO NORMALIZED 
 
 # cond1 = accepted_simulations["woodland"] < 20 & accepted_simulations["woodland"] > 14
