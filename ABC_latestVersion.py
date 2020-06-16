@@ -7,8 +7,10 @@ import numpy as np
 import itertools as IT
 import string
 import networkx as nx
+from sklearn.preprocessing import MinMaxScaler
 
-##### ------- Define the function -------------
+
+##### ------- DEFINE THE FUNCTION -------------
 
 def ecoNetwork(X, t, interaction_strength_chunk, rowContents_growth):
     # define new array to return
@@ -36,9 +38,12 @@ def ecoNetwork(X, t, interaction_strength_chunk, rowContents_growth):
 
 
 # Define the number of simulations to try. Bode et al. ran a million
-NUMBER_OF_SIMULATIONS = 10
+NUMBER_OF_SIMULATIONS = 30
 
-# ------ Generate the interaction pairs ------
+
+
+
+# ------ GENERATE INTERACTION MATRIX ------
 
 # PARAMETER MATRIX
 interactionMatrix_csv = pd.read_csv('./parameterMatrix.csv', index_col=[0])
@@ -46,16 +51,6 @@ interactionMatrix_csv = pd.read_csv('./parameterMatrix.csv', index_col=[0])
 species = list(interactionMatrix_csv.columns.values)
 # remember the shape of the csv array
 interaction_length = len(interactionMatrix_csv)
-
-
-# --- make networkX visual of parameter matrix --
-species_dict = {k: v for v, k in enumerate(species)}
-networkVisual = nx.DiGraph(interactionMatrix_csv)
-# increase distance between nodes
-pos = nx.spring_layout(networkVisual, scale=2)
-# draw graph
-nx.draw(networkVisual, pos, with_labels=True, font_size = 8, node_size = 5000)
-plt.show()
 
 
 # pull the original sign / number from csv
@@ -93,7 +88,6 @@ iterStrength_list = np.array(
     [[np.random.uniform(0, 1, (shape,)) * original_sign] for i in range(NUMBER_OF_SIMULATIONS)])
 iterStrength_list.shape = (NUMBER_OF_SIMULATIONS, interaction_length, interaction_length)
 
-
 # convert to multi-index so that species' headers/cols can be added
 names = ['runs', 'y', 'z']
 index = pd.MultiIndex.from_product([range(s) for s in iterStrength_list.shape], names=names)
@@ -109,16 +103,24 @@ interaction_strength.index = species * NUMBER_OF_SIMULATIONS
 
 
 
-# # ------- Define the parameters to try in the first ABC ------
+# --- MAKE NETWORK X VISUAL OF INTERACTION MATRIX --
+# networkVisual = nx.DiGraph(interactionMatrix_csv)
+# # increase distance between nodes
+# pos = nx.spring_layout(networkVisual, scale=4)
+# # draw graph
+# nx.draw(networkVisual, pos, with_labels=True, font_size = 8, node_size = 4000, node_color = 'lightgray')
+# plt.show()
+# # figure out if some nodes or links should be different colors? e.g. neg vs positive effects...
 
 
-# # --- GROWTH RATES
+
+# --- GENERATE GROWTH RATES
 growthRates_csv = pd.read_csv('./growthRates.csv')
 # generate new dataframe with random uniform distribution
 growthRates = pd.DataFrame(np.random.uniform(low=growthRates_csv.iloc[0],high=growthRates_csv.iloc[1], size=(NUMBER_OF_SIMULATIONS, interaction_length)),columns=growthRates_csv.columns)
 
 
-# # --- INITIAL NUMBERS
+# --- GENERATE INITIAL NUMBERS
 initial_numbers_csv = pd.read_csv('./initial_numbers.csv')
 # generate new dataframe with random uniform distribution
 X0_raw = pd.DataFrame(np.random.uniform(low=initial_numbers_csv.iloc[0],high=initial_numbers_csv.iloc[1], size=(NUMBER_OF_SIMULATIONS, interaction_length)),columns=initial_numbers_csv.columns)
@@ -126,9 +128,9 @@ X0_raw = pd.DataFrame(np.random.uniform(low=initial_numbers_csv.iloc[0],high=ini
 X0 = X0_raw.div(X0_raw.sum(axis=1), axis=0)
 
 
-###### --------- Solve the ODE-----------
+###### --------- SOLVE ODE #1: Pre-reintroductions (2000-2009) -----------
 
-# Define time points: first 10 years, 2000-2009
+# Define time points: first 10 years (2000-2009)
 t = np.linspace(0, 10, 100)
 
 all_runs = []
@@ -150,6 +152,7 @@ all_parameters = pd.concat(all_parameters)
 all_parameters['ID'] = ([(x+1) for x in range(NUMBER_OF_SIMULATIONS) for _ in range(len(parameters_used))])
 
 
+
 ##### ------ Plotting Populations ---------
 fallowDeer, longhornCattle, youngScrub, matureScrub, woodland, fox, rabbits = first_ABC.T
 plt.plot(t, fallowDeer, label = 'Fallow deer')
@@ -163,26 +166,34 @@ plt.legend(loc='upper right')
 plt.show()
 
 
-###### --------- Filter out unrealistic runs -----------
+
+
+###### --------- FILTER OUT UNREALISTIC RUNS -----------
 
 # select only the last run (filter to the year 2009)
-accepted_simulations = final_runs.iloc[99::100, :]
-print(accepted_simulations)
+accepted_year = final_runs.iloc[99::100, :]
+# add ID to the dataframe
+accepted_year.insert(0, 'ID', range(1, 1 + len(accepted_year)))
+print(accepted_year)
 
-#  assign conditions - MAKE SURE THESE ARE ALSO NORMALIZED 
+# #  Assign conditions  
+# conditions_csv = pd.read_csv('./conditions_preReintroduction.csv')
+# # normalize them - check how to make this consistent with the scaling
+# # conditions_raw = conditions_csv.div(conditions_csv.sum(axis=1), axis=0)
+# min_values = conditions_csv.iloc[0]
+# max_values = conditions_csv.iloc[1]
 
-# cond1 = accepted_simulations["woodland"] < 20 & accepted_simulations["woodland"] > 14
-# cond2 = accepted_simulations["matureScrub"] < 10 & accepted_simulations["matureScrub"] > 1
-# cond3 = accepted_simulations["matureScrub"] < 10 & accepted_simulations["matureScrub"] > 1
+# filter the conditions 
+accepted_simulations = accepted_year[(accepted_year['fallowDeer'] <= 10) & (accepted_year['fallowDeer'] >= 0) & 
+(accepted_year['woodland'] <= 10) & (accepted_year['woodland'] >= 0) & 
+(accepted_year['fox'] <= 20) & (accepted_year['fox'] >= 2) & 
+(accepted_year['rabbits'] <= 20) & (accepted_year['rabbits'] >= 1)]
 
-# make accepted_simulations only those that meet the conditions in 2009
-# accepted_simulations = accepted_simulations[cond1 & cond2]
+# match ID number in accepted_simulations to its parameters in all_parameters
+accepted_parameters = all_parameters[all_parameters['ID'].isin(accepted_simulations['ID'])]
+print(accepted_parameters)
 
-# pull ID number of the accepted simulations
 
-# final_runs - add "accepted" and "rejected" to the ones that match accepted_simulations
-# accepted_parameters <- all_parameters, filter the row from accepted_simulations
+###### --------- ODE #2  -----------
 
-# re-normalize the data
-
-# # ###### --------- Take posteriors of runs and plug into next  -----------
+# take the accepted_parameters and make them the initial conditions of the next ODE, + forcings
