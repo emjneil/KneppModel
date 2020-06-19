@@ -7,8 +7,6 @@ import numpy as np
 import itertools as IT
 import string
 import networkx as nx
-from sklearn.preprocessing import MinMaxScaler
-
 
 ##### ------- DEFINE THE FUNCTION -------------
 
@@ -27,19 +25,18 @@ def ecoNetwork(X, t, interaction_strength_chunk, rowContents_growth):
         output_array.append(amount)
 
     # Define the maximum number of herbivores (culling)
-    herb_max = 250
+    # herb_max = 250
 
-    # for the herbivores in amount, don't allow them to go over the max herbivore value defined above
-    # make sure herbivores are in position 1
-    output_array[0] = np.where((X[0] >= herb_max), herb_max - X[0], output_array[0])
+    # # for the herbivores in amount, don't allow them to go over the max herbivore value defined above
+    # # make sure herbivores are in position 1
+    # output_array[0] = np.where((X[0] >= herb_max), herb_max - X[0], output_array[0])
 
     # return array
     return output_array
 
 
 # Define the number of simulations to try. Bode et al. ran a million
-NUMBER_OF_SIMULATIONS = 30
-
+NUMBER_OF_SIMULATIONS = 100
 
 
 
@@ -124,8 +121,12 @@ growthRates = pd.DataFrame(np.random.uniform(low=growthRates_csv.iloc[0],high=gr
 initial_numbers_csv = pd.read_csv('./initial_numbers.csv')
 # generate new dataframe with random uniform distribution
 X0_raw = pd.DataFrame(np.random.uniform(low=initial_numbers_csv.iloc[0],high=initial_numbers_csv.iloc[1], size=(NUMBER_OF_SIMULATIONS, interaction_length)),columns=initial_numbers_csv.columns)
-# normalize the data to 0-1
+# make list = to number of nodes and their scale
+scaled_list = pd.DataFrame([])
+# normalize each row of data to 0-1
 X0 = X0_raw.div(X0_raw.sum(axis=1), axis=0)
+# with pd.option_context('display.max_rows', None, 'display.max_columns', None): 
+#     print(X0)
 
 
 ###### --------- SOLVE ODE #1: Pre-reintroductions (2000-2009) -----------
@@ -154,18 +155,27 @@ all_parameters['ID'] = ([(x+1) for x in range(NUMBER_OF_SIMULATIONS) for _ in ra
 
 
 ##### ------ Plotting Populations ---------
-fallowDeer, longhornCattle, youngScrub, matureScrub, woodland, fox, rabbits = first_ABC.T
+fallowDeer, longhornCattle, redDeer, roeDeer, exmoorPony, tamworthPig, beaver, hedgehog, mustelids, fox, smallRodent, rabbits, bats, amphibianLizard, snakes, songbirds, raptors = first_ABC.T
 plt.plot(t, fallowDeer, label = 'Fallow deer')
 plt.plot(t, longhornCattle, label = 'Longhorn cattle')
-plt.plot(t, youngScrub, label = 'Young Scrub')
-plt.plot(t, matureScrub, label = 'Mature Scrub')
-plt.plot(t, woodland, label = 'Woodland')
+plt.plot(t, redDeer, label = 'Red deer')
+plt.plot(t, roeDeer, label = 'Roe deer')
+plt.plot(t, exmoorPony, label = 'Exmoor pony')
+plt.plot(t, tamworthPig, label = 'Tamworth pig')
+plt.plot(t, beaver, label = 'Beavers')
+plt.plot(t, hedgehog, label = 'Hedgehog')
+plt.plot(t, mustelids, label = 'Mustelids')
 plt.plot(t, fox, label = 'Fox')
+plt.plot(t, smallRodent, label = ' Small Rodent')
 plt.plot(t, rabbits, label = 'Rabbits')
+plt.plot(t, bats, label = 'Bats')
+plt.plot(t, amphibianLizard, label = 'Amphibians and Lizards')
+plt.plot(t, snakes, label = 'Snakes')
+plt.plot(t, songbirds, label = 'Songbirds')
+plt.plot(t, raptors, label = 'Raptors')
+
 plt.legend(loc='upper right')
 plt.show()
-
-
 
 
 ###### --------- FILTER OUT UNREALISTIC RUNS -----------
@@ -174,24 +184,29 @@ plt.show()
 accepted_year = final_runs.iloc[99::100, :]
 # add ID to the dataframe
 accepted_year.insert(0, 'ID', range(1, 1 + len(accepted_year)))
-print(accepted_year)
+# with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+#     print(accepted_year)
 
-# #  Assign conditions  
-# conditions_csv = pd.read_csv('./conditions_preReintroduction.csv')
-# # normalize them - check how to make this consistent with the scaling
-# # conditions_raw = conditions_csv.div(conditions_csv.sum(axis=1), axis=0)
-# min_values = conditions_csv.iloc[0]
-# max_values = conditions_csv.iloc[1]
 
 # filter the conditions 
-accepted_simulations = accepted_year[(accepted_year['fallowDeer'] <= 10) & (accepted_year['fallowDeer'] >= 0) & 
-(accepted_year['woodland'] <= 10) & (accepted_year['woodland'] >= 0) & 
-(accepted_year['fox'] <= 20) & (accepted_year['fox'] >= 2) & 
-(accepted_year['rabbits'] <= 20) & (accepted_year['rabbits'] >= 1)]
+# fallowDeer, longhornCattle, redDeer, exmoorPony, tamworthPig, beaver, hedgehog are all = 0
+accepted_simulations = accepted_year[(accepted_year['roeDeer'] <= (X0['roeDeer'].max())) & (accepted_year['roeDeer'] >= (X0['roeDeer'].min())) &
+(accepted_year['mustelids'] <= (X0['mustelids'].max())) & (accepted_year['mustelids'] >= (X0['mustelids'].min())) &
+(accepted_year['fox'] <= (X0['fox'].max())) & (accepted_year['fox'] >= (X0['fox'].min())) &
+(accepted_year['smallRodent'] <= (X0['smallRodent'].max())) & (accepted_year['smallRodent'] >= (X0['smallRodent'].min())) &
+(accepted_year['rabbits'] <= (X0['rabbits'].max())) & (accepted_year['rabbits'] >= (X0['rabbits'].min())) &
+(accepted_year['bats'] <= (X0['bats'].max())) & (accepted_year['bats'] >= (X0['bats'].min())) &
+(accepted_year['amphibianLizard'] <= (X0['amphibianLizard'].max())) & (accepted_year['amphibianLizard'] >= (X0['amphibianLizard'].min())) &
+(accepted_year['snakes'] <= (X0['snakes'].max())) & (accepted_year['snakes'] >= (X0['snakes'].min())) &
+(accepted_year['songbirds'] <= (X0['songbirds'].max())) & (accepted_year['songbirds'] >= (X0['songbirds'].min()*1.78)) &
+(accepted_year['raptors'] <= (X0['raptors'].max())) & (accepted_year['raptors'] >= (X0['raptors'].min()))
+]
+
+# with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+print(accepted_simulations)
 
 # match ID number in accepted_simulations to its parameters in all_parameters
 accepted_parameters = all_parameters[all_parameters['ID'].isin(accepted_simulations['ID'])]
-print(accepted_parameters)
 
 
 ###### --------- ODE #2  -----------
