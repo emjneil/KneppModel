@@ -1,5 +1,6 @@
 # ---- Approximate Bayesian Computation Model of the Knepp Estate ------
 from scipy import integrate
+from scipy.integrate import solve_ivp
 import pylab as p
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -24,19 +25,12 @@ def ecoNetwork(X, t, interaction_strength_chunk, rowContents_growth):
         # append values to output_array
         output_array.append(amount)
 
-    # Define the maximum number of herbivores (culling)
-    # herb_max = 250
-
-    # # for the herbivores in amount, don't allow them to go over the max herbivore value defined above
-    # # make sure herbivores are in position 1
-    # output_array[0] = np.where((X[0] >= herb_max), herb_max - X[0], output_array[0])
-
     # return array
     return output_array
 
 
 # Define the number of simulations to try. Bode et al. ran a million
-NUMBER_OF_SIMULATIONS = 100
+NUMBER_OF_SIMULATIONS = 10
 
 
 
@@ -48,7 +42,6 @@ interactionMatrix_csv = pd.read_csv('./parameterMatrix.csv', index_col=[0])
 species = list(interactionMatrix_csv.columns.values)
 # remember the shape of the csv array
 interaction_length = len(interactionMatrix_csv)
-
 
 # pull the original sign / number from csv
 original_sign=[]
@@ -125,14 +118,11 @@ X0_raw = pd.DataFrame(np.random.uniform(low=initial_numbers_csv.iloc[0],high=ini
 scaled_list = pd.DataFrame([])
 # normalize each row of data to 0-1
 X0 = X0_raw.div(X0_raw.sum(axis=1), axis=0)
-# with pd.option_context('display.max_rows', None, 'display.max_columns', None): 
-#     print(X0)
-
 
 ###### --------- SOLVE ODE #1: Pre-reintroductions (2000-2009) -----------
 
 # Define time points: first 10 years (2000-2009)
-t = np.linspace(0, 10, 100)
+t = np.linspace(0, 10, 500)
 
 all_runs = []
 all_parameters = []
@@ -141,12 +131,13 @@ all_parameters = []
 for (rowNumber, rowContents_X0), (rowNumber, rowContents_growth), (interaction_strength_chunk) in zip(X0.iterrows(),growthRates.iterrows(),np.array_split(interaction_strength,NUMBER_OF_SIMULATIONS)):
     parameters_used = pd.concat([rowContents_X0, rowContents_growth, interaction_strength_chunk])
     first_ABC = integrate.odeint(ecoNetwork, rowContents_X0, t, args=(interaction_strength_chunk, rowContents_growth))
+    # first_ABC = solve_ivp(ecoNetwork, t_span = (0, 10), y0 = (rowContents_X0), args=(interaction_strength_chunk, rowContents_growth), t_eval = np.linspace(0, 10, 100))
     # append all the runs
     all_runs = np.append(all_runs, first_ABC)
     # append all the parameters
     all_parameters.append(parameters_used)
 # check the final runs
-final_runs = pd.DataFrame(all_runs.reshape(NUMBER_OF_SIMULATIONS * 100, len(species)), columns=species)
+final_runs = pd.DataFrame(all_runs.reshape(NUMBER_OF_SIMULATIONS * 500, len(species)), columns=species)
 # append all the parameters to a dataframe
 all_parameters = pd.concat(all_parameters)
 # add ID to all_parameters
@@ -154,8 +145,8 @@ all_parameters['ID'] = ([(x+1) for x in range(NUMBER_OF_SIMULATIONS) for _ in ra
 
 
 
-##### ------ Plotting Populations ---------
-fallowDeer, longhornCattle, redDeer, roeDeer, exmoorPony, tamworthPig, beaver, hedgehog, mustelids, fox, smallRodent, rabbits, bats, amphibianLizard, snakes, songbirds, raptors = first_ABC.T
+#### ------ Plotting Populations ---------
+fallowDeer, longhornCattle, redDeer, roeDeer, exmoorPony, tamworthPig, beaver, smallMammal, secondaryConsumer, fox, songbirdsCorvids, insects, decomposers, arableGrass, woodland, thornyScrub, Water, organicMatter, soilNutrients = first_ABC.T
 plt.plot(t, fallowDeer, label = 'Fallow deer')
 plt.plot(t, longhornCattle, label = 'Longhorn cattle')
 plt.plot(t, redDeer, label = 'Red deer')
@@ -163,16 +154,17 @@ plt.plot(t, roeDeer, label = 'Roe deer')
 plt.plot(t, exmoorPony, label = 'Exmoor pony')
 plt.plot(t, tamworthPig, label = 'Tamworth pig')
 plt.plot(t, beaver, label = 'Beavers')
-plt.plot(t, hedgehog, label = 'Hedgehog')
-plt.plot(t, mustelids, label = 'Mustelids')
+plt.plot(t, smallMammal, label = 'smallMammal')
+plt.plot(t, secondaryConsumer, label = 'secondaryConsumer')
 plt.plot(t, fox, label = 'Fox')
-plt.plot(t, smallRodent, label = ' Small Rodent')
-plt.plot(t, rabbits, label = 'Rabbits')
-plt.plot(t, bats, label = 'Bats')
-plt.plot(t, amphibianLizard, label = 'Amphibians and Lizards')
-plt.plot(t, snakes, label = 'Snakes')
-plt.plot(t, songbirds, label = 'Songbirds')
-plt.plot(t, raptors, label = 'Raptors')
+plt.plot(t, songbirdsCorvids, label = 'songbirdsCorvids')
+plt.plot(t, insects, label = 'insects')
+plt.plot(t, arableGrass, label = 'arableGrass')
+plt.plot(t, woodland, label = 'woodland')
+plt.plot(t, thornyScrub, label = 'thornyScrub')
+plt.plot(t, Water, label = 'Water')
+plt.plot(t, organicMatter, label = 'organicMatter')
+plt.plot(t, soilNutrients, label = 'soilNutrients')
 
 plt.legend(loc='upper right')
 plt.show()
@@ -181,25 +173,17 @@ plt.show()
 ###### --------- FILTER OUT UNREALISTIC RUNS -----------
 
 # select only the last run (filter to the year 2009)
-accepted_year = final_runs.iloc[99::100, :]
+accepted_year = final_runs.iloc[499::500, :]
 # add ID to the dataframe
 accepted_year.insert(0, 'ID', range(1, 1 + len(accepted_year)))
-# with pd.option_context('display.max_rows', None, 'display.max_columns', None):
-#     print(accepted_year)
 
+with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+    print(accepted_year)
 
 # filter the conditions 
 # fallowDeer, longhornCattle, redDeer, exmoorPony, tamworthPig, beaver, hedgehog are all = 0
 accepted_simulations = accepted_year[(accepted_year['roeDeer'] <= (X0['roeDeer'].max())) & (accepted_year['roeDeer'] >= (X0['roeDeer'].min())) &
-(accepted_year['mustelids'] <= (X0['mustelids'].max())) & (accepted_year['mustelids'] >= (X0['mustelids'].min())) &
-(accepted_year['fox'] <= (X0['fox'].max())) & (accepted_year['fox'] >= (X0['fox'].min())) &
-(accepted_year['smallRodent'] <= (X0['smallRodent'].max())) & (accepted_year['smallRodent'] >= (X0['smallRodent'].min())) &
-(accepted_year['rabbits'] <= (X0['rabbits'].max())) & (accepted_year['rabbits'] >= (X0['rabbits'].min())) &
-(accepted_year['bats'] <= (X0['bats'].max())) & (accepted_year['bats'] >= (X0['bats'].min())) &
-(accepted_year['amphibianLizard'] <= (X0['amphibianLizard'].max())) & (accepted_year['amphibianLizard'] >= (X0['amphibianLizard'].min())) &
-(accepted_year['snakes'] <= (X0['snakes'].max())) & (accepted_year['snakes'] >= (X0['snakes'].min())) &
-(accepted_year['songbirds'] <= (X0['songbirds'].max())) & (accepted_year['songbirds'] >= (X0['songbirds'].min()*1.78)) &
-(accepted_year['raptors'] <= (X0['raptors'].max())) & (accepted_year['raptors'] >= (X0['raptors'].min()))
+(accepted_year['smallMammal'] <= (X0['smallMammal'].max())) & (accepted_year['smallMammal'] >= (X0['smallMammal'].min())) 
 ]
 
 # with pd.option_context('display.max_rows', None, 'display.max_columns', None):
@@ -212,3 +196,21 @@ accepted_parameters = all_parameters[all_parameters['ID'].isin(accepted_simulati
 ###### --------- ODE #2  -----------
 
 # take the accepted_parameters and make them the initial conditions of the next ODE, + forcings
+# all_runs2 = []
+# all_parameters2 = []
+
+# # loop through each row of data
+# for (rowContents_X0), (rowContents_growth), (interaction_strength_chunk) in zip(np.array_split(interaction_strength,NUMBER_OF_SIMULATIONS)):
+#     parameters_used2 = pd.concat([rowContents_X0, rowContents_growth, interaction_strength_chunk])
+#     first_ABC2 = integrate.odeint(ecoNetwork, rowContents_X0, t, args=(interaction_strength_chunk, rowContents_growth))
+#     # first_ABC = solve_ivp(ecoNetwork, t_span = (0, 10), y0 = (rowContents_X0), args=(interaction_strength_chunk, rowContents_growth), t_eval = np.linspace(0, 10, 100))
+#     # append all the runs
+#     all_runs2 = np.append(all_runs, first_ABC)
+#     # append all the parameters
+#     all_parameters2.append(parameters_used)
+# # check the final runs
+# final_runs2 = pd.DataFrame(all_runs2.reshape(NUMBER_OF_SIMULATIONS * 100, len(species)), columns=species)
+# # append all the parameters to a dataframe
+# all_parameters2 = pd.concat(all_parameters2)
+# # add ID to all_parameters
+# all_parameters2['ID'] = ([(x+1) for x in range(NUMBER_OF_SIMULATIONS) for _ in range(len(parameters_used2))])

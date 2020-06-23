@@ -1,3 +1,3 @@
-﻿fallowDeer,longhornCattle,redDeer,roeDeer,exmoorPony,tamworthPig,beaver,hedgehog,mustelids,fox,smallRodent,rabbits,bats,amphibianLizard,snakes,songbirds,raptors
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+﻿fallowDeer,longhornCattle,redDeer,roeDeer,exmoorPony,tamworthPig,beaver,smallMammal,secondaryConsumer,fox,songbirdsCorvids,insects,decomposers,arableGrass,woodland,thornyScrub,Water,organicMatter,soilNutrients
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+0,0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0

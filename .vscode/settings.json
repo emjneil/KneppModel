@@ -1,0 +1,6 @@
+{
+    "python.pythonPath": "python 3.8",
+    "code-runner.executorMap.python": "python3 -u"
+    }
+}
+
