@@ -3,6 +3,7 @@
 # download packages
 from scipy import integrate
 from scipy.integrate import solve_ivp
+from scipy import optimize
 import pylab as p
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -17,7 +18,7 @@ import seaborn as sns
 start = timeit.default_timer()
 
 # define the number of simulations to try. Bode et al. ran a million
-NUMBER_OF_SIMULATIONS = 1500
+NUMBER_OF_SIMULATIONS = 50
 
 
 
@@ -31,11 +32,11 @@ def ecoNetwork(t, X, interaction_strength_chunk, rowContents_growth):
     # loop through all the species, apply generalized Lotka-Volterra equation
     for outer_index, outer_species in enumerate(species): 
         # grab one set of growth rates at a time
-        amount1 = rowContents_growth[outer_species] * X[outer_index]
+        amount = rowContents_growth[outer_species] * X[outer_index]
         for inner_index, inner_species in enumerate(species):
             # grab one set of interaction matrices at a time
-            amount = amount1 + interaction_strength_chunk[outer_species][inner_species] * X[outer_index] * X[inner_index]
-            if amount >= 50:
+            amount += interaction_strength_chunk[outer_species][inner_species] * X[outer_index] * X[inner_index]
+            if amount >= 3:
                 amount = None
                 break
         # append values to output_array
@@ -110,6 +111,7 @@ X0_raw = pd.DataFrame(np.random.uniform(low=initial_numbers_csv.iloc[0],high=ini
 # normalize each row of data to 0-1; divide by 200 to keep it consisntent between runs
 X0 = X0_raw.div(200, axis=0)
 
+
 # --------- SOLVE ODE #1: Pre-reintroductions (2000-2009) -------
 
 # Define time points: first 10 years (2000-2009)
@@ -149,29 +151,41 @@ final_runs['ID'] = np.repeat(IDs,100)
 # final_runs['time'] = pd.DataFrame(time2)
 # select only the last run (filter to the year 2009)
 accepted_year = final_runs.iloc[99::100, :]
-
 for_printing = accepted_year.dropna()
+
+
 with pd.option_context('display.max_columns', None):
     print(for_printing)
-    print(X0)
 
-# filter the conditions
+print(for_printing.shape)
+
+# filter the conditions - start with wide
+# print(X0['woodland'].max())
+# print(X0['woodland'].min())
+# print(accepted_year['woodland'].max())
+# print(accepted_year['woodland'].min())
+
+
 accepted_simulations = accepted_year[(accepted_year['roeDeer'] <= (X0['roeDeer'].max()*4)) & (accepted_year['roeDeer'] >= (X0['roeDeer'].min())) &
-# (accepted_year['fox'] <= (X0['fox'].max())) & (accepted_year['fox'] >= (X0['fox'].min())) &
-# (accepted_year['rabbits'] <= (X0['rabbits'].max())) & (accepted_year['rabbits'] >= (X0['rabbits'].min())) &
-# (accepted_year['raptors'] <= (X0['raptors'].max())) & (accepted_year['raptors'] >= (X0['raptors'].min())) &
-# # (accepted_year['songbirdsCorvids'] <= (X0['songbirdsCorvids'].max())) & (accepted_year['songbirdsCorvids'] >= (X0['songbirdsCorvids'].min()*1.62)) &
-# # (accepted_year['decomposers'] <= (X0['decomposers'].max())) & (accepted_year['decomposers'] >= (X0['decomposers'].min())) &
+(accepted_year['fox'] <= (X0['fox'].max())) & (accepted_year['fox'] >= (X0['fox'].min())) &
+(accepted_year['rabbits'] <= (X0['rabbits'].max())) & (accepted_year['rabbits'] >= (X0['rabbits'].min())) &
 (accepted_year['arableGrass'] <= (X0['arableGrass'].max())) & (accepted_year['arableGrass'] >= (X0['arableGrass'].min()*0.79)) &
-(accepted_year['woodland'] <= (X0['woodland'].max()*1.5)) & (accepted_year['woodland'] >= (X0['woodland'].min()*1.2)) &
+(accepted_year['woodland'] <= (X0['woodland'].max()*1.57)) & (accepted_year['woodland'] >= (X0['woodland'].min()*2.4)) &
 (accepted_year['thornyScrub'] <= (X0['thornyScrub'].max()*2)) & (accepted_year['thornyScrub'] >= (X0['thornyScrub'].min()))
-# (accepted_year['Water'] <= (X0['Water'].max())) & (accepted_year['Water'] >= (X0['Water'].min())) &
-# (accepted_year['organicMatter'] <= (X0['organicMatter'].max()*2)) & (accepted_year[' organicMatter'] >= (X0['organicMatter'].min())) &
-# (accepted_year['soilNutrients'] <= (X0['soilNutrients'].max()*2.16)) & (accepted_year['soilNutrients'] >= (X0['soilNutriµents'].min()))
 ]
 
-with pd.option_context('display.max_columns', None):
-    print(accepted_simulations)
+# # (accepted_year['raptors'] <= (X0['raptors'].max())) & (accepted_year['raptors'] >= (X0['raptors'].min())) &
+# # # (accepted_year['songbirdsCorvids'] <= (X0['songbirdsCorvids'].max())) & (accepted_year['songbirdsCorvids'] >= (X0['songbirdsCorvids'].min()*1.62)) &
+# # # (accepted_year['decomposers'] <= (X0['decomposers'].max())) & (accepted_year['decomposers'] >= (X0['decomposers'].min())) &
+# # (accepted_year['Water'] <= (X0['Water'].max())) & (accepted_year['Water'] >= (X0['Water'].min())) &
+# # (accepted_year['organicMatter'] <= (X0['organicMatter'].max()*2)) & (accepted_year[' organicMatter'] >= (X0['organicMatter'].min())) &
+# # (accepted_year['soilNutrients'] <= (X0['soilNutrients'].max()*2.16)) & (accepted_year['soilNutrients'] >= (X0['soilNutriµents'].min()))
+# ]
+
+# with pd.option_context('display.max_columns', None):
+#     print(accepted_simulations)
+
+print(accepted_simulations.shape)
 
 
 # match ID number in accepted_simulations to its parameters in all_parameters
@@ -236,14 +250,13 @@ final_runs_2['ID'] = np.repeat(IDs,10)
 # select only the last run (filter to the year 2010)
 accepted_year_2010 = final_runs_2.iloc[9::10, :]
 # filter the conditions
-accepted_simulations_2010 = accepted_year_2010[(accepted_year_2010['roeDeer'] <= (X0_2['roeDeer'].max())) & (accepted_year_2010['roeDeer'] >= (X0_2['roeDeer'].min())) &
-(accepted_year_2010['fox'] <= (X0_2['fox'].max())) & (accepted_year_2010['fox'] >= (X0_2['fox'].min()))
+accepted_simulations_2010 = accepted_year_2010[(accepted_year_2010['roeDeer'] <= (X0_2['roeDeer'].max())) & (accepted_year_2010['roeDeer'] >= (X0_2['roeDeer'].min()))
+# (accepted_year_2010['fox'] <= (X0_2['fox'].max()*100)) & (accepted_year_2010['fox'] >= (X0_2['fox'].min()*.0001))
 # (accepted_year_2010['rabbits'] <= (X0_2['rabbits'].max())) & (accepted_year_2010['rabbits'] >= (X0_2['rabbits'].min())) &
-# (accepted_year_2010['arableGrass'] <= (X0['arableGrass'].max())) & (accepted_year_2010['arableGrass'] >= (X0['arableGrass'].min())) &
-# (accepted_year_2010['woodland'] <= (X0['woodland'].max())) & (accepted_year_2010['woodland'] >= (X0['woodland'].min()))
+# (accepted_year_2010['arableGrass'] <= (X0_2['arableGrass'].max())) & (accepted_year_2010['arableGrass'] >= (X0_2['arableGrass'].min())) &
+# (accepted_year_2010['woodland'] <= (X0_2['woodland'].max())) & (accepted_year_2010['woodland'] >= (X0_2['woodland'].min()))
 ]
 
-print(accepted_simulations_2010)
 print(accepted_simulations_2010.shape)
 
 # match ID number in accepted_simulations to its parameters in all_parameters
