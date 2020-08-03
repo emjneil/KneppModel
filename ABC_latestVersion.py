@@ -124,13 +124,17 @@ def ecoNetwork(t, X, interaction_strength_chunk, rowContents_growth):
         for inner_index, inner_species in enumerate(species):
             # grab one set of interaction matrices at a time
             amount += interaction_strength_chunk[outer_species][inner_species] * X[outer_index] * X[inner_index]
+            # this threshold is higher than the ecoNetwork used in the ABC (line 26) because I haven't normalized the X0 values
+            if amount.any() > 5000:
+                amount = None
+                break
         # append values to output_array
         output_array.append(amount)
     # return array
     return output_array
 
 
-def objective(x):
+def objectiveFunction(x):
     X0 = x[0:9]
     growthRate = x[9:18]
     rowContents_growth = pd.DataFrame(data=growthRate.reshape(1,9),columns=species)
@@ -138,57 +142,52 @@ def objective(x):
     interaction_strength_chunk = pd.DataFrame(data=interaction_strength.reshape(9,9),index = species, columns=species)
     t = np.linspace(0, 10, 50)
     results = solve_ivp(ecoNetwork, (0, 10), X0,  t_eval = t, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
-    final_runs = (np.vstack(np.hsplit(results.y.reshape(len(species), 50).transpose(),1)))
-    # return the final year
-    return final_runs[49:50:,] 
+    y = (np.vstack(np.hsplit(results.y.reshape(len(species), 50).transpose(),1)))
+    print(y[49:50:,])
+    if ~np.isnan(y).all():
+        print (((y[49:50:, 2]-226)**2) + ((y[49:50:, 6]-334)**2) + ((y[49:50:, 7]-75.7)**2) + ((y[49:50:, 8]-46.95)**2))
+        return (((y[49:50:, 2]-226)**2) + ((y[49:50:, 6]-334)**2) + ((y[49:50:, 7]-75.7)**2) + ((y[49:50:, 8]-46.95)**2))
 
-def constraint1(x):
-    # filtering conditions
-    y = objective(x)
-    return y[2] + 449.8
+# Filter justifications
+    # roe deer start out 2.25 to 112.46; filter is 2.25 to 449.8. Average = 226.0
+    # arableGrass start out 338 to 401; filter is to 267 to 401; average = 334
+    # woodland start out 22.3 to 62.3; filter is to 53.4 to 97.9; average = 75.7
+    # thornyScrub start out 4.5 to 44.5; filter is 4.9 to 89; average = 46.95
 
-def constraint2(x):
-     y = objective(x)
-     return y[6] + 401
-
-def constraint3(x):
-    # filtering conditions
-    y = objective(x)
-    return y[7] + 97.8 
-
-def constraint4(x):
-    # filtering conditions
-    y = objective(x)
-    return y[8] + 89
-
-# define the constraints
-cons = ({'type': 'ineq', 'fun': lambda x:  constraint1},
-{'type': 'ineq', 'fun': lambda x:  constraint2},
-{'type': 'ineq', 'fun': lambda x:  constraint3},
-{'type': 'ineq', 'fun': lambda x:  constraint4}
-)
-
-# define bounds for each variable 
-bnds = ((0,0),(0,0),(2.25,112.46),(0,0),(0,0),(0,0),(338,401),(22.3,62.3),(4.5,44.5))
-
-
-# make guesses
-X0guess = [0,0,2.25,0,0,0,338,22.3,4.5]
-growthGuess = [0,0,0.5,0,0,0,1,1,1]
-interactionGuess = [0,0,0,0,0,0,-1,-1,-1,
-                    0,0,0,0,0,0,-1,-1,-1,
-                    0,0,0,0,0,0,-1,-1,-1,
-                    0,0,0,0,0,0,-1,-1,-1,
-                    0,0,0,0,0,0,-1,-1,-1,
-                    0,0,0,0,0,0,-1,-1,-1,
-                    1,1,1,1,1,1,0,0,0,
-                    1,1,1,1,1,1,-1,0,-1,
-                    1,1,1,1,1,1,-1,1,0]
+# here are my guesses to start at; X0 is not normalized
+X0guess = [0,0,50,0,0,0,350,40,30]
+growthGuess = [0,0,0.05,0,0,0,5,5,5]
+interactionGuess = [0,0,0,0,0,0,-0.1,-0.1,-0.1,
+                    0,0,0,0,0,0,-0.1,-0.1,-0.1,
+                    0,0,0,0,0,0,-0.5,-0.2,-0.3,
+                    0,0,0,0,0,0,-0.1,-0.1,-0.1,
+                    0,0,0,0,0,0,-0.1,-0.1,-0.1,
+                    0,0,0,0,0,0,-0.1,-0.1,-0.1,
+                    0.3,0.2,0.5,1,1,1,0,0,0,
+                    0.1,0.2,0.3,1,1,1,-0.3,0,-0.2,
+                    0.2,0.1,0.3,1,1,1,-0.2,0.3,0]
 combined = X0guess + growthGuess + interactionGuess
 guess = np.array(combined)
 
+
+# define bounds for each variable 
+X0bds = ((0,0),(0,0),(2.25,112.46),(0,0),(0,0),(0,0),(338,401),(22.3,62.3),(4.5,44.5))
+growthbds = ((0,0),(0,0),(0,10),(0,0),(0,0),(0,0),(0,10),(0,10),(0,10))
+interactionbds = ((0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(-1,0),(-1,0),(-1,0),
+                    (0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(-1,0),(-1,0),(-1,0),
+                    (0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(-1,0),(-1,0),(-1,0),
+                    (0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(-1,0),(-1,0),(-1,0),
+                    (0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(-1,0),(-1,0),(-1,0),
+                    (0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(-1,0),(-1,0),(-1,0),
+                    (0,1),(0,1),(0,1),(0,1),(0,1),(0,1),(0,1),(0,0),(0,0),
+                    (0,1),(0,1),(0,1),(0,1),(0,1),(0,1),(-1,0),(0,0),(-1,0),
+                    (0,1),(0,1),(0,1),(0,1),(0,1),(0,1),(-1,0),(0,1),(0,0))
+# combine them into one dataframe
+bds = X0bds + growthbds + interactionbds
+
+
 # minimize the distance between the final year outputs & the filters (bounds)
-optimization = optimize.minimize(objective, x0 = guess, constraints = cons, method = 'SLSQP')
+optimization = optimize.minimize(objectiveFunction, x0 = guess, bounds = bds, method = 'SLSQP')
 print(optimization)
 
 
