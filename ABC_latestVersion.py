@@ -22,7 +22,7 @@ import seaborn as sns
 start = timeit.default_timer()
 
 # define the number of simulations to try. Bode et al. ran a million
-NUMBER_OF_SIMULATIONS = 50
+NUMBER_OF_SIMULATIONS = 100000
 
 def ecoNetwork(t, X, interaction_strength_chunk, rowContents_growth):
     # define new array to return
@@ -34,14 +34,10 @@ def ecoNetwork(t, X, interaction_strength_chunk, rowContents_growth):
         for inner_index, inner_species in enumerate(species):
             # grab one set of interaction matrices at a time
             amount += interaction_strength_chunk[outer_species][inner_species] * X[outer_index] * X[inner_index]
-            if amount >= 5:
-                amount = None
-                break
         # append values to output_array
         output_array.append(amount)
     # return array
     return output_array
-
 
 
 # # # ---------------------- ODE #1: GENERATE INTERACTION MATRIX -------------------------
@@ -88,8 +84,8 @@ def generateX0():
     initial_numbers_csv = pd.read_csv('./initial_numbers.csv')
     # generate new dataframe with random uniform distribution
     X0_raw = pd.DataFrame(np.random.uniform(low=initial_numbers_csv.iloc[0],high=initial_numbers_csv.iloc[1], size=(NUMBER_OF_SIMULATIONS, len(species))),columns=initial_numbers_csv.columns)
-    # normalize each row of data to 0-1; divide by 200 to keep it consisntent between runs
-    X0 = X0_raw.div(200, axis=0)
+    # normalize each row of data to 0-1; divide by 5000 to keep it consisntent between runs
+    X0 = X0_raw.div(5000, axis=0)
     return X0
 
 
@@ -143,7 +139,6 @@ def runODE_1():
     return final_runs,all_parameters, X0
 
 
-
 # --------- FILTER OUT UNREALISTIC RUNS -----------
 
 def filterRuns_1():
@@ -159,9 +154,9 @@ def filterRuns_1():
         print(for_printing)
         print(for_printing.shape)
     # add filtering criteria
-    accepted_simulations = accepted_year[(accepted_year['roeDeer'] <= (X0['roeDeer'].max()*4)) & (accepted_year['roeDeer'] >= (X0['roeDeer'].min()))
-    (accepted_year['arableGrass'] <= (X0['arableGrass'].max())) & (accepted_year['arableGrass'] >= (X0['arableGrass'].min()*0.79))
-    (accepted_year['woodland'] <= (X0['woodland'].max()*1.57)) & (accepted_year['woodland'] >= (X0['woodland'].min()*2.4))
+    accepted_simulations = accepted_year[(accepted_year['roeDeer'] <= (X0['roeDeer'].max()*4)) & (accepted_year['roeDeer'] >= (X0['roeDeer'].min())) &
+    (accepted_year['arableGrass'] <= (X0['arableGrass'].max())) & (accepted_year['arableGrass'] >= (X0['arableGrass'].min()*0.79)) &
+    (accepted_year['woodland'] <= (X0['woodland'].max()*1.57)) & (accepted_year['woodland'] >= (X0['woodland'].min()*2.4)) &
     (accepted_year['thornyScrub'] <= (X0['thornyScrub'].max()*2)) & (accepted_year['thornyScrub'] >= (X0['thornyScrub'].min()))
     ]
     print(accepted_simulations.shape)
@@ -174,7 +169,7 @@ def filterRuns_1():
 
 
 
-# # # # ---------------------- ODE #2: Years 2009-2010 -------------------------
+# # # # ---------------------- ODE #2: Years 2009-2018 -------------------------
 
 def generateParameters2():
     accepted_parameters, accepted_simulations, final_runs = filterRuns_1()
@@ -188,8 +183,8 @@ def generateParameters2():
     X0_2 = accepted_parameters.loc[accepted_parameters['X0'].notnull(), ['X0']]
     X0_2 = pd.DataFrame(X0_2.values.reshape(len(accepted_simulations), len(species)), columns = species)
     # # add reintroduced species & divide by 200 to keep the scaling/normalization consistent
-    X0_2.loc[:, 'largeHerb'] = [np.random.uniform(low=9671, high=18820)/200 for i in X0_2.index]
-    X0_2.loc[:,'tamworthPig'] = [np.random.uniform(low=1573, high=2910)/200 for i in X0_2.index]
+    X0_2.loc[:, 'largeHerb'] = [np.random.uniform(low=96.71, high=188.20)/5000 for i in X0_2.index]
+    X0_2.loc[:,'tamworthPig'] = [np.random.uniform(low=15.73, high=29.10)/5000 for i in X0_2.index]
     # # select interaction matrices part of the dataframes 
     interaction_strength_2 = accepted_parameters.drop(['X0', 'growth', 'ID'], axis=1)
     interaction_strength_2 = interaction_strength_2.dropna()
@@ -198,7 +193,7 @@ def generateParameters2():
 
 
 
-# # # # # ------ SOLVE ODE #2: Pre-reintroductions (2009-2010) -------
+# # # # # ------ SOLVE ODE #2: Pre-reintroductions (2009-2018) -------
 
 def runODE_2():
     growthRates_2, X0_2, interaction_strength_2, accepted_simulations, accepted_parameters, final_runs  = generateParameters2()
@@ -210,18 +205,86 @@ def runODE_2():
         # concantenate the parameters
         X0_growth_2 = pd.concat([rowContents_X0.rename('X0'), rowContents_growth.rename('growth')], axis = 1)
         parameters_used_2 = pd.concat([X0_growth_2, interaction_strength_chunk])
-        # run the model
+        # run the model for one year 2009-2010 (to account for herbivore numbers being manually controlled every year)
         second_ABC = solve_ivp(ecoNetwork, (0, 1), rowContents_X0,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
-        # append all the runs
-        all_runs_2 = np.append(all_runs_2, second_ABC.y)
+        # take those values and re-run for another year, adding forcings
+        starting_2010 = second_ABC.y[0:13, 4:5]
+        starting_values_2010 = starting_2010.flatten()
+        starting_values_2010[0] = np.random.uniform(low=119.00,high=234.18)/5000
+        starting_values_2010[2] = np.random.uniform(low=7.64,high=14.13)/5000
+        # run the model for another year 2010-2011
+        third_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2010,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
+        # take those values and re-run for another year, adding forcings
+        starting_2011 = third_ABC.y[0:13, 4:5]
+        starting_values_2011 = starting_2011.flatten()
+        starting_values_2011[0] = np.random.uniform(low=147.39,high=289.73)/5000
+        starting_values_2011[2] = np.random.uniform(low=9.88,high=18.29)/5000
+        # run the model for 2011-2012
+        fourth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2011,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
+        # take those values and re-run for another year, adding forcings
+        starting_2012 = fourth_ABC.y[0:13, 4:5]
+        starting_values_2012 = starting_2012.flatten()
+        starting_values_2012[0] = np.random.uniform(low=164.91,high=289.73)/5000
+        starting_values_2012[2] = np.random.uniform(low=14.83,high=27.43)/5000
+        # run the model for 2012-2013
+        fifth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2012,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
+        # take those values and re-run for another year, adding forcings
+        starting_2013 = fifth_ABC.y[0:13, 4:5]
+        starting_values_2013 = starting_2013.flatten()
+        starting_values_2013[0] = np.random.uniform(low=164.91,high=289.73)/5000
+        starting_values_2013[2] = np.random.uniform(low=2.70,high=4.99)/5000
+        # run the model for 2011-2012
+        sixth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2013,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
+        # take those values and re-run for another year, adding forcings
+        starting_2014 = sixth_ABC.y[0:13, 4:5]
+        starting_values_2014 = starting_2014.flatten()
+        starting_values_2014[0] = np.random.uniform(low=311.61,high=622.24)/5000
+        starting_values_2014[2] = np.random.uniform(low=8.09,high=14.97)/5000
+        # run the model for 2011-2012
+        seventh_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2014,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
+        # take those values and re-run for another year, adding forcings
+        starting_2015 = seventh_ABC.y[0:13, 4:5]
+        starting_values_2015 = starting_2015.flatten()
+        starting_values_2015[0] = np.random.uniform(low=138.58,high=276.17)/5000
+        starting_values_2015[2] = np.random.uniform(low=4.04,high=7.48)/5000
+        # run the model for 2011-2012
+        eighth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2015,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
+        # take those values and re-run for another year, adding forcings
+        starting_2016 = eighth_ABC.y[0:13, 4:5]
+        starting_values_2016 = starting_2016.flatten()
+        starting_values_2016[0] = np.random.uniform(low=125.71,high=253.80)/5000
+        starting_values_2016[2] = np.random.uniform(low=3.15,high=5.82)/5000
+        # run the model for 2011-2012
+        ninth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2016,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
+        # take those values and re-run for another year, adding forcings
+        starting_2017 = ninth_ABC.y[0:13, 4:5]
+        starting_values_2017 = starting_2017.flatten()
+        starting_values_2017[0] = np.random.uniform(low=119.00,high=622.24)/5000
+        starting_values_2017[2] = np.random.uniform(low=2.70,high=27.43)/5000
+        # run the model for 2011-2012
+        tenth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2017,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
+        # take those values and re-run for another year, adding forcings
+        starting_2018 = tenth_ABC.y[0:13, 4:5]
+        starting_values_2018 = starting_2018.flatten()
+        starting_values_2018[0] = np.random.uniform(low=119.00,high=622.24)/5000
+        starting_values_2018[2] = np.random.uniform(low=2.70,high=27.43)/5000
+        # run the model for 2011-2012
+        eleventh_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2018,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
+        # concatenate & append all the runs
+        combined_runs = np.hstack((second_ABC.y, third_ABC.y, fourth_ABC.y, fifth_ABC.y, sixth_ABC.y, seventh_ABC.y, eighth_ABC.y, ninth_ABC.y, tenth_ABC.y, eleventh_ABC.y))
+        # print(combined_runs)
+        all_runs_2 = np.append(all_runs_2, combined_runs)
         # append all the parameters
         all_parameters_2.append(parameters_used_2)
+        
     # check the final runs
-    final_runs_2 = (np.vstack(np.hsplit(all_runs_2.reshape(len(species)*len(accepted_simulations), 5).transpose(),len(accepted_simulations))))
+    final_runs_2 = (np.vstack(np.hsplit(all_runs_2.reshape(len(species)*len(accepted_simulations), 50).transpose(),len(accepted_simulations))))
     final_runs_2 = pd.DataFrame(data=final_runs_2, columns=species)
+    # with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+    #     print(final_runs_2)
     # add ID to the dataframe
     IDs = np.arange(1,1 + len(accepted_simulations))
-    final_runs_2['ID'] = np.repeat(IDs,5)
+    final_runs_2['ID'] = np.repeat(IDs,50)
     return final_runs_2, all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs
 
 
@@ -231,21 +294,18 @@ def runODE_2():
 def filterRuns_2():
     final_runs_2, all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs = runODE_2()
     # select only the last run (filter to the year 2010)
-    accepted_year_2010 = final_runs_2.iloc[4::5, :]
-    accepted_simulations_2010 = accepted_year_2010[(accepted_year_2010['roeDeer'] <= (X0_2['roeDeer'].max())) & (accepted_year_2010['roeDeer'] >= (X0_2['roeDeer'].min()))
-    # # (accepted_year_2010['fox'] <= (X0_2['fox'].max()*100)) & (accepted_year_2010['fox'] >= (X0_2['fox'].min()*.0001))
-    # # (accepted_year_2010['rabbits'] <= (X0_2['rabbits'].max())) & (accepted_year_2010['rabbits'] >= (X0_2['rabbits'].min())) &
-    # # (accepted_year_2010['arableGrass'] <= (X0_2['arableGrass'].max())) & (accepted_year_2010['arableGrass'] >= (X0_2['arableGrass'].min())) &
-    # # (accepted_year_2010['woodland'] <= (X0_2['woodland'].max())) & (accepted_year_2010['woodland'] >= (X0_2['woodland'].min()))
+    accepted_year_2018 = final_runs_2.iloc[49::50, :]
+    accepted_simulations_2018 = accepted_year_2018[(accepted_year_2018['roeDeer'] <= (X0_2['roeDeer'].max())) & (accepted_year_2018['roeDeer'] >= (X0_2['roeDeer'].min())) &
+    (accepted_year_2018['arableGrass'] <= (X0_2['arableGrass'].max()*0.67)) & (accepted_year_2018['arableGrass'] >= (X0_2['arableGrass'].min()*0.8)) &
+    (accepted_year_2018['woodland'] <= (X0_2['woodland'].max()*0.82)) & (accepted_year_2018['woodland'] >= (X0_2['woodland'].min()*0.58)) &
+    (accepted_year_2018['thornyScrub'] <= (X0_2['thornyScrub'].max()*1.75)) & (accepted_year_2018['thornyScrub'] >= (X0_2['thornyScrub'].max()*0.91))
     ]
-    print(accepted_simulations_2010.shape)
+    print(accepted_simulations_2018.shape)
     # match ID number in accepted_simulations to its parameters in all_parameters
-    accepted_parameters_2010 = accepted_simulations_2010[accepted_simulations_2010['ID'].isin(accepted_simulations_2010['ID'])]
+    accepted_parameters_2018 = accepted_simulations_2018[accepted_simulations_2018['ID'].isin(accepted_simulations_2018['ID'])]
     # add accepted ID to original dataframe
-    final_runs_2['accepted?'] = np.where(final_runs_2['ID'].isin(accepted_simulations_2010['ID']), 'Yes', 'No')
-    return accepted_simulations_2010, accepted_parameters_2010, final_runs_2, all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs
-
-
+    final_runs_2['accepted?'] = np.where(final_runs_2['ID'].isin(accepted_simulations_2018['ID']), 'Yes', 'No')
+    return accepted_simulations_2018, accepted_parameters_2018, final_runs_2, all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs
 
 
 
@@ -253,7 +313,7 @@ def filterRuns_2():
 # # # # # ----------------------------- PLOTTING POPULATIONS (2000-2010) ----------------------------- 
 
 def plotting():
-    accepted_simulations_2010, accepted_parameters_2010, final_runs_2, all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs = filterRuns_2()
+    accepted_simulations_2018, accepted_parameters_2018, final_runs_2, all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs = filterRuns_2()
     # extract accepted nodes from all dataframes
     accepted_shape1 = np.repeat(final_runs['accepted?'], len(species))
     accepted_shape2 = np.repeat(final_runs_2['accepted?'], len(species))
@@ -268,20 +328,21 @@ def plotting():
     y_values = np.concatenate((final_runs1, final_runs2), axis=None)
     # we want species column to be spec1,spec2,spec3,spec4, etc.
     species_firstRun = np.tile(species, 50*NUMBER_OF_SIMULATIONS)
-    species_secondRun = np.tile(species, 5*len(accepted_simulations))
+    species_secondRun = np.tile(species, 50*len(accepted_simulations))
     species_list = np.concatenate((species_firstRun, species_secondRun), axis=None)
     # add a grouping variable to graph each run separately
     grouping1 = np.arange(1,NUMBER_OF_SIMULATIONS+1)
     grouping_variable1 = np.repeat(grouping1,50*len(species))
     grouping2 = np.arange(NUMBER_OF_SIMULATIONS+2, NUMBER_OF_SIMULATIONS + 2 + len(accepted_simulations))
-    grouping_variable2 = np.repeat(grouping2,5*len(species))
+    grouping_variable2 = np.repeat(grouping2,50*len(species))
     # concantenate them 
     grouping_variable = np.concatenate((grouping_variable1, grouping_variable2), axis=None)
-    # years - we've looked at 11 so far (2000-2010)
+    # years - we've looked at 19 so far (2000-2018)
     year = np.arange(1,11)
+    year2 = np.arange(11,21)
     indices1 = np.repeat(year,len(species)*5)
     indices1 = np.tile(indices1, NUMBER_OF_SIMULATIONS)
-    indices2 = np.repeat(11,len(species)*5)
+    indices2 = np.repeat(year2,len(species)*5)
     indices2 = np.tile(indices2, len(accepted_simulations))
     indices = np.concatenate((indices1, indices2), axis=None)
     # put it in a dataframe
@@ -293,7 +354,7 @@ def plotting():
     # plot
     sns.relplot(x="time", y="nodeValues",
                 hue="runAccepted", col="species",
-                palette=palette, height=3, aspect=.75, facet_kws=dict(sharex=False, sharey=False),
+                palette=palette, height=2.5, aspect=.75, facet_kws=dict(sharex=False, sharey=False),
                 kind="line", legend="full", col_wrap=4, data=example_df)
     plt.show()
 
