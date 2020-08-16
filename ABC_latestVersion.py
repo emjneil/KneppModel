@@ -22,7 +22,7 @@ import seaborn as sns
 start = timeit.default_timer()
 
 # define the number of simulations to try. Bode et al. ran a million
-NUMBER_OF_SIMULATIONS = 1000
+NUMBER_OF_SIMULATIONS = 500
 
 def ecoNetwork(t, X, interaction_strength_chunk, rowContents_growth):
     # define new array to return
@@ -55,10 +55,27 @@ def generateInteractionMatrix():
     species = list(interactionMatrix_csv.columns.values)
     # remember the shape of the csv array
     interaction_length = len(interactionMatrix_csv)
-    # make lots of these arrays, with the minimimum = minimization value/2; maximum = minimum*4 (minimization value * 2)
+    # pull the original sign of the interaction
+    original_sign=[0,0,0,0,0,0,0,0,0,-1,-1,-1,0,
+                    0,0,0,0,0,1,0,0,0,-1,-1,-1,0,
+                    0,0,0,0,0,0,0,0,-1,-1,-1,-1,0,
+                    0,0,0,0,0,0,0,0,0,-1,-1,0,1,
+                    0,0,0,0,0,1,0,1,0,-1,-1,-1,0,
+                    0,-1,0,0,-1,0,0,0,0,0,0,0,0,
+                    0,0,0,0,0,0,0,1,0,0,0,0,0,
+                    0,0,0,0,-1,0,-1,0,-1,0,0,0,0,
+                    0,0,1,0,0,0,0,1,0,0,0,0,0,
+                    1,1,1,1,1,0,0,0,0,0,0,0,0,
+                    1,1,1,1,1,0,0,0,0,-1,0,-1,0,
+                    1,1, 1,0,1,0,1,0,1,-1,1,0,0,
+                    1,1,1,1,0,0,1,1,1,-1,-1,-1,0]
+    # find the shape of original_sign
+    shape = len(original_sign)
+    # make lots of these arrays, with the minimimum = minimization value/2; maximum = minimum*4 (minimization value * 2); consistent with sign
     iterStrength_list = np.array(
-        [[np.random.uniform(interactionMatrix_csv.values, interactionMatrix_csv.values*3)] for i in range(NUMBER_OF_SIMULATIONS)])
+        [[np.random.uniform(interactionMatrix_csv.values.flatten(), interactionMatrix_csv.values.flatten()*4, (shape,)) * original_sign] for i in range(NUMBER_OF_SIMULATIONS)])
     iterStrength_list.shape = (NUMBER_OF_SIMULATIONS, interaction_length, interaction_length)
+    print(iterStrength_list)
     # convert to multi-index so that species' headers/cols can be added
     names = ['runs', 'species', 'z']
     index = pd.MultiIndex.from_product([range(s) for s in iterStrength_list.shape], names=names)
@@ -70,6 +87,7 @@ def generateInteractionMatrix():
     # add headers/columns
     interaction_strength.columns = species
     interaction_strength.index = species * NUMBER_OF_SIMULATIONS
+    print(interaction_strength)
     return interaction_strength
 
 
@@ -154,11 +172,12 @@ def filterRuns_1():
         print(X0)
         print(for_printing)
         print(for_printing.shape)
-    # add filtering criteria
-    accepted_simulations = accepted_year[(accepted_year['roeDeer'] <= (X0['roeDeer'].max()*4)) & (accepted_year['roeDeer'] >= (X0['roeDeer'].min())) &
-    (accepted_year['arableGrass'] <= (X0['arableGrass'].max())) & (accepted_year['arableGrass'] >= (X0['arableGrass'].min()*0.79)) &
-    (accepted_year['woodland'] <= (X0['woodland'].max()*1.57)) & (accepted_year['woodland'] >= (X0['woodland'].min()*2.4)) &
-    (accepted_year['thornyScrub'] <= (X0['thornyScrub'].max()*2)) & (accepted_year['thornyScrub'] >= (X0['thornyScrub'].min()))
+        print(for_printing['thornyScrub'].max())
+    # add filtering criteria - make sure these are in line with the new min/max X0 values (from the minimization), not the original X0 bounds
+    accepted_simulations = accepted_year[(accepted_year['roeDeer'] <= (X0['roeDeer'].max()*25)) & (accepted_year['roeDeer'] >= (X0['roeDeer'].min()*0.37)) &
+    (accepted_year['arableGrass'] <= (X0['arableGrass'].max()*0.58)) & (accepted_year['arableGrass'] >= (X0['arableGrass'].min()*1.50)) &
+    (accepted_year['woodland'] <= (X0['woodland'].max()*1.3)) & (accepted_year['woodland'] >= (X0['woodland'].min()*2.8)) &
+    (accepted_year['thornyScrub'] <= (X0['thornyScrub'].max()*1.5)) & (accepted_year['thornyScrub'] >= (X0['thornyScrub'].min()*0.33))
     ]
     print(accepted_simulations.shape)
     # match ID number in accepted_simulations to its parameters in all_parameters
@@ -294,12 +313,12 @@ def runODE_2():
 # --------- FILTER OUT UNREALISTIC RUNS: Post-reintroductions -----------
 def filterRuns_2():
     final_runs_2, all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs = runODE_2()
-    # select only the last run (filter to the year 2010)
+    # select only the last run (filter to the year 2010); make sure these are in line with the new min/max X0 values (from the minimization), not the original X0 bounds
     accepted_year_2018 = final_runs_2.iloc[49::50, :]
     accepted_simulations_2018 = accepted_year_2018[(accepted_year_2018['roeDeer'] <= (X0_2['roeDeer'].max())) & (accepted_year_2018['roeDeer'] >= (X0_2['roeDeer'].min())) &
-    (accepted_year_2018['arableGrass'] <= (X0_2['arableGrass'].max()*0.67)) & (accepted_year_2018['arableGrass'] >= (X0_2['arableGrass'].min()*0.8)) &
+    (accepted_year_2018['arableGrass'] <= (X0_2['arableGrass'].max()*0.65)) & (accepted_year_2018['arableGrass'] >= (X0_2['arableGrass'].min()*0.85)) &
     (accepted_year_2018['woodland'] <= (X0_2['woodland'].max()*0.82)) & (accepted_year_2018['woodland'] >= (X0_2['woodland'].min()*0.58)) &
-    (accepted_year_2018['thornyScrub'] <= (X0_2['thornyScrub'].max()*1.75)) & (accepted_year_2018['thornyScrub'] >= (X0_2['thornyScrub'].max()*0.91))
+    (accepted_year_2018['thornyScrub'] <= (X0_2['thornyScrub'].max()*1.75)) & (accepted_year_2018['thornyScrub'] >= (X0_2['thornyScrub'].min()*20))
     ]
     print(accepted_simulations_2018.shape)
     # match ID number in accepted_simulations to its parameters in all_parameters
