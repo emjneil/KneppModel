@@ -22,7 +22,7 @@ import seaborn as sns
 start = timeit.default_timer()
 
 # define the number of simulations to try. Bode et al. ran a million
-NUMBER_OF_SIMULATIONS = 100000
+NUMBER_OF_SIMULATIONS = 1000
 
 def ecoNetwork(t, X, interaction_strength_chunk, rowContents_growth):
     # define new array to return
@@ -57,7 +57,7 @@ def generateInteractionMatrix():
     interaction_length = len(interactionMatrix_csv)
     # make lots of these arrays, with the minimimum = minimization value/2; maximum = minimum*4 (minimization value * 2)
     iterStrength_list = np.array(
-        [[np.random.uniform(interactionMatrix_csv.values, interactionMatrix_csv.values*4)] for i in range(NUMBER_OF_SIMULATIONS)])
+        [[np.random.uniform(interactionMatrix_csv.values, interactionMatrix_csv.values*3)] for i in range(NUMBER_OF_SIMULATIONS)])
     iterStrength_list.shape = (NUMBER_OF_SIMULATIONS, interaction_length, interaction_length)
     # convert to multi-index so that species' headers/cols can be added
     names = ['runs', 'species', 'z']
@@ -84,8 +84,8 @@ def generateX0():
     initial_numbers_csv = pd.read_csv('./initial_numbers.csv')
     # generate new dataframe with random uniform distribution
     X0_raw = pd.DataFrame(np.random.uniform(low=initial_numbers_csv.iloc[0],high=initial_numbers_csv.iloc[1], size=(NUMBER_OF_SIMULATIONS, len(species))),columns=initial_numbers_csv.columns)
-    # normalize each row of data to 0-1; divide by 5000 to keep it consisntent between runs
-    X0 = X0_raw.div(5000, axis=0)
+    # normalize each row of data to 0-1; divide by 200 to keep it consisntent between runs
+    X0 = X0_raw.div(200, axis=0)
     return X0
 
 
@@ -151,6 +151,7 @@ def filterRuns_1():
     for_printing = accepted_year.dropna()
     # print that
     with pd.option_context('display.max_columns', None):
+        print(X0)
         print(for_printing)
         print(for_printing.shape)
     # add filtering criteria
@@ -183,8 +184,8 @@ def generateParameters2():
     X0_2 = accepted_parameters.loc[accepted_parameters['X0'].notnull(), ['X0']]
     X0_2 = pd.DataFrame(X0_2.values.reshape(len(accepted_simulations), len(species)), columns = species)
     # # add reintroduced species & divide by 200 to keep the scaling/normalization consistent
-    X0_2.loc[:, 'largeHerb'] = [np.random.uniform(low=96.71, high=188.20)/5000 for i in X0_2.index]
-    X0_2.loc[:,'tamworthPig'] = [np.random.uniform(low=15.73, high=29.10)/5000 for i in X0_2.index]
+    X0_2.loc[:, 'largeHerb'] = [np.random.uniform(low=96.71, high=188.20)/200 for i in X0_2.index]
+    X0_2.loc[:,'tamworthPig'] = [np.random.uniform(low=15.73, high=29.10)/200 for i in X0_2.index]
     # # select interaction matrices part of the dataframes 
     interaction_strength_2 = accepted_parameters.drop(['X0', 'growth', 'ID'], axis=1)
     interaction_strength_2 = interaction_strength_2.dropna()
@@ -210,64 +211,64 @@ def runODE_2():
         # take those values and re-run for another year, adding forcings
         starting_2010 = second_ABC.y[0:13, 4:5]
         starting_values_2010 = starting_2010.flatten()
-        starting_values_2010[0] = np.random.uniform(low=119.00,high=234.18)/5000
-        starting_values_2010[2] = np.random.uniform(low=7.64,high=14.13)/5000
+        starting_values_2010[0] = np.random.uniform(low=119.00,high=234.18)/200
+        starting_values_2010[2] = np.random.uniform(low=7.64,high=14.13)/200
         # run the model for another year 2010-2011
         third_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2010,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
         # take those values and re-run for another year, adding forcings
         starting_2011 = third_ABC.y[0:13, 4:5]
         starting_values_2011 = starting_2011.flatten()
-        starting_values_2011[0] = np.random.uniform(low=147.39,high=289.73)/5000
-        starting_values_2011[2] = np.random.uniform(low=9.88,high=18.29)/5000
+        starting_values_2011[0] = np.random.uniform(low=147.39,high=289.73)/200
+        starting_values_2011[2] = np.random.uniform(low=9.88,high=18.29)/200
         # run the model for 2011-2012
         fourth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2011,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
         # take those values and re-run for another year, adding forcings
         starting_2012 = fourth_ABC.y[0:13, 4:5]
         starting_values_2012 = starting_2012.flatten()
-        starting_values_2012[0] = np.random.uniform(low=164.91,high=289.73)/5000
-        starting_values_2012[2] = np.random.uniform(low=14.83,high=27.43)/5000
+        starting_values_2012[0] = np.random.uniform(low=164.91,high=289.73)/200
+        starting_values_2012[2] = np.random.uniform(low=14.83,high=27.43)/200
         # run the model for 2012-2013
         fifth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2012,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
         # take those values and re-run for another year, adding forcings
         starting_2013 = fifth_ABC.y[0:13, 4:5]
         starting_values_2013 = starting_2013.flatten()
-        starting_values_2013[0] = np.random.uniform(low=164.91,high=289.73)/5000
-        starting_values_2013[2] = np.random.uniform(low=2.70,high=4.99)/5000
+        starting_values_2013[0] = np.random.uniform(low=164.91,high=289.73)/200
+        starting_values_2013[2] = np.random.uniform(low=2.70,high=4.99)/200
         # run the model for 2011-2012
         sixth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2013,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
         # take those values and re-run for another year, adding forcings
         starting_2014 = sixth_ABC.y[0:13, 4:5]
         starting_values_2014 = starting_2014.flatten()
-        starting_values_2014[0] = np.random.uniform(low=311.61,high=622.24)/5000
-        starting_values_2014[2] = np.random.uniform(low=8.09,high=14.97)/5000
+        starting_values_2014[0] = np.random.uniform(low=311.61,high=622.24)/200
+        starting_values_2014[2] = np.random.uniform(low=8.09,high=14.97)/200
         # run the model for 2011-2012
         seventh_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2014,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
         # take those values and re-run for another year, adding forcings
         starting_2015 = seventh_ABC.y[0:13, 4:5]
         starting_values_2015 = starting_2015.flatten()
-        starting_values_2015[0] = np.random.uniform(low=138.58,high=276.17)/5000
-        starting_values_2015[2] = np.random.uniform(low=4.04,high=7.48)/5000
+        starting_values_2015[0] = np.random.uniform(low=138.58,high=276.17)/200
+        starting_values_2015[2] = np.random.uniform(low=4.04,high=7.48)/200
         # run the model for 2011-2012
         eighth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2015,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
         # take those values and re-run for another year, adding forcings
         starting_2016 = eighth_ABC.y[0:13, 4:5]
         starting_values_2016 = starting_2016.flatten()
-        starting_values_2016[0] = np.random.uniform(low=125.71,high=253.80)/5000
-        starting_values_2016[2] = np.random.uniform(low=3.15,high=5.82)/5000
+        starting_values_2016[0] = np.random.uniform(low=125.71,high=253.80)/200
+        starting_values_2016[2] = np.random.uniform(low=3.15,high=5.82)/200
         # run the model for 2011-2012
         ninth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2016,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
         # take those values and re-run for another year, adding forcings
         starting_2017 = ninth_ABC.y[0:13, 4:5]
         starting_values_2017 = starting_2017.flatten()
-        starting_values_2017[0] = np.random.uniform(low=119.00,high=622.24)/5000
-        starting_values_2017[2] = np.random.uniform(low=2.70,high=27.43)/5000
+        starting_values_2017[0] = np.random.uniform(low=119.00,high=622.24)/200
+        starting_values_2017[2] = np.random.uniform(low=2.70,high=27.43)/200
         # run the model for 2011-2012
         tenth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2017,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
         # take those values and re-run for another year, adding forcings
         starting_2018 = tenth_ABC.y[0:13, 4:5]
         starting_values_2018 = starting_2018.flatten()
-        starting_values_2018[0] = np.random.uniform(low=119.00,high=622.24)/5000
-        starting_values_2018[2] = np.random.uniform(low=2.70,high=27.43)/5000
+        starting_values_2018[0] = np.random.uniform(low=119.00,high=622.24)/200
+        starting_values_2018[2] = np.random.uniform(low=2.70,high=27.43)/200
         # run the model for 2011-2012
         eleventh_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2018,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
         # concatenate & append all the runs
