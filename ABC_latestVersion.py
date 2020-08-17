@@ -22,7 +22,7 @@ import seaborn as sns
 start = timeit.default_timer()
 
 # define the number of simulations to try. Bode et al. ran a million
-NUMBER_OF_SIMULATIONS = 500
+NUMBER_OF_SIMULATIONS = 100000
 
 def ecoNetwork(t, X, interaction_strength_chunk, rowContents_growth):
     # define new array to return
@@ -34,6 +34,9 @@ def ecoNetwork(t, X, interaction_strength_chunk, rowContents_growth):
         for inner_index, inner_species in enumerate(species):
             # grab one set of interaction matrices at a time
             amount += interaction_strength_chunk[outer_species][inner_species] * X[outer_index] * X[inner_index]
+            if amount > 5:
+                amount = None
+                break
         # append values to output_array
         output_array.append(amount)
     # return array
@@ -75,7 +78,6 @@ def generateInteractionMatrix():
     iterStrength_list = np.array(
         [[np.random.uniform(interactionMatrix_csv.values.flatten(), interactionMatrix_csv.values.flatten()*4, (shape,)) * original_sign] for i in range(NUMBER_OF_SIMULATIONS)])
     iterStrength_list.shape = (NUMBER_OF_SIMULATIONS, interaction_length, interaction_length)
-    print(iterStrength_list)
     # convert to multi-index so that species' headers/cols can be added
     names = ['runs', 'species', 'z']
     index = pd.MultiIndex.from_product([range(s) for s in iterStrength_list.shape], names=names)
@@ -87,7 +89,6 @@ def generateInteractionMatrix():
     # add headers/columns
     interaction_strength.columns = species
     interaction_strength.index = species * NUMBER_OF_SIMULATIONS
-    print(interaction_strength)
     return interaction_strength
 
 
