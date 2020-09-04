@@ -22,7 +22,7 @@ import seaborn as sns
 start = timeit.default_timer()
 
 # define the number of simulations to try. Bode et al. ran a million
-NUMBER_OF_SIMULATIONS = 100000
+NUMBER_OF_SIMULATIONS = 5
 
 def ecoNetwork(t, X, interaction_strength_chunk, rowContents_growth):
     # define new array to return
@@ -34,9 +34,6 @@ def ecoNetwork(t, X, interaction_strength_chunk, rowContents_growth):
         for inner_index, inner_species in enumerate(species):
             # grab one set of interaction matrices at a time
             amount += interaction_strength_chunk[outer_species][inner_species] * X[outer_index] * X[inner_index]
-            if amount > 5:
-                amount = None
-                break
         # append values to output_array
         output_array.append(amount)
     # return array
@@ -64,19 +61,19 @@ def generateInteractionMatrix():
                     0,0,0,0,0,0,0,0,-1,-1,-1,-1,0,
                     0,0,0,0,0,0,0,0,0,-1,-1,0,1,
                     0,0,0,0,0,1,0,1,0,-1,-1,-1,0,
-                    0,-1,0,0,-1,0,0,0,0,0,0,0,0,
-                    0,0,0,0,0,0,0,1,0,0,0,0,0,
+                    0,-1,0,0,-1,0,-1,0,0,0,0,0,0,
+                    0,0,0,0,0,1,0,1,0,0,0,0,0,
                     0,0,0,0,-1,0,-1,0,-1,0,0,0,0,
                     0,0,1,0,0,0,0,1,0,0,0,0,0,
                     1,1,1,1,1,0,0,0,0,0,0,0,0,
-                    1,1,1,1,1,0,0,0,0,-1,0,-1,0,
-                    1,1, 1,0,1,0,1,0,1,-1,1,0,0,
+                    1,1,1,1,1,0,1,1,0,-1,0,-1,0,
+                    1,1,1,0,1,0,1,0,1,-1,1,0,0,
                     1,1,1,1,0,0,1,1,1,-1,-1,-1,0]
     # find the shape of original_sign
     shape = len(original_sign)
-    # make lots of these arrays, with the minimimum = minimization value/2; maximum = minimum*4 (minimization value * 2); consistent with sign
+    # make lots of these arrays, half-to-double minimization outputs & consistent with sign
     iterStrength_list = np.array(
-        [[np.random.uniform(interactionMatrix_csv.values.flatten(), interactionMatrix_csv.values.flatten()*4, (shape,)) * original_sign] for i in range(NUMBER_OF_SIMULATIONS)])
+        [[np.random.uniform(interactionMatrix_csv.values.flatten()/2, interactionMatrix_csv.values.flatten()*2, (shape,)) * original_sign] for i in range(NUMBER_OF_SIMULATIONS)])
     iterStrength_list.shape = (NUMBER_OF_SIMULATIONS, interaction_length, interaction_length)
     # convert to multi-index so that species' headers/cols can be added
     names = ['runs', 'species', 'z']
@@ -95,16 +92,16 @@ def generateInteractionMatrix():
 def generateGrowth():
     growthRates_csv = pd.read_csv('./growthRates.csv')
     # generate new dataframe with random uniform distribution between the values 
-    growthRates = pd.DataFrame(np.random.uniform(low=growthRates_csv.iloc[0],high=growthRates_csv.iloc[1], size=(NUMBER_OF_SIMULATIONS, len(species))),columns=growthRates_csv.columns)
+    growthRates = pd.DataFrame(np.random.uniform(low=growthRates_csv.values/2,high=growthRates_csv.values*2, size=(NUMBER_OF_SIMULATIONS, len(species))),columns=growthRates_csv.columns)
     return growthRates
     
 
 def generateX0():
     initial_numbers_csv = pd.read_csv('./initial_numbers.csv')
     # generate new dataframe with random uniform distribution
-    X0_raw = pd.DataFrame(np.random.uniform(low=initial_numbers_csv.iloc[0],high=initial_numbers_csv.iloc[1], size=(NUMBER_OF_SIMULATIONS, len(species))),columns=initial_numbers_csv.columns)
-    # normalize each row of data to 0-1; divide by 200 to keep it consisntent between runs
-    X0 = X0_raw.div(200, axis=0)
+    X0 = pd.DataFrame(np.random.uniform(low=initial_numbers_csv.values/2,high=initial_numbers_csv.values*2, size=(NUMBER_OF_SIMULATIONS, len(species))),columns=initial_numbers_csv.columns)
+    # normalize each row of data to 0-1; divide by 200 to keep it consistent between runs
+    # X0 = X0_raw.div(200, axis=0) excluded as it was already normalized in the minimization
     return X0
 
 
@@ -170,15 +167,18 @@ def filterRuns_1():
     for_printing = accepted_year.dropna()
     # print that
     with pd.option_context('display.max_columns', None):
-        print(X0)
         print(for_printing)
         print(for_printing.shape)
-        print(for_printing['thornyScrub'].max())
-    # add filtering criteria - make sure these are in line with the new min/max X0 values (from the minimization), not the original X0 bounds
-    accepted_simulations = accepted_year[(accepted_year['roeDeer'] <= (X0['roeDeer'].max()*25)) & (accepted_year['roeDeer'] >= (X0['roeDeer'].min()*0.37)) &
-    (accepted_year['arableGrass'] <= (X0['arableGrass'].max()*0.58)) & (accepted_year['arableGrass'] >= (X0['arableGrass'].min()*1.50)) &
-    (accepted_year['woodland'] <= (X0['woodland'].max()*1.3)) & (accepted_year['woodland'] >= (X0['woodland'].min()*2.8)) &
-    (accepted_year['thornyScrub'] <= (X0['thornyScrub'].max()*1.5)) & (accepted_year['thornyScrub'] >= (X0['thornyScrub'].min()*0.33))
+    # add filtering criteria  (biomass)
+    accepted_simulations = accepted_year[(accepted_year['roeDeer'] <= 449/200) & (accepted_year['roeDeer'] >= 2.2/200)
+    # (accepted_year['rabbits'] <= 452/200) & (accepted_year['rabbits'] >= 2.7/200) &
+    # (accepted_year['fox'] <= 69.5/200) & (accepted_year['fox'] >= 4.7/200) &
+    # (accepted_year['songbirdsWaterfowl'] <= 27/200) & (accepted_year['songbirdsWaterfowl'] >= 0.26/200) &
+    # (accepted_year['raptors'] <= 8.42/200) & (accepted_year['raptors'] >= 0.11/200) &
+    # (accepted_year['reptilesAmphibians'] <= 40.4/200) & (accepted_year['reptilesAmphibians'] >= 0.34/200) &
+    # (accepted_year['arableGrass'] <= 401/200) & (accepted_year['arableGrass'] >= 260/200) &
+    # (accepted_year['woodland'] <= 97.9/200) & (accepted_year['woodland'] >= 53.4/200) &
+    # (accepted_year['thornyScrub'] <= 89/200) & (accepted_year['thornyScrub'] >= 4.9/200)
     ]
     print(accepted_simulations.shape)
     # match ID number in accepted_simulations to its parameters in all_parameters
@@ -209,6 +209,18 @@ def generateParameters2():
     # # select interaction matrices part of the dataframes 
     interaction_strength_2 = accepted_parameters.drop(['X0', 'growth', 'ID'], axis=1)
     interaction_strength_2 = interaction_strength_2.dropna()
+    # make the interactions with the reintroduced species random between -1 and 1 (depending on sign)
+    # rows
+    herbRows = interaction_strength_2.loc[interaction_strength_2['largeHerb'] > 0, 'largeHerb'] 
+    interaction_strength_2.loc[interaction_strength_2['largeHerb'] > 0, 'largeHerb'] = [np.random.uniform(low=0, high=1) for i in herbRows.index]
+    tamRows = interaction_strength_2.loc[interaction_strength_2['tamworthPig'] > 0, 'tamworthPig'] 
+    interaction_strength_2.loc[interaction_strength_2['tamworthPig'] > 0, 'tamworthPig'] = [np.random.uniform(low=0, high=1) for i in tamRows.index]
+    # columns
+    herbCols = interaction_strength_2.loc['largeHerb','arableGrass':'thornyScrub'] 
+    interaction_strength_2.loc['largeHerb','arableGrass':'thornyScrub']  = [np.random.uniform(low=-1, high=0) for i in herbCols.index]
+    tamCols = interaction_strength_2.loc['tamworthPig','reptilesAmphibians':'thornyScrub'] 
+    interaction_strength_2.loc['tamworthPig','reptilesAmphibians':'thornyScrub']  = [np.random.uniform(low=-1, high=0) for i in tamCols.index]
+    print(interaction_strength_2)
     return growthRates_2, X0_2, interaction_strength_2, accepted_simulations, accepted_parameters, final_runs
 
 
@@ -316,10 +328,10 @@ def filterRuns_2():
     final_runs_2, all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs = runODE_2()
     # select only the last run (filter to the year 2010); make sure these are in line with the new min/max X0 values (from the minimization), not the original X0 bounds
     accepted_year_2018 = final_runs_2.iloc[49::50, :]
-    accepted_simulations_2018 = accepted_year_2018[(accepted_year_2018['roeDeer'] <= (X0_2['roeDeer'].max())) & (accepted_year_2018['roeDeer'] >= (X0_2['roeDeer'].min())) &
-    (accepted_year_2018['arableGrass'] <= (X0_2['arableGrass'].max()*0.65)) & (accepted_year_2018['arableGrass'] >= (X0_2['arableGrass'].min()*0.85)) &
-    (accepted_year_2018['woodland'] <= (X0_2['woodland'].max()*0.82)) & (accepted_year_2018['woodland'] >= (X0_2['woodland'].min()*0.58)) &
-    (accepted_year_2018['thornyScrub'] <= (X0_2['thornyScrub'].max()*1.75)) & (accepted_year_2018['thornyScrub'] >= (X0_2['thornyScrub'].min()*20))
+    accepted_simulations_2018 = accepted_year_2018[(accepted_year_2018['roeDeer'] <= 449/200) & (accepted_year_2018['roeDeer'] >= 2.4/200) &
+    (accepted_year_2018['arableGrass'] <= 270/200) & (accepted_year_2018['arableGrass'] >= 220/200) &
+    (accepted_year_2018['woodland'] <= 80/200) & (accepted_year_2018['woodland'] >= 31/200) &
+    (accepted_year_2018['thornyScrub'] <= 156/200) & (accepted_year_2018['thornyScrub'] >= 98/200)
     ]
     print(accepted_simulations_2018.shape)
     # match ID number in accepted_simulations to its parameters in all_parameters
