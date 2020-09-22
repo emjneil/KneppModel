@@ -1,6 +1,4 @@
-# ---- Approximate Bayesian Computation Model of the Knepp Estate (2000-2019) ------
-
-# download packages
+# ---- Genetic Algorithm ------
 from scipy import integrate
 from scipy.integrate import solve_ivp
 from scipy import optimize
@@ -11,34 +9,31 @@ import pandas as pd
 import numpy as np
 import itertools as IT
 import string
-from hyperopt import hp, fmin, tpe, space_eval
-
-
-# from GPyOpt.methods import BayesianOptimization
-from skopt import gp_minimize
+from geneticalgorithm import geneticalgorithm as ga
 
 
 # # # # # --------- MINIMIZATION ----------- # # # # # # # 
 
 species = ['roeDeer','rabbits','fox','songbirdsWaterfowl','raptors','reptilesAmphibians','arableGrass','woodland','thornyScrub','wetland']
 
-def ecoNetwork(t, X, interaction_strength_chunk, rowContents_growth):
+def ecoNetwork(t, x, interaction_strength_chunk, rowContents_growth):
     # define new array to return
     output_array = []
     # loop through all the species, apply generalized Lotka-Volterra equation
     for outer_index, outer_species in enumerate(species): 
         # grab one set of growth rates at a time
-        amount = rowContents_growth[outer_species] * X[outer_index]
+        amount = rowContents_growth[outer_species] * x[outer_index]
         for inner_index, inner_species in enumerate(species):
             # grab one set of interaction matrices at a time
-            amount += interaction_strength_chunk[outer_species][inner_species] * X[outer_index] * X[inner_index]
-            if amount.item() >= 1e15:
+            amount += interaction_strength_chunk[outer_species][inner_species] * x[outer_index] * x[inner_index]
+            if amount.item() >= 1e5:
                 amount = None
                 break
         # append values to output_array
         output_array.append(amount)
     # return array
     return output_array
+
 
 def objectiveFunction(x): 
     # insert growth rate of 0 (minimizer isn't guessing)
@@ -112,66 +107,51 @@ def objectiveFunction(x):
     rowContents_growth = pd.DataFrame(data=growthRate.reshape(1,10),columns=species)
     interaction_strength = x[20:120]
     interaction_strength_chunk = pd.DataFrame(data=interaction_strength.reshape(10,10),index = species, columns=species)
-    # with pd.option_context('display.max_columns', None):
-    #     print(rowContents_growth, interaction_strength_chunk)
-
     t = np.linspace(0, 10, 50)
     results = solve_ivp(ecoNetwork, (0, 10), X0,  t_eval = t, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
     # reshape the outputs
     y = (np.vstack(np.hsplit(results.y.reshape(len(species), 50).transpose(),1)))
     # choose the final year (we want to compare the final year to the middle of the filters) & make sure the filters are also normalized (/200)
     print(y[49:50:,]*200)
-# roe deer, rabbit, fox, songbird, raptor, reptile, arable, wood, thorny, wetland
+    # roe deer, rabbit, fox, songbird, raptor, reptile, arable, wood, thorny, wetland
     result = (((y[49:50:, 6]-(3.6/200))**2) + ((y[49:50:, 2]-(8.4/200))**2) + ((y[49:50:, 1]-(296.6/200))**2) + ((y[49:50:, 4]-(0.91/200))**2) + ((y[49:50:, 5]-(20.4/200))**2) + ((y[49:50:, 0]-(247.1/200))**2)  + ((y[49:50:, 3]-(13.62/200))**2) + ((y[49:50:, 8]-(0.47/200))**2) + ((y[49:50:, 7]-(0.76/200))**2))
-    # multiply it by how many filters were passed
-    # all_filters = [4.9 <= (y[49:50:, 0]*200) <= 449.8, 0.27 <= (y[49:50:, 1]*200) <= 593, 0.34 <= (y[49:50:, 5]*200) <= 40.4, 1.1 <= (y[49:50:, 2]*200) <= 15.7, 0.24 <= (y[49:50:, 3]*200) <= 27.0,  0.11 <= (y[49:50:, 4]*200) <= 1.7, 2.9 <= (y[49:50:, 6]*200) <= 4.2, 0.45 <= (y[49:50:, 7]*200) <= 0.63, 0.049 <= (y[49:50:, 8]*200) <= 0.45]
-    # result2 = sum(all_filters)
-    # # return total number of filters minus filters passed
-    # result3 = 9-result2
-    # result = result3 * result1
     print(result)
     return (result)
 
-# here are my guesses to start at (X0 normalized / 200)
-X0guess = [0.30, 2.03, 0.043, 0.085, 0.005, 0.096, 0.013, 0.002, 0.0004, 0.000099]
-growthGuess = [0.017, 0.0018, 0.17, 0.093, 0.0005, 0.003, 0.4, 4.39, 4.45]
-interactionGuess = [
-                    -0.44,-0.05,-0.07,
-                    0.00014,0.018,-0.17,-0.87,-0.84,
-                    -0.87,-0.8,-0.31,
-                    0.33,0.62,
-                    -0.7,-0.97,-0.35,
-                    0.37,0.76,
-                    0.5,0.94,
-                    0.28,0.53,0.21,0.61,-0.36,-0.62,
-                    0.68,0.74,0.59,0.53,-0.52,0.84,
-                    0.26,0.54,0.27,0.9,-0.00007,-0.6,-0.78,
-]
 
-combined = X0guess + growthGuess + interactionGuess
-guess = np.array(combined)
+bds = np.array([[0.0675,0.51],[0.00135,2.97],[0.0055,0.079],[0.000075,0.135],[0.00055,0.0085],[0.0017,0.202],[0.01,0.02],[0.00225,0.00315],[0.00025,0.00225],[0.00008,0.0001],
+    # growth
+    [0,5],[0,5],[0,1],[0,5],[0,1],[0,5],[0,5],[0,5],[0,5],
+    # interaction bds
+    [-1,0],[-1,0],[-1,0],
+    [0,1],[0,1],[-1,0],[-1,0],[-1,0],
+    [-1,0],[-1,0],[-1,0],
+    [0,1],[0,1],
+    [-1,0],[-1,0],[-1,0],
+    [0,1],[0,1],
+    [0,1],[0,1],
+    [0,1],[0,1],[0,1],[0,1],[-1,0],[-1,0],
+    [0,1],[0,1],[0,1],[0,1],[-1,0],[0,1],
+    [0,1],[0,1],[0,1],[0,1],[-1,0],[-1,0],[-1,0]])
 
-# roe deer, rabbit, fox, songbird, raptor, reptile, arable, wood, thorny, wetland
 
-X0bds = ((13.5/200,101.1/200),(0.27/200,593/200),(1.1/200,15.7/200),(0.15/200,27/200),(0.11/200,1.7/200),(0.34/200,40.4/200),(2.05/200,4/200),(0.45/200,0.63/200),(0.05/200,0.45/200),(0.016/200,0.02/200))
-growthbds = ((0,5),(0,5),(0,1),(0,5),(0,1),(0,5),(0,5),(0,5),(0,5))
-interactionbds = (
-                    (-1,0),(-1,0),(-1,0),
-                    (0,1),(0,1),(-1,0),(-1,0),(-1,0),
-                    (-1,0),(-1,0),(-1,0),
-                    (0,1),(0,1),
-                    (-1,0),(-1,0),(-1,0),
-                    (0,1),(0,1),
-                    (0,1),(0,1),
-                    (0,1),(0,1),(0,1),(0,1),(-1,0),(-1,0),
-                    (0,1),(0,1),(0,1),(0,1),(-1,0),(0,1),
-                    (0,1),(0,1),(0,1),(0,1),(-1,0),(-1,0),(-1,0))
+algorithm_param = {'max_num_iteration': 1000,\
+                   'population_size':100,\
+                   'mutation_probability':0.1,\
+                   'elit_ratio': 0.01,\
+                   'crossover_probability': 0.5,\
+                   'parents_portion': 0.3,\
+                   'crossover_type':'uniform',\
+                   'max_iteration_without_improv':None}
 
-# combine them into one dataframe
-bds = X0bds + growthbds + interactionbds
 
-# optimization = gp_minimize(objectiveFunction, dimensions = bds, x0 = guess2)
-
-#L-BFGS-B, Powell, TNC, SLSQP, can have bounds
-optimization = optimize.minimize(objectiveFunction, x0 = guess, bounds = bds, method = 'SLSQP', options ={'maxiter': 10000}, tol=1e-6)
+optimization =  ga(function = objectiveFunction, dimension = 58, variable_type = 'real',variable_boundaries= bds, algorithm_parameters = algorithm_param, function_timeout=120)
+optimization.run()
 print(optimization)
+
+
+# species = ['roeDeer','rabbits','fox','songbirdsWaterfowl','raptors','reptilesAmphibians','arableGrass','woodland','thornyScrub','wetland']
+
+# order of outputs 
+# ['arableGrass',    'fox',         'rabbits',      'raptors',          'reptiles',       'roeDeer',     'songbirdsWaterfowl', 'thornyScrub',            'wetland',       'woodland'])
+#   2.9-4.2 (3.6)   1.1-15.7 (8.4)    0.27-593 (297)  0.11-1.7(0.91)     0.3-40(20.4)    4.9-449 (247)        0.15-27 (13.62)    0.049-0.445 (0.47)           0.018       0.45-0.63 (0.76)
