@@ -33,7 +33,7 @@ def ecoNetwork(t, X, interaction_strength_chunk, rowContents_growth):
         for inner_index, inner_species in enumerate(species):
             # grab one set of interaction matrices at a time
             amount += interaction_strength_chunk[outer_species][inner_species] * X[outer_index] * X[inner_index]
-            if amount.item() >= 1e10:
+            if amount.item() >= 1e3 or amount.item() is None or np.isnan(amount.item()) or np.isinf(amount.item()):
                 amount = None
                 break
         # append values to output_array
@@ -120,19 +120,23 @@ def objectiveFunction(x):
     results = solve_ivp(ecoNetwork, (0, 10), X0,  t_eval = t, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
     # reshape the outputs
     y = (np.vstack(np.hsplit(results.y.reshape(len(species), 50).transpose(),1)))
+    array_sum = np.sum(y[49:50:,])
+    # if there are NaNs, make it return a high number
+    if np.isnan(array_sum):
+        print ("output is too high or low")
+        result = 9e10
+    # otherwise calculate the middle of the filter
+    else:
     # choose the final year (we want to compare the final year to the middle of the filters) & make sure the filters are also normalized (/200)
-    # take outputs to start a genetic algorithm or another downhill method; sometimes chaining them works well. Take Bayesian output and plug it as initial guess to minimize. Start with filters passed; then switch to middle of range for second round
-    print(y[49:50:,]*200)
-    # middle of the filter
-    result1 = (((y[49:50:, 0]-(3.6/200))**2) + ((y[49:50:, 1]-(8.4/200))**2) + ((y[49:50:, 2]-(296.6/200))**2) + ((y[49:50:, 3]-(0.91/200))**2) + ((y[49:50:, 4]-(20.4/200))**2) + ((y[49:50:, 5]-(247.1/200))**2)  + ((y[49:50:, 6]-(13.62/200))**2) + ((y[49:50:, 7]-(0.47/200))**2) + ((y[49:50:, 9]-(0.76/200))**2))
-
+        print(y[49:50:,]*200)
+        result = (((y[49:50:, 0]-(3.6/200))**2) + ((y[49:50:, 1]-(8.4/200))**2) + ((y[49:50:, 2]-(296.6/200))**2) + ((y[49:50:, 3]-(0.91/200))**2) + ((y[49:50:, 4]-(20.4/200))**2) + ((y[49:50:, 5]-(247.1/200))**2)  + ((y[49:50:, 6]-(13.62/200))**2) + ((y[49:50:, 7]-(0.47/200))**2) + ((y[49:50:, 9]-(0.76/200))**2))
+        print(result)
     # # multiply it by how many filters were passed
     # all_filters = [4.9 <= (y[49:50:, 5]*200) <= 449, 0.27 <= (y[49:50:, 2]*200) <= 593, 0.3 <= (y[49:50:, 4]*200) <= 40, 1.1 <= (y[49:50:, 1]*200) <= 15.7, 0.15 <= (y[49:50:, 6]*200) <= 27,  0.11 <= (y[49:50:, 3]*200) <= 1.7,  2.05 <= (y[49:50:, 0]*200) <= 4, 0.45 <= (y[49:50:, 9]*200) <= 0.63, 0.049 <= (y[49:50:, 7]*200) <= 0.445]
     # result2 = sum(all_filters)
     # # return total number of filters minus filters passed
     # result3 = 9-result2
     # result = result3 * result1
-    print(result)
     return{'loss':result, 'status': STATUS_OK}
 
 # VSC = middle * number of filters; 20k runs (Try 3)
@@ -188,6 +192,6 @@ param_hyperopt= {
 # print (hyperopt.pyll.stochastic.sample(param_hyperopt))
 
 trials = Trials()
-optimization = fmin(objectiveFunction, param_hyperopt, trials=trials, algo = tpe.suggest, max_evals = 5000)
+optimization = fmin(objectiveFunction, param_hyperopt, trials=trials, algo = tpe.suggest, max_evals = 10000)
 print(optimization)
 # print (space_eval(param_hyperopt, optimization))

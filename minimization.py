@@ -32,9 +32,6 @@ def ecoNetwork(t, X, interaction_strength_chunk, rowContents_growth):
         for inner_index, inner_species in enumerate(species):
             # grab one set of interaction matrices at a time
             amount += interaction_strength_chunk[outer_species][inner_species] * X[outer_index] * X[inner_index]
-            if amount.item() >= 1e15:
-                amount = None
-                break
         # append values to output_array
         output_array.append(amount)
     # return array
@@ -113,7 +110,7 @@ def objectiveFunction(x):
     interaction_strength = x[20:120]
     interaction_strength_chunk = pd.DataFrame(data=interaction_strength.reshape(10,10),index = species, columns=species)
     # with pd.option_context('display.max_columns', None):
-    #     print(rowContents_growth, interaction_strength_chunk)
+    #     print(X0, rowContents_growth, interaction_strength_chunk)
 
     t = np.linspace(0, 10, 50)
     results = solve_ivp(ecoNetwork, (0, 10), X0,  t_eval = t, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
@@ -133,19 +130,19 @@ def objectiveFunction(x):
     return (result)
 
 # here are my guesses to start at (X0 normalized / 200)
-X0guess = [0.30, 2.03, 0.043, 0.085, 0.005, 0.096, 0.013, 0.002, 0.0004, 0.000099]
-growthGuess = [0.017, 0.0018, 0.17, 0.093, 0.0005, 0.003, 0.4, 4.39, 4.45]
+X0guess = [0.43, 0.22, 0.07, 0.069, 0.0063, 0.2, 0.017, 0.0024, 0.0017, 0.000089]
+growthGuess = [3.5, 3.2, 0.36, 0.03, 0.80, 4.43, 1.44, 3.4, 4.84]
 interactionGuess = [
-                    -0.44,-0.05,-0.07,
-                    0.00014,0.018,-0.17,-0.87,-0.84,
-                    -0.87,-0.8,-0.31,
-                    0.33,0.62,
-                    -0.7,-0.97,-0.35,
-                    0.37,0.76,
-                    0.5,0.94,
-                    0.28,0.53,0.21,0.61,-0.36,-0.62,
-                    0.68,0.74,0.59,0.53,-0.52,0.84,
-                    0.26,0.54,0.27,0.9,-0.00007,-0.6,-0.78,
+                    -0.38,-0.74,-0.41,
+                    0.84,0.41,-0.36,-0.28,-0.35,
+                    -0.93,-0.97,-0.39,
+                    0.95,0.090,
+                    -0.91,-0.11,-0.96,
+                    0.2,0.85,
+                    0.93,0.32,
+                    0.26,0.23,0.59,0.86,-0.17,-0.039,
+                    0.89,0.28,0.095,0.60,-0.99,0.11,
+                    0.38,0.050,0.62,0.63,-0.24,-0.79,-0.58
 ]
 
 combined = X0guess + growthGuess + interactionGuess
@@ -173,5 +170,5 @@ bds = X0bds + growthbds + interactionbds
 # optimization = gp_minimize(objectiveFunction, dimensions = bds, x0 = guess2)
 
 #L-BFGS-B, Powell, TNC, SLSQP, can have bounds
-optimization = optimize.minimize(objectiveFunction, x0 = guess, bounds = bds, method = 'SLSQP', options ={'maxiter': 10000}, tol=1e-6)
+optimization = optimize.minimize(objectiveFunction, x0 = guess, bounds = bds, method = 'L-BFGS-B', options ={'maxiter': 10000}, tol=1e-6)
 print(optimization)

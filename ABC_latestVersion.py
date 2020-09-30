@@ -22,7 +22,7 @@ import seaborn as sns
 start = timeit.default_timer()
 
 # define the number of simulations to try. Bode et al. ran a million
-NUMBER_OF_SIMULATIONS = 5
+NUMBER_OF_SIMULATIONS = 1
 
 def ecoNetwork(t, X, interaction_strength_chunk, rowContents_growth):
     # define new array to return
@@ -57,11 +57,11 @@ def generateInteractionMatrix():
     interaction_length = len(interactionMatrix_csv)
     # pull the original sign of the interaction
     original_sign=[0,0,0,0,0,0,0,0,0,-1,-1,-1,0,
-                    0,0,0,0,0,1,0,0,0,-1,-1,-1,0,
+                    0,0,0,0,0,0,0,0,0,-1,-1,-1,0,
                     0,0,0,0,0,0,0,0,-1,-1,-1,-1,0,
                     0,0,0,0,0,0,0,0,0,-1,-1,0,1,
                     0,0,0,0,0,1,0,1,0,-1,-1,-1,0,
-                    0,-1,0,0,-1,0,-1,0,0,0,0,0,0,
+                    0,0,0,0,-1,0,-1,0,0,0,0,0,0,
                     0,0,0,0,0,1,0,1,0,0,0,0,0,
                     0,0,0,0,-1,0,-1,0,-1,0,0,0,0,
                     0,0,1,0,0,0,0,1,0,0,0,0,0,
@@ -170,7 +170,7 @@ def filterRuns_1():
         print(for_printing)
         print(for_printing.shape)
     # add filtering criteria  (biomass)
-    accepted_simulations = accepted_year[(accepted_year['roeDeer'] <= 449/200) & (accepted_year['roeDeer'] >= 2.2/200)
+    accepted_simulations = accepted_year[(accepted_year['roeDeer'] <= 449/200) & (accepted_year['roeDeer'] >= 44.9/200)
     # (accepted_year['rabbits'] <= 452/200) & (accepted_year['rabbits'] >= 2.7/200) &
     # (accepted_year['fox'] <= 69.5/200) & (accepted_year['fox'] >= 4.7/200) &
     # (accepted_year['songbirdsWaterfowl'] <= 27/200) & (accepted_year['songbirdsWaterfowl'] >= 0.26/200) &
@@ -215,12 +215,13 @@ def generateParameters2():
     interaction_strength_2.loc[interaction_strength_2['largeHerb'] > 0, 'largeHerb'] = [np.random.uniform(low=0, high=1) for i in herbRows.index]
     tamRows = interaction_strength_2.loc[interaction_strength_2['tamworthPig'] > 0, 'tamworthPig'] 
     interaction_strength_2.loc[interaction_strength_2['tamworthPig'] > 0, 'tamworthPig'] = [np.random.uniform(low=0, high=1) for i in tamRows.index]
+    print(interaction_strength_2)
+
     # columns
     herbCols = interaction_strength_2.loc['largeHerb','arableGrass':'thornyScrub'] 
     interaction_strength_2.loc['largeHerb','arableGrass':'thornyScrub']  = [np.random.uniform(low=-1, high=0) for i in herbCols.index]
     tamCols = interaction_strength_2.loc['tamworthPig','reptilesAmphibians':'thornyScrub'] 
     interaction_strength_2.loc['tamworthPig','reptilesAmphibians':'thornyScrub']  = [np.random.uniform(low=-1, high=0) for i in tamCols.index]
-    print(interaction_strength_2)
     return growthRates_2, X0_2, interaction_strength_2, accepted_simulations, accepted_parameters, final_runs
 
 
@@ -328,10 +329,10 @@ def filterRuns_2():
     final_runs_2, all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs = runODE_2()
     # select only the last run (filter to the year 2010); make sure these are in line with the new min/max X0 values (from the minimization), not the original X0 bounds
     accepted_year_2018 = final_runs_2.iloc[49::50, :]
-    accepted_simulations_2018 = accepted_year_2018[(accepted_year_2018['roeDeer'] <= 449/200) & (accepted_year_2018['roeDeer'] >= 2.4/200) &
-    (accepted_year_2018['arableGrass'] <= 270/200) & (accepted_year_2018['arableGrass'] >= 220/200) &
-    (accepted_year_2018['woodland'] <= 80/200) & (accepted_year_2018['woodland'] >= 31/200) &
-    (accepted_year_2018['thornyScrub'] <= 156/200) & (accepted_year_2018['thornyScrub'] >= 98/200)
+    accepted_simulations_2018 = accepted_year_2018[(accepted_year_2018['roeDeer'] <= 449/200) & (accepted_year_2018['roeDeer'] >= 2.4/200)
+    # (accepted_year_2018['arableGrass'] <= 270/200) & (accepted_year_2018['arableGrass'] >= 220/200) &
+    # (accepted_year_2018['woodland'] <= 80/200) & (accepted_year_2018['woodland'] >= 31/200) &
+    # (accepted_year_2018['thornyScrub'] <= 156/200) & (accepted_year_2018['thornyScrub'] >= 98/200)
     ]
     print(accepted_simulations_2018.shape)
     # match ID number in accepted_simulations to its parameters in all_parameters
@@ -339,7 +340,6 @@ def filterRuns_2():
     # add accepted ID to original dataframe
     final_runs_2['accepted?'] = np.where(final_runs_2['ID'].isin(accepted_simulations_2018['ID']), 'Yes', 'No')
     return accepted_simulations_2018, accepted_parameters_2018, final_runs_2, all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs
-
 
 
 
