@@ -22,20 +22,29 @@ import seaborn as sns
 start = timeit.default_timer()
 
 # define the number of simulations to try. Bode et al. ran a million
-NUMBER_OF_SIMULATIONS = 1
+NUMBER_OF_SIMULATIONS = 10
 
 def ecoNetwork(t, X, interaction_strength_chunk, rowContents_growth):
     # define new array to return
     output_array = []
+    # keep habitats proportionate, summing to total area (4.45km2)
+    # sumHabitat_ODE = X[4] + X[5] + X[6]
+    # X[4] = (X[4]/sumHabitat_ODE) * 4.45
+    # X[5] = (X[5]/sumHabitat_ODE) * 4.45
+    # X[6] = (X[6]/sumHabitat_ODE) * 4.45
+    # make X zero if it falls under some threshold
+    for n, i in enumerate(X):
+        if i < 1e-8:
+            X[n] = 0
     # loop through all the species, apply generalized Lotka-Volterra equation
     for outer_index, outer_species in enumerate(species): 
         # grab one set of growth rates at a time
         amount = rowContents_growth[outer_species] * X[outer_index]
         for inner_index, inner_species in enumerate(species):
             # grab one set of interaction matrices at a time
-            amount += interaction_strength_chunk[outer_species][inner_species] * X[outer_index] * X[inner_index]
+            amount2 = amount + (interaction_strength_chunk[outer_species][inner_species] * X[outer_index] * X[inner_index]) 
         # append values to output_array
-        output_array.append(amount)
+        output_array.append(amount2)
     # return array
     return output_array
 
@@ -56,24 +65,20 @@ def generateInteractionMatrix():
     # remember the shape of the csv array
     interaction_length = len(interactionMatrix_csv)
     # pull the original sign of the interaction
-    original_sign=[0,0,0,0,0,0,0,0,0,-1,-1,-1,0,
-                    0,0,0,0,0,0,0,0,0,-1,-1,-1,0,
-                    0,0,0,0,0,0,0,0,-1,-1,-1,-1,0,
-                    0,0,0,0,0,0,0,0,0,-1,-1,0,1,
-                    0,0,0,0,0,1,0,1,0,-1,-1,-1,0,
-                    0,0,0,0,-1,0,-1,0,0,0,0,0,0,
-                    0,0,0,0,0,1,0,1,0,0,0,0,0,
-                    0,0,0,0,-1,0,-1,0,-1,0,0,0,0,
-                    0,0,1,0,0,0,0,1,0,0,0,0,0,
-                    1,1,1,1,1,0,0,0,0,0,0,0,0,
-                    1,1,1,1,1,0,1,1,0,-1,0,-1,0,
-                    1,1,1,0,1,0,1,0,1,-1,1,0,0,
-                    1,1,1,1,0,0,1,1,1,-1,-1,-1,0]
+    original_sign=[
+                    0,0,0,0,-1,-1,-1,0,
+                    0,0,0,0,-1,-1,-1,0,
+                    0,0,0,0,-1,-1,-1,0,
+                    0,0,0,0,-1,-1,-1,1,
+                    1,1,1,1,0,0,0,0,
+                    1,1,1,1,-1,0,-1,0,
+                    1,1,1,1,-1,1,0,0,
+                    0,0,0,-1,0,0,0,0]
     # find the shape of original_sign
     shape = len(original_sign)
     # make lots of these arrays, half-to-double minimization outputs & consistent with sign
     iterStrength_list = np.array(
-        [[np.random.uniform(interactionMatrix_csv.values.flatten()/2, interactionMatrix_csv.values.flatten()*2, (shape,)) * original_sign] for i in range(NUMBER_OF_SIMULATIONS)])
+        [[np.random.uniform(interactionMatrix_csv.values.flatten()/1, interactionMatrix_csv.values.flatten()*1, (shape,)) * original_sign] for i in range(NUMBER_OF_SIMULATIONS)])
     iterStrength_list.shape = (NUMBER_OF_SIMULATIONS, interaction_length, interaction_length)
     # convert to multi-index so that species' headers/cols can be added
     names = ['runs', 'species', 'z']
@@ -92,16 +97,19 @@ def generateInteractionMatrix():
 def generateGrowth():
     growthRates_csv = pd.read_csv('./growthRates.csv')
     # generate new dataframe with random uniform distribution between the values 
-    growthRates = pd.DataFrame(np.random.uniform(low=growthRates_csv.values/2,high=growthRates_csv.values*2, size=(NUMBER_OF_SIMULATIONS, len(species))),columns=growthRates_csv.columns)
+    growthRates = pd.DataFrame(np.random.uniform(low=growthRates_csv.values/1,high=growthRates_csv.values*1, size=(NUMBER_OF_SIMULATIONS, len(species))),columns=growthRates_csv.columns)
     return growthRates
     
 
 def generateX0():
     initial_numbers_csv = pd.read_csv('./initial_numbers.csv')
     # generate new dataframe with random uniform distribution
-    X0 = pd.DataFrame(np.random.uniform(low=initial_numbers_csv.values/2,high=initial_numbers_csv.values*2, size=(NUMBER_OF_SIMULATIONS, len(species))),columns=initial_numbers_csv.columns)
-    # normalize each row of data to 0-1; divide by 200 to keep it consistent between runs
-    # X0 = X0_raw.div(200, axis=0) excluded as it was already normalized in the minimization
+    X0 = pd.DataFrame(np.random.uniform(low=initial_numbers_csv.values/1,high=initial_numbers_csv.values*1, size=(NUMBER_OF_SIMULATIONS, len(species))),columns=initial_numbers_csv.columns)
+    # keep habitat types scaled to the total size (4.45km2 - scaled)
+    # sumHabitat = X0['arableGrass'] +  X0['thornyScrub'] + X0['woodland']
+    # X0['arableGrass'] = (X0['arableGrass']/sumHabitat) * 4.45
+    # X0['thornyScrub'] = (X0['thornyScrub']/sumHabitat) * 4.45
+    # X0['woodland'] = (X0['woodland']/sumHabitat) * 4.45
     return X0
 
 
@@ -140,7 +148,8 @@ def runODE_1():
         X0_growth = pd.concat([rowContents_X0.rename('X0'), rowContents_growth.rename('growth')], axis = 1)
         parameters_used = pd.concat([X0_growth, interaction_strength_chunk])
         # run the model
-        first_ABC = solve_ivp(ecoNetwork, (0, 10), rowContents_X0,  t_eval = t, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
+        first_ABC = solve_ivp(ecoNetwork, (0, 10), rowContents_X0,  t_eval = t, args=(interaction_strength_chunk, rowContents_growth), method = 'RK23')
+        # first_ABC = integrate.odeint(ecoNetwork, rowContents_X0, t, args=(interaction_strength_chunk, rowContents_growth))        
         # append all the runs
         all_runs = np.append(all_runs, first_ABC.y)
         # append all the parameters
@@ -169,16 +178,13 @@ def filterRuns_1():
     with pd.option_context('display.max_columns', None):
         print(for_printing)
         print(for_printing.shape)
-    # add filtering criteria  (biomass)
-    accepted_simulations = accepted_year[(accepted_year['roeDeer'] <= 449/200) & (accepted_year['roeDeer'] >= 44.9/200)
-    # (accepted_year['rabbits'] <= 452/200) & (accepted_year['rabbits'] >= 2.7/200) &
-    # (accepted_year['fox'] <= 69.5/200) & (accepted_year['fox'] >= 4.7/200) &
-    # (accepted_year['songbirdsWaterfowl'] <= 27/200) & (accepted_year['songbirdsWaterfowl'] >= 0.26/200) &
-    # (accepted_year['raptors'] <= 8.42/200) & (accepted_year['raptors'] >= 0.11/200) &
-    # (accepted_year['reptilesAmphibians'] <= 40.4/200) & (accepted_year['reptilesAmphibians'] >= 0.34/200) &
-    # (accepted_year['arableGrass'] <= 401/200) & (accepted_year['arableGrass'] >= 260/200) &
-    # (accepted_year['woodland'] <= 97.9/200) & (accepted_year['woodland'] >= 53.4/200) &
-    # (accepted_year['thornyScrub'] <= 89/200) & (accepted_year['thornyScrub'] >= 4.9/200)
+    # add filtering criteria 
+    accepted_simulations = accepted_year[(accepted_year['roeDeer'] <= 9) & (accepted_year['roeDeer'] >= 4.9) &
+    (accepted_year['fox'] <= 2.2) & (accepted_year['fox'] >= 0.22) &
+    (accepted_year['rabbits'] <= 2260) & (accepted_year['rabbits'] >= 1) &
+    (accepted_year['arableGrass'] <= 4.2) & (accepted_year['arableGrass'] >= 2.9) &
+    (accepted_year['woodland'] <=0.97) & (accepted_year['woodland'] >= 0.53) &
+    (accepted_year['thornyScrub'] <= 0.89) & (accepted_year['thornyScrub'] >= 0.05)
     ]
     print(accepted_simulations.shape)
     # match ID number in accepted_simulations to its parameters in all_parameters
@@ -203,9 +209,9 @@ def generateParameters2():
     # # select X0 
     X0_2 = accepted_parameters.loc[accepted_parameters['X0'].notnull(), ['X0']]
     X0_2 = pd.DataFrame(X0_2.values.reshape(len(accepted_simulations), len(species)), columns = species)
-    # # add reintroduced species & divide by 200 to keep the scaling/normalization consistent
-    X0_2.loc[:, 'largeHerb'] = [np.random.uniform(low=96.71, high=188.20)/200 for i in X0_2.index]
-    X0_2.loc[:,'tamworthPig'] = [np.random.uniform(low=15.73, high=29.10)/200 for i in X0_2.index]
+    # # add reintroduced species
+    X0_2.loc[:, 'largeHerb'] = [26.5 for i in X0_2.index]
+    X0_2.loc[:,'tamworthPig'] = [7.9 for i in X0_2.index]
     # # select interaction matrices part of the dataframes 
     interaction_strength_2 = accepted_parameters.drop(['X0', 'growth', 'ID'], axis=1)
     interaction_strength_2 = interaction_strength_2.dropna()
@@ -215,13 +221,13 @@ def generateParameters2():
     interaction_strength_2.loc[interaction_strength_2['largeHerb'] > 0, 'largeHerb'] = [np.random.uniform(low=0, high=1) for i in herbRows.index]
     tamRows = interaction_strength_2.loc[interaction_strength_2['tamworthPig'] > 0, 'tamworthPig'] 
     interaction_strength_2.loc[interaction_strength_2['tamworthPig'] > 0, 'tamworthPig'] = [np.random.uniform(low=0, high=1) for i in tamRows.index]
-    print(interaction_strength_2)
-
     # columns
-    herbCols = interaction_strength_2.loc['largeHerb','arableGrass':'thornyScrub'] 
-    interaction_strength_2.loc['largeHerb','arableGrass':'thornyScrub']  = [np.random.uniform(low=-1, high=0) for i in herbCols.index]
-    tamCols = interaction_strength_2.loc['tamworthPig','reptilesAmphibians':'thornyScrub'] 
-    interaction_strength_2.loc['tamworthPig','reptilesAmphibians':'thornyScrub']  = [np.random.uniform(low=-1, high=0) for i in tamCols.index]
+    interaction_strength_2.loc['largeHerb','thornyScrub']  = [np.random.uniform(low=-1, high=0)]
+    interaction_strength_2.loc['largeHerb','arableGrass']  = [np.random.uniform(low=-1, high=0)]
+    interaction_strength_2.loc['largeHerb','woodland']  = [np.random.uniform(low=-1, high=0)]
+    interaction_strength_2.loc['tamworthPig','thornyScrub']  = [np.random.uniform(low=-1, high=0)]
+    interaction_strength_2.loc['tamworthPig','arableGrass']  = [np.random.uniform(low=-1, high=0)]
+    interaction_strength_2.loc['tamworthPig','woodland']  = [np.random.uniform(low=-1, high=0)]
     return growthRates_2, X0_2, interaction_strength_2, accepted_simulations, accepted_parameters, final_runs
 
 
@@ -240,70 +246,70 @@ def runODE_2():
         X0_growth_2 = pd.concat([rowContents_X0.rename('X0'), rowContents_growth.rename('growth')], axis = 1)
         parameters_used_2 = pd.concat([X0_growth_2, interaction_strength_chunk])
         # run the model for one year 2009-2010 (to account for herbivore numbers being manually controlled every year)
-        second_ABC = solve_ivp(ecoNetwork, (0, 1), rowContents_X0,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
+        second_ABC = solve_ivp(ecoNetwork, (0, 1), rowContents_X0,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'RK23')
         # take those values and re-run for another year, adding forcings
         starting_2010 = second_ABC.y[0:13, 4:5]
         starting_values_2010 = starting_2010.flatten()
-        starting_values_2010[0] = np.random.uniform(low=119.00,high=234.18)/200
-        starting_values_2010[2] = np.random.uniform(low=7.64,high=14.13)/200
+        starting_values_2010[0] = 41.8
+        starting_values_2010[2] = 3.8
         # run the model for another year 2010-2011
-        third_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2010,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
+        third_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2010,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'RK23')
         # take those values and re-run for another year, adding forcings
         starting_2011 = third_ABC.y[0:13, 4:5]
         starting_values_2011 = starting_2011.flatten()
-        starting_values_2011[0] = np.random.uniform(low=147.39,high=289.73)/200
-        starting_values_2011[2] = np.random.uniform(low=9.88,high=18.29)/200
+        starting_values_2011[0] = 47.6
+        starting_values_2011[2] = 4.9
         # run the model for 2011-2012
-        fourth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2011,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
+        fourth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2011,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'RK23')
         # take those values and re-run for another year, adding forcings
         starting_2012 = fourth_ABC.y[0:13, 4:5]
         starting_values_2012 = starting_2012.flatten()
-        starting_values_2012[0] = np.random.uniform(low=164.91,high=289.73)/200
-        starting_values_2012[2] = np.random.uniform(low=14.83,high=27.43)/200
+        starting_values_2012[0] = 55.3
+        starting_values_2012[2] = 7.4
         # run the model for 2012-2013
-        fifth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2012,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
+        fifth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2012,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'RK23')
         # take those values and re-run for another year, adding forcings
         starting_2013 = fifth_ABC.y[0:13, 4:5]
         starting_values_2013 = starting_2013.flatten()
-        starting_values_2013[0] = np.random.uniform(low=164.91,high=289.73)/200
-        starting_values_2013[2] = np.random.uniform(low=2.70,high=4.99)/200
+        starting_values_2013[0] = 87
+        starting_values_2013[2] = 1.3
         # run the model for 2011-2012
-        sixth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2013,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
+        sixth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2013,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'RK23')
         # take those values and re-run for another year, adding forcings
         starting_2014 = sixth_ABC.y[0:13, 4:5]
         starting_values_2014 = starting_2014.flatten()
-        starting_values_2014[0] = np.random.uniform(low=311.61,high=622.24)/200
-        starting_values_2014[2] = np.random.uniform(low=8.09,high=14.97)/200
+        starting_values_2014[0] = 52.4
+        starting_values_2014[2] = 4
         # run the model for 2011-2012
-        seventh_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2014,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
+        seventh_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2014,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'RK23')
         # take those values and re-run for another year, adding forcings
         starting_2015 = seventh_ABC.y[0:13, 4:5]
         starting_values_2015 = starting_2015.flatten()
-        starting_values_2015[0] = np.random.uniform(low=138.58,high=276.17)/200
-        starting_values_2015[2] = np.random.uniform(low=4.04,high=7.48)/200
+        starting_values_2015[0] = 60.7
+        starting_values_2015[2] = 2
         # run the model for 2011-2012
-        eighth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2015,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
+        eighth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2015,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'RK23')
         # take those values and re-run for another year, adding forcings
         starting_2016 = eighth_ABC.y[0:13, 4:5]
         starting_values_2016 = starting_2016.flatten()
-        starting_values_2016[0] = np.random.uniform(low=125.71,high=253.80)/200
-        starting_values_2016[2] = np.random.uniform(low=3.15,high=5.82)/200
+        starting_values_2016[0] = 63.6
+        starting_values_2016[2] = 1.6
         # run the model for 2011-2012
-        ninth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2016,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
+        ninth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2016,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'RK23')
         # take those values and re-run for another year, adding forcings
         starting_2017 = ninth_ABC.y[0:13, 4:5]
         starting_values_2017 = starting_2017.flatten()
-        starting_values_2017[0] = np.random.uniform(low=119.00,high=622.24)/200
-        starting_values_2017[2] = np.random.uniform(low=2.70,high=27.43)/200
+        starting_values_2017[0] = np.random.uniform(low=26.5,high=87)
+        starting_values_2017[2] = np.random.uniform(low=1.3,high=7.9)
         # run the model for 2011-2012
-        tenth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2017,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
+        tenth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2017,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'RK23')
         # take those values and re-run for another year, adding forcings
         starting_2018 = tenth_ABC.y[0:13, 4:5]
         starting_values_2018 = starting_2018.flatten()
-        starting_values_2018[0] = np.random.uniform(low=119.00,high=622.24)/200
-        starting_values_2018[2] = np.random.uniform(low=2.70,high=27.43)/200
+        starting_values_2018[0] = np.random.uniform(low=26.5,high=87)
+        starting_values_2018[2] = np.random.uniform(low=1.3,high=7.9)
         # run the model for 2011-2012
-        eleventh_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2018,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'LSODA')
+        eleventh_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2018,  t_eval = t_2, args=(interaction_strength_chunk, rowContents_growth), method = 'RK23')
         # concatenate & append all the runs
         combined_runs = np.hstack((second_ABC.y, third_ABC.y, fourth_ABC.y, fifth_ABC.y, sixth_ABC.y, seventh_ABC.y, eighth_ABC.y, ninth_ABC.y, tenth_ABC.y, eleventh_ABC.y))
         # print(combined_runs)
@@ -329,10 +335,12 @@ def filterRuns_2():
     final_runs_2, all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs = runODE_2()
     # select only the last run (filter to the year 2010); make sure these are in line with the new min/max X0 values (from the minimization), not the original X0 bounds
     accepted_year_2018 = final_runs_2.iloc[49::50, :]
-    accepted_simulations_2018 = accepted_year_2018[(accepted_year_2018['roeDeer'] <= 449/200) & (accepted_year_2018['roeDeer'] >= 2.4/200)
-    # (accepted_year_2018['arableGrass'] <= 270/200) & (accepted_year_2018['arableGrass'] >= 220/200) &
-    # (accepted_year_2018['woodland'] <= 80/200) & (accepted_year_2018['woodland'] >= 31/200) &
-    # (accepted_year_2018['thornyScrub'] <= 156/200) & (accepted_year_2018['thornyScrub'] >= 98/200)
+    accepted_simulations_2018 = accepted_year_2018[(accepted_year_2018['roeDeer'] <= 18) & (accepted_year_2018['roeDeer'] >= 4.5) &
+    (accepted_year_2018['fox'] <= 2.4) & (accepted_year_2018['fox'] >= 0.22) &
+    (accepted_year_2018['rabbits'] <= 2260) & (accepted_year_2018['rabbits'] >= 1) &
+    (accepted_year_2018['arableGrass'] <= 2.7) & (accepted_year_2018['arableGrass'] >= 2.5) &
+    (accepted_year_2018['woodland'] <= 0.8) & (accepted_year_2018['woodland'] >= 0.3) &
+    (accepted_year_2018['thornyScrub'] <= 1.6) & (accepted_year_2018['thornyScrub'] >= 0.9)
     ]
     print(accepted_simulations_2018.shape)
     # match ID number in accepted_simulations to its parameters in all_parameters
@@ -344,6 +352,8 @@ def filterRuns_2():
 
 
 # # # # # ----------------------------- PLOTTING POPULATIONS (2000-2010) ----------------------------- 
+
+# make sure it's SD not SE 
 
 def plotting():
     accepted_simulations_2018, accepted_parameters_2018, final_runs_2, all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs = filterRuns_2()
