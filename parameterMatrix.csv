@@ -1,9 +1,9 @@
 ﻿,largeHerb,roeDeer,tamworthPig,rabbits,arableGrass,woodland,thornyScrub,fox
-largeHerb,0,0,0,0,1,1,1,0
-roeDeer,0,0,0,0,0.29,0.12,0.66,0
-tamworthPig,0,0,0,0,1,1,1,0
-rabbits,0,0,0,0,0.03,0.11,0.55,0.69
-arableGrass,1,0.63,1,0.018,0,0,0,0
-woodland,1,0.15,1,0.2,0.57,0,0.56,0
-thornyScrub,1,0.4,1,0.65,0.85,0.46,0,0
-fox,0,0,0,0.26,0,0,0,0
+largeHerb,1,0,0,0,1,1,1,0
+roeDeer,0,0.43,0,0,0.55,0.7,0.09,0
+tamworthPig,0,0,1,0,1,1,1,0
+rabbits,0,0,0,0.26,0.78,0.37,0.98,0.89
+arableGrass,1,0.5,1,0.57,0.76,0,0,0
+woodland,1,0.87,1,0.88,0.55,0.15,0.31,0
+thornyScrub,1,0.93,1,0.04,0.05,0.9,0.85,0
+fox,0,0,0,0.25,0,0,0,0.55
