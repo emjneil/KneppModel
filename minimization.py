@@ -23,6 +23,7 @@ species = ['arableGrass','organicCarbon','roeDeer','thornyScrub','woodland']
 def ecoNetwork(t, X, A, r):
     # put things to zero if they go below a certain threshold
     X[X<1e-6] = 0
+    X[X>1e3] = 1000
     # return array
     return X * (r + np.matmul(A, X))
 
@@ -49,43 +50,31 @@ def objectiveFunction(x):
     y = (np.vstack(np.hsplit(results.y.reshape(len(species), 50).transpose(),1)))
     # choose the final year (we want to compare the final year to the middle of the filters) & make sure the filters are also normalized (/200)
     print(y[49:50:,])
-    result = (((y[49:50, 0]-0.86)**2) +  ((y[49:50, 1]-1.4)**2) + ((y[49:50, 2]-2.2)**2) + ((y[49:50, 3]-10.9)**2) + ((y[49:50, 4]-0.91)**2))
+    result = (((y[49:50, 0]-0.86)**2) +  ((y[49:50, 1]-1.4)**2) + ((y[49:50, 2]-2.2)**2) + ((y[49:50, 3]-11.1)**2) + ((y[49:50, 4]-0.91)**2))
     print(result)
     return (result)
 
 
 # order of outputs   
 # ['arableGrass',   orgCarb   'roeDeer',     'thornyScrub',  'woodland'])
-#   0.86            1.4        2.2              10.9               0.91
+#   0.86            1.4        2.2              11.1              0.91
 
 
-# here are my guesses to start at
-growthGuess = [0.1, 0.1, 0.54, 0.88, 0.33]
-interactionGuess = [
-                    -0.1,-0.34,-0.01,-0.1,
-                    0.23,-0.92,0.4,0.03,0.01,
-                    0.74,-0.36,0.03,0.12,
-                    -0.01,-0.04,-0.47,
-                    -0.97,0.34,-0.12
-]
-
-combined =  growthGuess + interactionGuess
-guess = np.array(combined)
-
-
-growthbds = ((0,1),(0,1),(0,1),(0,1),(0,1))
+growthbds = ((0.5,1),(0,0.5),(0,0.5),(0.5,1),(0,0.5))
+# arable grass is mostly impacted by thorny scrub & woodland (not self-impacts or roe)
 interactionbds = (
-                    (-1,0),(-1,0),(-1,0),(-1,0),
+                    (-0.1,0),(-0.1,0),(-1,0),(-1,0),
                     (0,1),(-1,0),(0,1),(0,1),(0,1),
                     (0,1),(-1,0),(0,1),(0,1),
-                    (-1,0),(-1,0),(-1,0),
+                    (-0.1,0),(-0.1,0),(-0.1,0),
                     (-1,0),(0,1),(-1,0),
                     )
 # combine them into one dataframe
 bds = growthbds + interactionbds
 
 #L-BFGS-B, Powell, TNC, SLSQP, can have bounds
-optimization = optimize.minimize(objectiveFunction, x0 = guess, bounds = bds, method = 'L-BFGS-B', options ={'maxiter': 10000}, tol=1e-6)
+# optimization = optimize.minimize(objectiveFunction, x0 = guess, bounds = bds, method = 'L-BFGS-B', options ={'maxiter': 10000}, tol=1e-6)
+optimization = differential_evolution(objectiveFunction, bounds = bds, maxiter = 1000)
 print(optimization)
 
 

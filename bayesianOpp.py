@@ -40,13 +40,13 @@ def objectiveFunction(x):
     y = (np.vstack(np.hsplit(results.y.reshape(len(species), 50).transpose(),1)))
     # choose the final year (we want to compare the final year to the middle of the filters)
     print((y[49:50,:]))
-    result = (((y[49:50, 0]-0.86)**2) +  ((y[49:50, 1]-1.4)**2) + ((y[49:50, 2]-2.2)**2) + ((y[49:50, 3]-10.9)**2) + ((y[49:50, 4]-0.91)**2))
+    result = (((y[49:50, 0]-0.86)**2) +  ((y[49:50, 1]-1.4)**2) + ((y[49:50, 2]-2.2)**2) + ((y[49:50, 3]-11.1)**2) + ((y[49:50, 4]-0.91)**2))
     print(result)    
     return{'loss':result, 'status': STATUS_OK}
 
 # order of outputs   
 # ['arableGrass',   orgCarb   'roeDeer',     'thornyScrub',  'woodland'])
-#   0.86            1.4        2.2              10.9               0.91
+#   0.86            1.4        2.2              11.1               0.91
 
 param_hyperopt= {
     # growth rate bounds
@@ -60,7 +60,7 @@ param_hyperopt= {
     # interaction matrix bounds
     'interact': 
     {
-    'arableGrass': {'arableGrass':hp.uniform('arableGrass1', -1,0), 'roeDeer':hp.uniform('roeDeer1', -1,0), 'thornyScrub':hp.uniform('thornyScrub1', -0.1,0), 'woodland':hp.uniform('woodland1', -0.1,0)},
+    'arableGrass': {'arableGrass':hp.uniform('arableGrass1', -1,0), 'roeDeer':hp.uniform('roeDeer1', -1 ,0), 'thornyScrub':hp.uniform('thornyScrub1', -1,0), 'woodland':hp.uniform('woodland1', -1,0)},
     'organicCarbon':{'arableGrass':hp.uniform('arableGrass3', 0,1),'organicCarbon':hp.uniform('organicCarbon3',-1,0), 'roeDeer': hp.uniform('roeDeer3', 0,1),  'thornyScrub': hp.uniform('thornyScrub3', 0,1), 'woodland': hp.uniform('woodland3', 0,1)},
     'roeDeer': {'arableGrass': hp.uniform('arableGrass5', 0,1), 'roeDeer': hp.uniform('roeDeer5', -1,0),  'thornyScrub': hp.uniform('thornyScrub5', 0,1), 'woodland': hp.uniform('woodland5', 0,1)},
     'thornyScrub': {'roeDeer':hp.uniform('roeDeer6', -1,0), 'thornyScrub':hp.uniform('thornyScrub6', -1,0), 'woodland': hp.uniform('woodland6', -1,0)},
