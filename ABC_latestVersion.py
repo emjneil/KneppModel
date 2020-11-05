@@ -21,10 +21,9 @@ import random
 start = timeit.default_timer()
 
 # define the number of simulations to try
-NUMBER_OF_SIMULATIONS = 1500
+NUMBER_OF_SIMULATIONS = 10000
 # store species in a list
-species = ['arableGrass','largeHerb','organicCarbon','roeDeer','tamworthPig','thornyScrub','woodland']
-
+species = ['grasslandParkland','largeHerb','organicCarbon','roeDeer','tamworthPig','thornyScrub','woodland']
 
 def ecoNetwork(t, X, A, r):
     X[X<1e-6] = 0
@@ -36,31 +35,26 @@ def ecoNetwork(t, X, A, r):
 def generateInteractionMatrix():
     # define the array
     interaction_matrix = [
-                [-0.33,-1,0,-0.35,-1,-0.005,-0.26],
-                [1,-1,0,0,0,1,1],
-                [0.18,1,-0.97,0.1,1,0.03,0.88],
-                [0.38,0,0,-0.43,0,0.01,0.96],
-                [1,0,0,0,-1,1,1],
-                [0,-1,0,-0.08,-1,-0.04,-0.43],
-                [0,-1,0,-0.96,-1,0.31,-0.81]
+                [-0.74,0.33,0,0.11,0.2,-0.05,-0.009],
+                [0.005,-0.33,0,0,0,0.007,0.002],
+                [0.37,0.04,-0.93,0.16,0.06,0.02,0.4],
+                [0.22,0,0,-0.83,0,0.08,0.36],
+                [0.004,0,0,0,-0.07,0.006,0.003],
+                [-0.03,-0.05,0,-0.08,-0.006,-0.009,-0.05],
+                [-0.06,-0.02,0,-0.07,-0.09,0.01,-0.07]
                 ]
     # generate random uniform numbers
-    variation = np.random.uniform(low = 0.9, high = 1.1, size = (len(species),len((species))))
+    variation = np.random.uniform(low = 0.5, high = 1.5, size = (len(species),len((species))))
     interaction_matrix = interaction_matrix * variation
-    # keep them from going above/below 1/-1
-    # interaction_matrix[interaction_matrix > 1] = 1
-    # interaction_matrix[interaction_matrix < -1] = -1
-    # make lots of these arrays, 50% above/below outputs & consistent with sign
+    # return array
     return interaction_matrix
 
 
 def generateGrowth():
-    growthRates = [0.96, 0, 0.24, 0.06, 0, 0.94, 0.06]
+    growthRates = [0.91, 0.22, 0.04, 0.49, 0.15, 0.74, 0.18]
     # multiply by a range
-    variation = np.random.uniform(low = 0.9, high= 1.1, size = (len(species),))
+    variation = np.random.uniform(low = 0.5, high= 1.5, size = (len(species),))
     growth = growthRates * variation
-    # stop it from going over 1
-    # growth[growth > 1] = 1
     return growth
     
 def generateX0():
@@ -133,17 +127,18 @@ def filterRuns_1():
     # add filtering criteria 
     accepted_simulations = accepted_year[
     (accepted_year['roeDeer'] <= (X0[3]*3.3)) & (accepted_year['roeDeer'] >= (X0[3]*1)) &
-    (accepted_year['arableGrass'] <= (X0[0]*1)) & (accepted_year['arableGrass'] >= (X0[0]*0.7)) &
+    (accepted_year['grasslandParkland'] <= (X0[0]*1)) & (accepted_year['grasslandParkland'] >= (X0[0]*0.7)) &
     (accepted_year['woodland'] <=(X0[6]*1.3)) & (accepted_year['woodland'] >= (X0[6]*0.6)) &
     (accepted_year['thornyScrub'] <= (X0[5]*20.9)) & (accepted_year['thornyScrub'] >= (X0[5]*1)) &
     (accepted_year['organicCarbon'] <= (X0[2]*1.9)) & (accepted_year['organicCarbon'] >= (X0[2]*0.95))
     ]
-
     print(accepted_simulations.shape)
     # match ID number in accepted_simulations to its parameters in all_parameters
     accepted_parameters = all_parameters[all_parameters['ID'].isin(accepted_simulations['ID'])]
     # add accepted ID to original dataframe
     final_runs['accepted?'] = np.where(final_runs['ID'].isin(accepted_parameters['ID']), 'Accepted', 'Rejected')
+    # with pd.option_context('display.max_columns',None):
+    #     print(final_runs)
     return accepted_parameters, accepted_simulations, final_runs, X0
 
 
@@ -170,33 +165,6 @@ def generateParameters2():
     # # select interaction matrices part of the dataframes 
     interaction_strength_2 = accepted_parameters.drop(['X0', 'growth', 'ID'], axis=1)
     interaction_strength_2 = interaction_strength_2.dropna()
-    # make the interactions with the reintroduced species random between -1 and 1 (depending on sign)
-    # rows
-    herbRows = interaction_strength_2.loc[interaction_strength_2['largeHerb'] < 0, 'largeHerb'] 
-    interaction_strength_2.loc[interaction_strength_2['largeHerb'] < 0, 'largeHerb'] = [np.random.uniform(low=-1, high=0) for i in herbRows.index]
-    tamRows = interaction_strength_2.loc[interaction_strength_2['tamworthPig'] < 0, 'tamworthPig'] 
-    interaction_strength_2.loc[interaction_strength_2['tamworthPig'] < 0, 'tamworthPig'] = [np.random.uniform(low=-1, high=0) for i in tamRows.index]
-    
-    # keep them between 0 and 2x roe deer impacts (otherwise the parameter space is really big)
-    # interaction_strength_2.loc['arableGrass','largeHerb']  = [np.random.uniform(low=-0.35*1.5, high=0)]
-    # interaction_strength_2.loc['arableGrass','tamworthPig']  = [np.random.uniform(low=-0.35*1.5, high=0)]
-    # interaction_strength_2.loc['largeHerb','largeHerb']  = [np.random.uniform(low=-0.1, high=0)]
-    # interaction_strength_2.loc['tamworthPig','tamworthPig']  = [np.random.uniform(low=-0.1, high=0)]
-    # interaction_strength_2.loc['thornyScrub','largeHerb']  = [np.random.uniform(low=-0.08*1.5, high=0)]
-    # interaction_strength_2.loc['thornyScrub','tamworthPig']  = [np.random.uniform(low=-0.08*1.5, high=0)]
-    # interaction_strength_2.loc['woodland','largeHerb']  = [np.random.uniform(low=-0.96*1.5, high=0)]
-    # interaction_strength_2.loc['woodland','tamworthPig']  = [np.random.uniform(low=-0.96*1.5, high=0)]
-
-
-    # # columns
-    interaction_strength_2.loc['largeHerb','arableGrass']  = [np.random.uniform(low=0, high=0.1)]
-    interaction_strength_2.loc['largeHerb','thornyScrub']  = [np.random.uniform(low=0, high=0.1)]
-    interaction_strength_2.loc['largeHerb','woodland']  = [np.random.uniform(low=0, high=0.1)]
-    interaction_strength_2.loc['organicCarbon','largeHerb']  = [np.random.uniform(low=0, high=1)]
-    interaction_strength_2.loc['organicCarbon','tamworthPig']  = [np.random.uniform(low=0, high=1)]
-    interaction_strength_2.loc['tamworthPig','arableGrass']  = [np.random.uniform(low=0, high=0.1)]
-    interaction_strength_2.loc['tamworthPig','thornyScrub']  = [np.random.uniform(low=0, high=0.1)]
-    interaction_strength_2.loc['tamworthPig','woodland']  = [np.random.uniform(low=0, high=0.1)]
     # turn to array
     A = interaction_strength_2.to_numpy()
     return r, X0_2, A, accepted_simulations, accepted_parameters, final_runs, X0
@@ -309,14 +277,9 @@ def filterRuns_2():
     accepted_year_2018 = final_runs_2.iloc[49::50, :]
     with pd.option_context('display.max_columns',None):
         print(accepted_year_2018)
-    print(accepted_year_2018['arableGrass'].max())
-    print(accepted_year_2018['thornyScrub'].max())
-    print(accepted_year_2018['woodland'].max())
-    print(accepted_year_2018['roeDeer'].max())
-
     accepted_simulations_2018 = accepted_year_2018[
     (accepted_year_2018['roeDeer'] <= X0[3]*6.7) & (accepted_year_2018['roeDeer'] >= X0[3]*1.7) &
-    (accepted_year_2018['arableGrass'] <= X0[0]*0.59) & (accepted_year_2018['arableGrass'] >= X0[0]*0.86) &
+    (accepted_year_2018['grasslandParkland'] <= X0[0]*0.86) & (accepted_year_2018['grasslandParkland'] >= X0[0]*0.59) &
     (accepted_year_2018['woodland'] <= X0[6]*1.3) & (accepted_year_2018['woodland'] >= X0[6]*0.6) &
     (accepted_year_2018['thornyScrub'] <= X0[5]*35.1) & (accepted_year_2018['thornyScrub'] >= X0[5]*22.5) & 
     (accepted_year_2018['organicCarbon'] <= X0[2]*2.2) & (accepted_year_2018['organicCarbon'] >= X0[2]*1.7)
@@ -326,6 +289,7 @@ def filterRuns_2():
     accepted_parameters_2018 = all_parameters_2[all_parameters_2['ID'].isin(accepted_simulations_2018['ID'])]
     # add accepted ID to original dataframe
     final_runs_2['accepted?'] = np.where(final_runs_2['ID'].isin(accepted_simulations_2018['ID']), 'Accepted', 'Rejected')
+    final_runs_2.to_csv('finalRuns_bothODEs_50%.csv')
     return accepted_simulations_2018, accepted_parameters_2018, final_runs_2, all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs
 
 
@@ -437,6 +401,12 @@ def runODE_3():
         starting_2027[4] = np.random.uniform(low=0.18,high=3)
         # run the model for 2011-2012
         twelfth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_2027,  t_eval = t, args=(A, r), method = 'RK23')
+
+        # just to check longer
+        # starting_2028 = twelfth_ABC.y[0:9, 4:5]
+        # starting_2028 = starting_2028.flatten()
+        # starting_2028[1] = np.random.uniform(low=0.56,high=2.0)
+        # starting_2028[4] = np.random.uniform(low=0.18,high=3)
         # concatenate & append all the runs
         combined_runs_2 = np.hstack((third_ABC.y, fourth_ABC.y, fifth_ABC.y, sixth_ABC.y, seventh_ABC.y, eighth_ABC.y, ninth_ABC.y, tenth_ABC.y, eleventh_ABC.y, twelfth_ABC.y))
         # print(combined_runs)
