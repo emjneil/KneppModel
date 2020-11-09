@@ -23,7 +23,7 @@ species = ['arableGrass','organicCarbon','roeDeer','thornyScrub','woodland']
 def ecoNetwork(t, X, A, r):
     # put things to zero if they go below a certain threshold
     X[X<1e-6] = 0
-    X[X>1e3] = 1000
+    X[X>100] = 100
     # return array
     return X * (r + np.matmul(A, X))
 
@@ -32,9 +32,7 @@ def objectiveFunction(x):
     # insert interaction matrices of 0
     x = np.insert(x,6,0)
     x = np.insert(x,16,0)
-    x = np.insert(x,20,0)
     x = np.insert(x,21,0)
-    x = np.insert(x,25,0)
     x = np.insert(x,26,0)
     # define X0, growthRate, interactionMatrix
     X0 = [1] * len(species)
@@ -60,14 +58,14 @@ def objectiveFunction(x):
 #   0.86            1.4        2.2              11.1              0.91
 
 
-growthbds = ((0.5,1),(0,0.5),(0,0.5),(0.5,1),(0,0.5))
+growthbds = ((0.1,1),(0,0.1),(0.1,0.5),(0.1,1),(0.1,1))
 # arable grass is mostly impacted by thorny scrub & woodland (not self-impacts or roe)
 interactionbds = (
-                    (-0.1,0),(-0.1,0),(-1,0),(-1,0),
-                    (0,1),(-1,0),(0,1),(0,1),(0,1),
-                    (0,1),(-1,0),(0,1),(0,1),
-                    (-0.1,0),(-0.1,0),(-0.1,0),
-                    (-1,0),(0,1),(-1,0),
+                    (-1,0),(0,1),(-1,0),(-1,0),
+                    (0.1,0.25),(-0.8,-0.6),(0.1,0.2),(0,0.1),(0.1,0.2),
+                    (0,0.25),(-1,0),(0,0.25),(0,0.25),
+                    (-0.25,0),(-0.1,0),(-0.1,0),(-1,0),
+                    (-0.25,0),(-0.1,0),(0,1),(-1,0),
                     )
 # combine them into one dataframe
 bds = growthbds + interactionbds

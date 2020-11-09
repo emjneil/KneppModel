@@ -23,97 +23,108 @@ species = ['arableGrass','largeHerb','organicCarbon','roeDeer','tamworthPig','th
 def ecoNetwork(t, X, A, r):
     # put things to zero if they go below a certain threshold
     X[X<1e-5] = 0
-    X[X>50] = 50
-    # final_array = X * (r + np.matmul(A, X))
-    # # rescale
-    # sumHabitat_ODE = X[0] + X[5] + X[6]
-    # final_array[0] = (final_array[0]/sumHabitat_ODE) * 3
-    # final_array[5] = (final_array[5]/sumHabitat_ODE) * 3
-    # final_array[6] = (final_array[6]/sumHabitat_ODE) * 3
+    X[X>1000] = 1000
+    # return array
     return X * (r + np.matmul(A, X))
 
 
 def objectiveFunction(x): 
-    r =  x[0:7]
-    # insert interaction matrices of 0
+    # insert growths
+    x = np.insert(x,0,0.69)
+    x = np.insert(x,2,0.07)
+    x = np.insert(x,3,0.21)
+    x = np.insert(x,5,0.98)
+    x = np.insert(x,6,0.13)
+    # interaction
+    x = np.insert(x,7,-0.39)
     x = np.insert(x,9,0)
+    x = np.insert(x,10,0.34)
+    x = np.insert(x,12,-0.03)
+    x = np.insert(x,13,-0.93)
     x = np.insert(x,16,0)
     x = np.insert(x,17,0)
     x = np.insert(x,18,0)
+    x = np.insert(x,21,0.15)
+    x = np.insert(x,23,-0.71)
+    x = np.insert(x,24,0.18)
+    x = np.insert(x,26,0.04)
+    x = np.insert(x,27,0.16)
+    x = np.insert(x,28,0.03)
     x = np.insert(x,29,0)
     x = np.insert(x,30,0)
+    x = np.insert(x,31,-0.51)
     x = np.insert(x,32,0)
+    x = np.insert(x,33,0.09)
+    x = np.insert(x,34,0.1)
     x = np.insert(x,36,0)
     x = np.insert(x,37,0)
     x = np.insert(x,38,0)
+    x = np.insert(x,42,-0.09)
     x = np.insert(x,44,0)
+    x = np.insert(x,45,-0.03)
+    x = np.insert(x,47,-0.05)
+    x = np.insert(x,48,-0.17)
+    x = np.insert(x,49,-0.14)
     x = np.insert(x,51,0)
+    x = np.insert(x,52,-0.002)
+    x = np.insert(x,54,0.07)
+    x = np.insert(x,55,-0.53)
     # define X0, growthRate, interactionMatrix
-    X0 = [1,0,1,1,0,1,1]
+    X0 = [0.86,1,1.4,2.2,1,11.1,0.91]
     # growth rates
+    r = x[0:7]
     interaction_strength = x[7:56]
     interaction_strength = pd.DataFrame(data=interaction_strength.reshape(7,7),index = species, columns=species)
-    # with pd.option_context('display.max_columns',None):
-    #     print(interaction_strength)
     A = interaction_strength.to_numpy()
-    # ODE1
-    t_1 = np.linspace(0, 5, 50)
-    results = solve_ivp(ecoNetwork, (0, 5), X0,  t_eval = t_1, args=(A, r), method = 'RK23')
-    # reshape the outputs
-    y = (np.vstack(np.hsplit(results.y.reshape(len(species), 50).transpose(),1)))
-    # ODE 2
     t = np.linspace(0, 1, 5)
-    last_results = y[49:50,:].flatten()
-    last_results[1] = 1
-    last_results[4] = 1
-    second_ABC = solve_ivp(ecoNetwork, (0, 1), last_results,  t_eval = t, args=(A, r), method = 'RK23')   
+    second_ABC = solve_ivp(ecoNetwork, (0, 1), X0,  t_eval = t, args=(A, r), method = 'RK23')        
     # take those values and re-run for another year, adding forcings
     starting_2010 = second_ABC.y[0:7, 4:5]
     starting_values_2010 = starting_2010.flatten()
-    starting_values_2010[1] = last_results[1]*2.0
-    starting_values_2010[4] = last_results[4]*0.5
+    starting_values_2010[1] = 2.0
+    starting_values_2010[4] = 0.5
     # run the model for another year 2010-2011
     third_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2010,  t_eval = t, args=(A, r), method = 'RK23')
     # take those values and re-run for another year, adding forcings
     starting_2011 = third_ABC.y[0:7, 4:5]
     starting_values_2011 = starting_2011.flatten()
-    starting_values_2011[1] = last_results[1]*1.1
-    starting_values_2011[4] = last_results[4]*1.3
+    starting_values_2011[1] = 1.1
+    starting_values_2011[4] = 1.3
     # run the model for 2011-2012
     fourth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2011,  t_eval = t, args=(A, r), method = 'RK23')
     # take those values and re-run for another year, adding forcings
     starting_2012 = fourth_ABC.y[0:7, 4:5]
     starting_values_2012 = starting_2012.flatten()
-    starting_values_2012[1] = last_results[1]*1.1
-    starting_values_2012[4] = last_results[4]*1.5
+    starting_values_2012[1] = 1.1
+    starting_values_2012[4] = 1.5
     # run the model for 2012-2013
     fifth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2012,  t_eval = t, args=(A, r), method = 'RK23')
     # take those values and re-run for another year, adding forcings
     starting_2013 = fifth_ABC.y[0:7, 4:5]
     starting_values_2013 = starting_2013.flatten()
-    starting_values_2013[1] = last_results[1]*1.8
-    starting_values_2013[4] = last_results[4]*0.18
+    starting_values_2013[1] = 1.8
+    starting_values_2013[4] = 0.18
     # run the model for 2011-2012
     sixth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2013,  t_eval = t, args=(A, r), method = 'RK23')
     # take those values and re-run for another year, adding forcings
     starting_2014 = sixth_ABC.y[0:7, 4:5]
     starting_values_2014 = starting_2014.flatten()
-    starting_values_2014[1] = last_results[1]*0.6
-    starting_values_2014[4] = last_results[4]*3
+    starting_values_2014[1] = 0.6
+    starting_values_2014[4] = 3
     # run the model for 2011-2012
     seventh_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2014,  t_eval = t, args=(A, r), method = 'RK23')
     # take those values and re-run for another year, adding forcings
     starting_2015 = seventh_ABC.y[0:7, 4:5]
     starting_values_2015 = starting_2015.flatten()
-    starting_values_2015[1] = last_results[1]*1.2
-    starting_values_2015[4] = last_results[4]*0.5
+    starting_values_2015[1] = 1.2
+    starting_values_2015[4] = 0.5
     # run the model for 2011-2012
     eighth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2015,  t_eval = t, args=(A, r), method = 'RK23')
     # take those values and re-run for another year, adding forcings
     starting_2016 = eighth_ABC.y[0:7, 4:5]
     starting_values_2016 = starting_2016.flatten()
-    starting_values_2016[1] = last_results[1]*1.21
-    starting_values_2016[4] = last_results[4]*0.5
+    starting_values_2016[1] = 1.21
+    starting_values_2016[4] = 0.5
     # run the model for 2011-2012
     ninth_ABC = solve_ivp(ecoNetwork, (0, 1), starting_values_2016,  t_eval = t, args=(A, r), method = 'RK23')
     # take those values and re-run for another year, adding forcings
@@ -133,32 +144,26 @@ def objectiveFunction(x):
     # concatenate & append all the runs
     combined_runs = np.hstack((second_ABC.y, third_ABC.y, fourth_ABC.y, fifth_ABC.y, sixth_ABC.y, seventh_ABC.y, eighth_ABC.y, ninth_ABC.y, tenth_ABC.y, eleventh_ABC.y))
      # reshape the outputs
-    y_2 = (np.vstack(np.hsplit(combined_runs.reshape(len(species), 50).transpose(),1)))
+    y = (np.vstack(np.hsplit(combined_runs.reshape(len(species), 50).transpose(),1)))
     # choose the final year (we want to compare the final year to the middle of the filters)
-    print((y_2[49:50,:]))
-    result = ((((y[49:50, 0]-0.86)**2) +  ((y[49:50, 2]-1.4)**2) + ((y[49:50, 3]-2.2)**2) + ((y[49:50, 5]-11.1)**2) + ((y[49:50, 6]-0.91)**2) + ((y_2[49:50, 0]-0.72)**2) +  ((y_2[49:50, 2]-2)**2) + ((y_2[49:50, 3]-4.1)**2) + ((y_2[49:50, 5]-28.8)**2) + ((y_2[49:50, 6]-0.91)**2)))
+    print((y[49:50,:]))
+    result = (((y[49:50, 0]-0.72)**2) +  ((y[49:50, 2]-2)**2) + ((y[49:50, 3]-4.1)**2) + ((y[49:50, 5]-28.8)**2) + ((y[49:50, 6]-0.9)**2))
     print(result)    
     return (result)
 
-# first ODE:  
-# ['arableGrass',   orgCarb   'roeDeer',     'thornyScrub',  'woodland'])
-#   0.86            1.4        2.2              11.1              0.91
-
-
-# second ODE: 
+# order of outputs   
 # ['arableGrass',  largeHerb, orgCarb  'roeDeer',tamworthPig,  'thornyScrub','woodland'])
 #   0.72                       2          4.1                     28.8          0.91
-
  
-growth_bds = ((0.9,0.92),(0.2,0.22),(0.04,0.05),(0.45,0.5),(0.1,0.2),(0.7,0.77),(0.15,0.2))
+
+growth_bds = ((0,0.25),(0,0.25))
 interactionbds = (
-                    (-0.8,-0.7),(0.3,0.35),(0.1,0.12),(0.18,0.22),(-0.1,0),(-0.1,0),
-                    (0,0.01),(-0.5,0),(0,0.01),(0,0.01),
-                    (0.2,0.4),(0,0.1),(-1,-0.8),(0,0.2),(0,0.2),(0,0.1),(0,0.5),
-                    (0,0.5),(-1,-0.8),(0,0.5),(0,0.5),
-                    (0,0.01),(-0.1,0),(0,0.01),(0,0.01),
-                    (-0.1,0),(-0.1,0),(-0.1,0),(-0.01,0),(-0.1,0),(-0.15,0),
-                    (-0.1,0),(-0.1,0),(-0.1,0),(-0.1,0),(0,0.1),(-0.1,0)
+                    (0,1),(0,1),
+                    (0,0.2),(-1,0),(0,0.2),(0,0.2),
+                    (0,0.2),(0,0.2),
+                    (0,0.2),(-1,0),(0,0.2),(0,0.2),
+                    (-0.25,0),(-0.25,0),
+                    (-0.1,0),(-0.1,0)
 )
 
 # combine them into one dataframe
@@ -168,5 +173,4 @@ bds =  growth_bds + interactionbds
 # optimization = optimize.minimize(objectiveFunction, x0 = guess, bounds = bds, method = 'L-BFGS-B', options ={'maxiter': 10000}, tol=1e-6)
 optimization = differential_evolution(objectiveFunction, bounds = bds, maxiter = 1000)
 print(optimization)
-
 
