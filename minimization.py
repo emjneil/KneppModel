@@ -58,21 +58,21 @@ def objectiveFunction(x):
 #   0.86            1.4        2.2              11.1              0.91
 
 
-growthbds = ((0.1,1),(0,0.1),(0.1,0.5),(0.1,1),(0.1,1))
+growthbds = ((0.7,1),(0,0.1),(0.1,0.5),(0.7,1),(0.1,0.5))
 # arable grass is mostly impacted by thorny scrub & woodland (not self-impacts or roe)
 interactionbds = (
-                    (-1,0),(0,1),(-1,0),(-1,0),
-                    (0.1,0.25),(-0.8,-0.6),(0.1,0.2),(0,0.1),(0.1,0.2),
-                    (0,0.25),(-1,0),(0,0.25),(0,0.25),
-                    (-0.25,0),(-0.1,0),(-0.1,0),(-1,0),
-                    (-0.25,0),(-0.1,0),(0,1),(-1,0),
+                    (-1,0),(0,0.15),(-1,0),(-1,0),
+                    (0,0.25),(-1,0),(0,0.5),(0,0.5),(0,0.5),
+                    (0,0.5),(-1,0),(0,0.5),(0,0.5),
+                    (-1,1),(-0.001,0),(-0.1,0),(-1,0),
+                    (-1,1),(-0.01,0),(0,1),(-1,0),
                     )
 # combine them into one dataframe
 bds = growthbds + interactionbds
 
 #L-BFGS-B, Powell, TNC, SLSQP, can have bounds
 # optimization = optimize.minimize(objectiveFunction, x0 = guess, bounds = bds, method = 'L-BFGS-B', options ={'maxiter': 10000}, tol=1e-6)
-optimization = differential_evolution(objectiveFunction, bounds = bds, maxiter = 1000)
+optimization = differential_evolution(objectiveFunction, bounds = bds, maxiter = 500)
 print(optimization)
 
 

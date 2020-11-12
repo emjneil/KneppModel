@@ -3,7 +3,6 @@
 # download packages
 # from scipy import integrate
 from scipy.integrate import solve_ivp
-# from scipy import optimize
 from scipy.optimize import differential_evolution
 import pylab as p
 import matplotlib.pyplot as plt
@@ -14,6 +13,8 @@ import string
 import timeit
 import seaborn as sns
 import random
+import numpy.matlib
+
 
 ##### ------------------- DEFINE THE FUNCTION ------------------------
 
@@ -21,10 +22,11 @@ import random
 start = timeit.default_timer()
 
 # define the number of simulations to try
-NUMBER_OF_SIMULATIONS = 1000
+totalSimulations = 5000
 # store species in a list
 species = ['grasslandParkland','largeHerb','organicCarbon','roeDeer','tamworthPig','thornyScrub','woodland']
 
+# define the Lotka-Volterra equation
 def ecoNetwork(t, X, A, r):
     X[X<1e-6] = 0
     return X * (r + np.matmul(A, X))
@@ -40,11 +42,11 @@ def generateInteractionMatrix():
                 [0.37,0.04,-0.93,0.16,0.06,0.02,0.4],
                 [0.22,0,0,-0.83,0,0.08,0.36],
                 [0.004,0,0,0,-0.07,0.006,0.003],
-                [-0.03,-0.05,0,-0.08,-0.006,-0.009,-0.05],
-                [-0.06,-0.02,0,-0.07,-0.09,0.01,-0.07]
+                [0.03,-0.05,0,-0.08,-0.006,-0.009,-0.05],
+                [0.06,-0.02,0,-0.07,-0.09,0.01,-0.07]
                 ]
     # generate random uniform numbers
-    variation = np.random.uniform(low = 0.9, high = 1.1, size = (len(species),len((species))))
+    variation = np.random.uniform(low = 0.85, high = 1.15, size = (len(species),len((species))))
     interaction_matrix = interaction_matrix * variation
     # return array
     return interaction_matrix
@@ -53,7 +55,7 @@ def generateInteractionMatrix():
 def generateGrowth():
     growthRates = [0.91, 0.22, 0.04, 0.49, 0.15, 0.74, 0.18]
     # multiply by a range
-    variation = np.random.uniform(low = 0.9, high= 1.1, size = (len(species),))
+    variation = np.random.uniform(low = 0.85, high= 1.15, size = (len(species),))
     growth = growthRates * variation
     return growth
     
@@ -84,38 +86,74 @@ def generateX0():
 
 # # # # --------- SOLVE ODE #1: Pre-reintroductions (2000-2009) -------
 
+
+def calcJacobian(A, r, n):
+    # make an empty array to fill (with diagonals = 1, zeros elsewhere since we want eigenalue)
+    i_matrix = np.eye(len(n))
+    # put n into an array to multiply by A
+    n_array = np.matlib.repmat(n, 1, len(n))
+    n_array = np.reshape (n_array, (7,7))
+    # calculate
+    J = i_matrix * r + A * n_array + i_matrix * np.matmul(A, n)
+    return J
+
+
+def calcStability(A, r, n):
+    J = calcJacobian(A, r, n)
+    ev = np.real(np.linalg.eig(J)[0])
+    max_eig = np.max(ev)
+    if max_eig < 0:
+        return True
+    else:
+        return False
+
+
 def runODE_1():
     # Define time points: first 5 years (2005-2009)
     t = np.linspace(0, 5, 50)
     all_runs = []
     all_parameters = []
-    for _ in range(NUMBER_OF_SIMULATIONS):
+    # number of simulations starts at 0 but will be added to (depending on how many parameters pass stability constraint)
+    NUMBER_OF_SIMULATIONS = 0
+    for _ in range(totalSimulatios):
         A = generateInteractionMatrix()
         r = generateGrowth()
         X0 = generateX0()
-        # remember the parameters used
-        X0_growth = pd.concat([pd.DataFrame(X0), pd.DataFrame(r)], axis = 1)
-        X0_growth.columns = ['X0','growth']
-        parameters_used = pd.concat([X0_growth, pd.DataFrame(A, index = species, columns = species)])
-        all_parameters.append(parameters_used)
-        # run the ODE
-        first_ABC = solve_ivp(ecoNetwork, (0, 5), X0,  t_eval = t, args=(A, r), method = 'RK23')
-        # append all the runs
-        all_runs = np.append(all_runs, first_ABC.y)
-        # check the final runs
+        # check viability of the parameter set (is it stable?)
+        ia = np.linalg.inv(A)
+        # n is the equilibrium state; calc as inverse of -A*r
+        n = -np.matmul(ia, r)
+        # if all the values of n are above zero at equilibrium, check the stability 
+        if np.all(n > 0):
+            isStable = calcStability(A, r, n)
+            # if the parameter set is viable (stable & all n > 0 at equilibrium); do the calculation
+            if isStable == True:
+                # remember the parameters used
+                X0_growth = pd.concat([pd.DataFrame(X0), pd.DataFrame(r)], axis = 1)
+                X0_growth.columns = ['X0','growth']
+                parameters_used = pd.concat([X0_growth, pd.DataFrame(A, index = species, columns = species)])
+                all_parameters.append(parameters_used)
+                # run the ODE
+                first_ABC = solve_ivp(ecoNetwork, (0, 5), X0,  t_eval = t, args=(A, r), method = 'RK23')
+                # append all the runs
+                all_runs = np.append(all_runs, first_ABC.y)
+                # add one to the counter (so we know how many simulations were run in the end)
+                NUMBER_OF_SIMULATIONS += 1
+    # check the final runs
     final_runs = (np.vstack(np.hsplit(all_runs.reshape(len(species)*NUMBER_OF_SIMULATIONS, 50).transpose(),NUMBER_OF_SIMULATIONS)))
     final_runs = pd.DataFrame(data=final_runs, columns=species)
     # append all the parameters to a dataframe
     all_parameters = pd.concat(all_parameters)
+    print(NUMBER_OF_SIMULATIONS)
     # add ID to all_parameters
     all_parameters['ID'] = ([(x+1) for x in range(NUMBER_OF_SIMULATIONS) for _ in range(len(parameters_used))])
-    return final_runs,all_parameters, X0
+    return final_runs,all_parameters, X0, NUMBER_OF_SIMULATIONS
 
 
 # --------- FILTER OUT UNREALISTIC RUNS -----------
 
 def filterRuns_1():
-    final_runs,all_parameters,X0 = runODE_1()
+    final_runs,all_parameters,X0,NUMBER_OF_SIMULATIONS = runODE_1()
     # add ID to dataframe
     IDs = np.arange(1,1 + NUMBER_OF_SIMULATIONS)
     final_runs['ID'] = np.repeat(IDs,50)
@@ -139,7 +177,7 @@ def filterRuns_1():
     final_runs['accepted?'] = np.where(final_runs['ID'].isin(accepted_parameters['ID']), 'Accepted', 'Rejected')
     # with pd.option_context('display.max_columns',None):
     #     print(final_runs)
-    return accepted_parameters, accepted_simulations, final_runs, X0
+    return accepted_parameters, accepted_simulations, final_runs, X0, NUMBER_OF_SIMULATIONS
 
 
 
@@ -147,7 +185,7 @@ def filterRuns_1():
 # # # # ---------------------- ODE #2: Years 2009-2018 -------------------------
 
 def generateParameters2():
-    accepted_parameters, accepted_simulations, final_runs, X0 = filterRuns_1()
+    accepted_parameters, accepted_simulations, final_runs, X0, NUMBER_OF_SIMULATIONS = filterRuns_1()
     # # select growth rates 
     growthRates_2 = accepted_parameters.loc[accepted_parameters['growth'].notnull(), ['growth']]
     growthRates_2 = pd.DataFrame(growthRates_2.values.reshape(len(accepted_simulations), len(species)), columns = species)
@@ -167,7 +205,7 @@ def generateParameters2():
     interaction_strength_2 = interaction_strength_2.dropna()
     # turn to array
     A = interaction_strength_2.to_numpy()
-    return r, X0_2, A, accepted_simulations, accepted_parameters, final_runs, X0
+    return r, X0_2, A, accepted_simulations, accepted_parameters, final_runs, X0, NUMBER_OF_SIMULATIONS
 
 
 
@@ -175,7 +213,7 @@ def generateParameters2():
 # # # # # ------ SOLVE ODE #2: Pre-reintroductions (2009-2018) -------
 
 def runODE_2():
-    r, X0_2, A, accepted_simulations, accepted_parameters, final_runs, X0  = generateParameters2()
+    r, X0_2, A, accepted_simulations, accepted_parameters, final_runs, X0, NUMBER_OF_SIMULATIONS  = generateParameters2()
     all_runs_2 = []
     all_parameters_2 = []
     t_2 = np.linspace(0, 1, 5)
@@ -265,14 +303,14 @@ def runODE_2():
     all_parameters_2['ID'] = ([(x+1) for x in range(len(accepted_simulations)) for _ in range(len(parameters_used_2))])
     IDs = np.arange(1,1 + len(accepted_simulations))
     final_runs_2['ID'] = np.repeat(IDs,50)
-    return final_runs_2, all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs, X0
+    return final_runs_2, all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs, X0, NUMBER_OF_SIMULATIONS
 
 
 
 
 # --------- FILTER OUT UNREALISTIC RUNS: Post-reintroductions -----------
 def filterRuns_2():
-    final_runs_2, all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs, X0 = runODE_2()
+    final_runs_2, all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs, X0, NUMBER_OF_SIMULATIONS = runODE_2()
     # select only the last run (filter to the year 2010); make sure these are in line with the new min/max X0 values (from the minimization), not the original X0 bounds
     accepted_year_2018 = final_runs_2.iloc[49::50, :]
     with pd.option_context('display.max_columns',None):
@@ -290,7 +328,7 @@ def filterRuns_2():
     # add accepted ID to original dataframe
     final_runs_2['accepted?'] = np.where(final_runs_2['ID'].isin(accepted_simulations_2018['ID']), 'Accepted', 'Rejected')
     # final_runs_2.to_csv('finalRuns_bothODEs_50%.csv')
-    return accepted_simulations_2018, accepted_parameters_2018, final_runs_2, all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs
+    return accepted_simulations_2018, accepted_parameters_2018, final_runs_2, all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs, NUMBER_OF_SIMULATIONS
 
 
 
@@ -298,7 +336,7 @@ def filterRuns_2():
 # # # # ---------------------- ODE #3: projecting 10 years (2018-2028) -------------------------
 
 def generateParameters3():
-    accepted_simulations_2018, accepted_parameters_2018, final_runs_2, all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs = filterRuns_2()
+    accepted_simulations_2018, accepted_parameters_2018, final_runs_2, all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs, NUMBER_OF_SIMULATIONS = filterRuns_2()
     # # select growth rates 
     growthRates_3 = accepted_parameters_2018.loc[accepted_parameters_2018['growth'].notnull(), ['growth']]
     growthRates_3 = pd.DataFrame(growthRates_3.values.reshape(len(accepted_simulations_2018), len(species)), columns = species)
@@ -314,14 +352,14 @@ def generateParameters3():
     interaction_strength_3 = accepted_parameters_2018.drop(['X0', 'growth', 'ID'], axis=1)
     interaction_strength_3 = interaction_strength_3.dropna()
     A_3 = interaction_strength_3.to_numpy()
-    return r_3, X0_3, A_3, accepted_simulations_2, accepted_parameters_2018, final_runs_2,  all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs
+    return r_3, X0_3, A_3, accepted_simulations_2, accepted_parameters_2018, final_runs_2,  all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs, NUMBER_OF_SIMULATIONS
 
 
 
 # # # # # ------ SOLVE ODE #3: Projecting forwards 10 years (2018-2028) -------
 
 def runODE_3():
-    r_3, X0_3, A_3, accepted_simulations_2, accepted_parameters_2018, final_runs_2,  all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs  = generateParameters3()
+    r_3, X0_3, A_3, accepted_simulations_2, accepted_parameters_2018, final_runs_2,  all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs, NUMBER_OF_SIMULATIONS  = generateParameters3()
     all_runs_3 = []
     all_parameters_3 = []
     t = np.linspace(0, 1, 5)
@@ -504,7 +542,7 @@ def runODE_3():
     IDs = np.arange(1,1 + len(accepted_simulations_2))
     final_runs_3['ID'] = np.repeat(IDs,125)
     final_runs_3['accepted?'] = np.repeat('Accepted', len(final_runs_3))
-    return final_runs_3, all_parameters_3, X0_3, accepted_simulations_2, accepted_parameters_2018, final_runs_2,  all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs
+    return final_runs_3, all_parameters_3, X0_3, accepted_simulations_2, accepted_parameters_2018, final_runs_2,  all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs, NUMBER_OF_SIMULATIONS
 
 
 
@@ -512,7 +550,7 @@ def runODE_3():
 # # # # # ----------------------------- PLOTTING POPULATIONS (2000-2010) ----------------------------- 
 
 def plotting():
-    final_runs_3, all_parameters_3, X0_3, accepted_simulations_2018, accepted_parameters_2018, final_runs_2,  all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs = runODE_3()
+    final_runs_3, all_parameters_3, X0_3, accepted_simulations_2018, accepted_parameters_2018, final_runs_2,  all_parameters_2, X0_2, accepted_simulations, accepted_parameters, final_runs, NUMBER_OF_SIMULATIONS = runODE_3()
     # extract accepted nodes from all dataframes
     accepted_shape1 = np.repeat(final_runs['accepted?'], len(species))
     accepted_shape2 = np.repeat(final_runs_2['accepted?'], len(species))

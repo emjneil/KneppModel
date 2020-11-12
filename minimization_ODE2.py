@@ -30,45 +30,45 @@ def ecoNetwork(t, X, A, r):
 
 def objectiveFunction(x): 
     # insert growths
-    x = np.insert(x,0,0.69)
-    x = np.insert(x,2,0.07)
-    x = np.insert(x,3,0.21)
-    x = np.insert(x,5,0.98)
-    x = np.insert(x,6,0.13)
+    x = np.insert(x,0,0.74)
+    x = np.insert(x,2,0.04)
+    x = np.insert(x,3,0.34)
+    x = np.insert(x,5,0.87)
+    x = np.insert(x,6,0.45)
     # interaction
-    x = np.insert(x,7,-0.39)
+    x = np.insert(x,7,-0.34)
     x = np.insert(x,9,0)
-    x = np.insert(x,10,0.34)
+    x = np.insert(x,10,0.03)
     x = np.insert(x,12,-0.03)
-    x = np.insert(x,13,-0.93)
+    x = np.insert(x,13,-0.38)
     x = np.insert(x,16,0)
     x = np.insert(x,17,0)
     x = np.insert(x,18,0)
-    x = np.insert(x,21,0.15)
-    x = np.insert(x,23,-0.71)
-    x = np.insert(x,24,0.18)
-    x = np.insert(x,26,0.04)
-    x = np.insert(x,27,0.16)
-    x = np.insert(x,28,0.03)
+    x = np.insert(x,21,0.2)
+    x = np.insert(x,23,-0.73)
+    x = np.insert(x,24,0.17)
+    x = np.insert(x,26,0.02)
+    x = np.insert(x,27,0.27)
+    x = np.insert(x,28,0.18)
     x = np.insert(x,29,0)
     x = np.insert(x,30,0)
-    x = np.insert(x,31,-0.51)
+    x = np.insert(x,31,-0.52)
     x = np.insert(x,32,0)
-    x = np.insert(x,33,0.09)
-    x = np.insert(x,34,0.1)
+    x = np.insert(x,33,0.06)
+    x = np.insert(x,34,0.08)
     x = np.insert(x,36,0)
     x = np.insert(x,37,0)
     x = np.insert(x,38,0)
-    x = np.insert(x,42,-0.09)
+    x = np.insert(x,42,0.38)
     x = np.insert(x,44,0)
-    x = np.insert(x,45,-0.03)
-    x = np.insert(x,47,-0.05)
-    x = np.insert(x,48,-0.17)
-    x = np.insert(x,49,-0.14)
+    x = np.insert(x,45,-0.005)
+    x = np.insert(x,47,-0.09)
+    x = np.insert(x,48,-0.19)
+    x = np.insert(x,49,-0.05)
     x = np.insert(x,51,0)
-    x = np.insert(x,52,-0.002)
-    x = np.insert(x,54,0.07)
-    x = np.insert(x,55,-0.53)
+    x = np.insert(x,52,-0.003)
+    x = np.insert(x,54,0.04)
+    x = np.insert(x,55,-0.87)
     # define X0, growthRate, interactionMatrix
     X0 = [0.86,1,1.4,2.2,1,11.1,0.91]
     # growth rates
@@ -147,23 +147,23 @@ def objectiveFunction(x):
     y = (np.vstack(np.hsplit(combined_runs.reshape(len(species), 50).transpose(),1)))
     # choose the final year (we want to compare the final year to the middle of the filters)
     print((y[49:50,:]))
-    result = (((y[49:50, 0]-0.72)**2) +  ((y[49:50, 2]-2)**2) + ((y[49:50, 3]-4.1)**2) + ((y[49:50, 5]-28.8)**2) + ((y[49:50, 6]-0.9)**2))
+    result = (((y[49:50, 0]-0.72)**2) +  ((y[49:50, 2]-2)**2) + ((y[49:50, 3]-4.1)**2) + ((y[49:50, 5]-28.8)**2) + ((y[49:50, 6]-0.91)**2))
     print(result)    
     return (result)
 
-# order of outputs   
+# second ODE: 
 # ['arableGrass',  largeHerb, orgCarb  'roeDeer',tamworthPig,  'thornyScrub','woodland'])
 #   0.72                       2          4.1                     28.8          0.91
- 
 
-growth_bds = ((0,0.25),(0,0.25))
+
+growth_bds = ((0.1,0.25),(0.1,0.5))
 interactionbds = (
-                    (0,1),(0,1),
-                    (0,0.2),(-1,0),(0,0.2),(0,0.2),
-                    (0,0.2),(0,0.2),
-                    (0,0.2),(-1,0),(0,0.2),(0,0.2),
-                    (-0.25,0),(-0.25,0),
-                    (-0.1,0),(-0.1,0)
+                    (0.03,0.3),(0.03,0.3),
+                    (0,0.25),(-1,-0.8),(0,0.25),(0,0.25),
+                    (0,0.25),(0,0.25),
+                    (0,0.25),(-1,-0.8),(0,0.25),(0,0.25),
+                    (-0.05,-0.005),(-0.05,-0.005),
+                    (-0.03,-0.003),(-0.03,-0.003)
 )
 
 # combine them into one dataframe
@@ -171,6 +171,6 @@ bds =  growth_bds + interactionbds
 
 #L-BFGS-B, Powell, TNC, SLSQP, can have bounds
 # optimization = optimize.minimize(objectiveFunction, x0 = guess, bounds = bds, method = 'L-BFGS-B', options ={'maxiter': 10000}, tol=1e-6)
-optimization = differential_evolution(objectiveFunction, bounds = bds, maxiter = 1000)
+optimization = differential_evolution(objectiveFunction, bounds = bds, maxiter = 500)
 print(optimization)
 

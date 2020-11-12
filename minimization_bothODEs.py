@@ -43,21 +43,21 @@ def objectiveFunction(x):
     x = np.insert(x,44,0)
     x = np.insert(x,51,0)
     # define X0, growthRate, interactionMatrix
-    X0 = [0.86,1,1.4,2.2,1,11.1,0.91]
+    X0 = [1,0,1,1,0,1,1]
     # growth rates
     interaction_strength = x[7:56]
     interaction_strength = pd.DataFrame(data=interaction_strength.reshape(7,7),index = species, columns=species)
     A = interaction_strength.to_numpy()
     # ODE1
-    # t_1 = np.linspace(0, 5, 50)
-    # results = solve_ivp(ecoNetwork, (0, 5), X0,  t_eval = t_1, args=(A, r), method = 'RK23')
+    t_1 = np.linspace(0, 5, 50)
+    results = solve_ivp(ecoNetwork, (0, 5), X0,  t_eval = t_1, args=(A, r), method = 'RK23')
     # reshape the outputs
-    # y = (np.vstack(np.hsplit(results.y.reshape(len(species), 50).transpose(),1)))
+    y = (np.vstack(np.hsplit(results.y.reshape(len(species), 50).transpose(),1)))
     # ODE 2
     t = np.linspace(0, 1, 5)
-    # last_results = y[49:50,:].flatten()
-    # last_results[1] = 1
-    # last_results[4] = 1
+    last_results = y[49:50,:].flatten()
+    last_results[1] = 1
+    last_results[4] = 1
     second_ABC = solve_ivp(ecoNetwork, (0, 1), X0,  t_eval = t, args=(A, r), method = 'RK23')   
     # take those values and re-run for another year, adding forcings
     starting_2010 = second_ABC.y[0:7, 4:5]
@@ -128,25 +128,34 @@ def objectiveFunction(x):
     y_2 = (np.vstack(np.hsplit(combined_runs.reshape(len(species), 50).transpose(),1)))
     # choose the final year (we want to compare the final year to the middle of the filters)
     print((y_2[49:50,:]))
-    result = ((((y_2[49:50, 0]-0.72)**2) +  ((y_2[49:50, 2]-2)**2) + ((y_2[49:50, 3]-4.1)**2) + ((y_2[49:50, 5]-28.8)**2) + ((y_2[49:50, 6]-0.91)**2)))
-    # result = ((((y[49:50, 0]-0.86)**2) +  ((y[49:50, 2]-1.4)**2) + ((y[49:50, 3]-2.2)**2) + ((y[49:50, 5]-11.1)**2) + ((y[49:50, 6]-0.91)**2) + ((y_2[49:50, 0]-0.72)**2) +  ((y_2[49:50, 2]-2)**2) + ((y_2[49:50, 3]-4.1)**2) + ((y_2[49:50, 5]-28.8)**2) + ((y_2[49:50, 6]-0.91)**2)))
+    # print((y[49:50,:]))
+    # result = (((y[49:50, 0]-0.86)**2) +  ((y[49:50, 2]-1.4)**2) + ((y[49:50, 3]-2.2)**2) + ((y[49:50, 5]-11.1)**2) + ((y[49:50, 6]-0.91)**2))
+    # result = ((((y_2[49:50, 0]-0.72)**2) +  ((y_2[49:50, 2]-2)**2) + ((y_2[49:50, 3]-4.1)**2) + ((y_2[49:50, 5]-28.8)**2) + ((y_2[49:50, 6]-0.91)**2)))
+    result = ((((y[49:50, 0]-0.86)**2) +  ((y[49:50, 2]-1.4)**2) + ((y[49:50, 3]-2.2)**2) + ((y[49:50, 5]-11.1)**2) + ((y[49:50, 6]-0.91)**2) + ((y_2[49:50, 0]-0.72)**2) +  ((y_2[49:50, 2]-2)**2) + ((y_2[49:50, 3]-4.1)**2) + ((y_2[49:50, 5]-28.8)**2) + ((y_2[49:50, 6]-0.91)**2)))
     print(result)    
     return (result)
+
+
+
+# order of outputs   
+# ['arableGrass',   orgCarb   'roeDeer',     'thornyScrub',  'woodland'])
+#   0.86            1.4        2.2              11.1              0.91
+
 
 # second ODE: 
 # ['arableGrass',  largeHerb, orgCarb  'roeDeer',tamworthPig,  'thornyScrub','woodland'])
 #   0.72                       2          4.1                     28.8          0.91
 
  
-growth_bds = ((0.55,0.65),(0,1),(0.06,0.08),(0.2,0.3),(0,1),(0.7,0.85),(0.01,0.05))
+growth_bds = ((0.8,1),(0.1,0.25),(0,0.1),(0.1,0.4),(0.1,0.4),(0.8,1),(0.1,0.6))
 interactionbds = (
-                    (-0.1,-0.2),(0.3,0.35),(0.1,0.12),(0.18,0.22),(-0.1,0),(-0.01,0),
-                    (0,0.01),(-0.4,-0.3),(0,0.01),(0,0.01),
-                    (0.3,0.4),(0,0.05),(-1,-0.9),(0,0.2),(0,0.01),(0,0.1),(0.35,0.5),
-                    (0,0.5),(-1,-0.8),(0,0.1),(0.3,0.4),
-                    (0,0.006),(-0.1,0),(0,0.006),(0,0.003),
-                    (-0.01,0),(-0.01,0),(-0.01,0),(-0.001,0),(-0.001,0),(-0.05,0),
-                    (-0.01,0),(-0.01,0),(-0.01,0),(-0.01,0),(0,0.1),(-0.09,-0.04)
+                    (-1,-0.8),(0.1,0.6),(0.05,0.3),(0.1,0.6),(-0.1,0),(-0.3,0),
+                    (0,0.2),(-1,-0.6),(0,0.2),(0,0.2),
+                    (0,0.25),(0,0.25),(-1,0),(0,0.25),(0,0.25),(0,0.25),(0,0.25),
+                    (0,1),(-1,0),(0,1),(0,1),
+                    (0,0.2),(-1,-0.5),(0,0.2),(0,0.2),
+                    (-0.5,0.5),(-0.75,0),(-0.25,0),(-0.5,0),(-0.1,0),(-1,0),
+                    (-0.5,0.5),(-0.75,0),(-0.25,0),(-0.5,0),(0,0.5),(-1,0)
 )
 
 # combine them into one dataframe
@@ -154,5 +163,5 @@ bds =  growth_bds + interactionbds
 
 #L-BFGS-B, Powell, TNC, SLSQP, can have bounds
 # optimization = optimize.minimize(objectiveFunction, x0 = guess, bounds = bds, method = 'L-BFGS-B', options ={'maxiter': 10000}, tol=1e-6)
-optimization = differential_evolution(objectiveFunction, bounds = bds, maxiter = 1000)
+optimization = differential_evolution(objectiveFunction, bounds = bds, maxiter = 500 )
 print(optimization)
