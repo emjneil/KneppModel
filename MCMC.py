@@ -1,16 +1,23 @@
 # # ---- Approximate Bayesian Computation Model of the Knepp Estate (2000-2019) ------
 from scipy import integrate
 from scipy.integrate import solve_ivp
-from scipy import optimize
-from scipy.optimize import differential_evolution
-# import pylab as p
-# import matplotlib.pyplot as plt
+import pylab as p
 import pandas as pd
 import numpy as np
-# import itertools as IT
-# import string
+import itertools as IT
+import string
+from hyperopt import hp, fmin, tpe, space_eval
 from skopt import gp_minimize
 import numpy.matlib
+import matplotlib.pyplot as plt
+import scipy.stats as st
+import pyabc
+from pyabc import (ABCSMC,
+                   RV, Distribution,
+                   MedianEpsilon,
+                   LocalTransition)
+from pyabc.visualization import plot_kde_2d, plot_data_callback
+
 
 
 # # # # # --------- MINIMIZATION ----------- # # # # # # # 
@@ -23,7 +30,6 @@ def ecoNetwork(t, X, A, r):
     X[X>1e5] = 1e5
     return X * (r + np.matmul(A, X))
 
-
 def calcJacobian(A, r, n):
     # make an empty array to fill (with diagonals = 1, zeros elsewhere since we want eigenalue)
     i_matrix = np.eye(len(n))
@@ -33,7 +39,6 @@ def calcJacobian(A, r, n):
     # calculate
     J = i_matrix * r + A * n_array + i_matrix * np.matmul(A, n)
     return J
-
 
 def calcStability(A, r, n):
     J = calcJacobian(A, r, n)
@@ -45,7 +50,66 @@ def calcStability(A, r, n):
         return False
 
 
-def objectiveFunction(x): 
+# ['arableGrass',  largeHerb, orgCarb  'roeDeer',tamworthPig,  'thornyScrub','woodland'])
+#   0.86                       1.4        2.2                     10             0.91
+#   0.72                       2          4.1                     28.8           0.91
+
+
+with pm.Model() as ecosystemModel:
+    # create the parameters
+    # grow_grass = pm.Bound(pm.Uniform, lower= 0, upper=1.0)('grow_grass')
+    grow_grass = pm.Uniform('grow_grass', lower= 0, upper=1.0)
+    grow_largeHerb = pm.Uniform('grow_largeHerb', lower=0.08, upper=0.38)
+    grow_orgCarb = pm.Uniform('grow_orgCarb', lower=0, upper=1.0)
+    grow_roe = pm.Uniform('grow_roe', lower=0.16, upper=0.47)
+    grow_tamPig = pm.Uniform('grow_tamPig', lower=0.006, upper=0.41)
+    grow_thornyScrub = pm.Uniform('grow_thornyScrub', lower=0, upper=1.0)
+    grow_wood = pm.Uniform('grow_wood',lower=0.002, upper=0.02)
+    growth_bds =  grow_grass + grow_largeHerb + grow_orgCarb + grow_roe + grow_tamPig + grow_thornyScrub + grow_wood
+    print(grow_grass, growth_bds)
+    # interaction parameters
+    x1 = pm.Uniform('x1', lower=-1, upper=0)
+    x2 = pm.Uniform("x2", lower=-1, upper=0)
+    x3 = pm.Uniform("x3", lower=-1, upper=0)
+    x4 = pm.Uniform("x4",lower=-1, upper=0)
+    x5 = pm.Uniform("x5", lower=-1, upper=0)
+    x6 = pm.Uniform("x6",lower=-1, upper=0)
+    x7 = pm.Uniform("x7", lower=0, upper=1)
+    x8 = pm.Uniform("x8", lower=-1, upper=0)
+    x9 = pm.Uniform("x9", lower=0, upper=1)
+    x10 = pm.Uniform("x10", lower=0, upper=1)
+    x11 = pm.Uniform("x11", lower=0, upper=1)
+    x12 = pm.Uniform("x12", lower=0, upper=1)
+    x13 = pm.Uniform("x13", lower=-1, upper=0)
+    x14 = pm.Uniform("x14", lower=0, upper=1)
+    x15 = pm.Uniform("x15", lower=0, upper=1)
+    x16 = pm.Uniform("x16", lower=0, upper=1)
+    x17 = pm.Uniform("x17", lower=0, upper=1)
+    x18 = pm.Uniform("x18", lower=0, upper=1)
+    x19 = pm.Uniform("x19", lower=-1, upper=0)
+    x20 = pm.Uniform("x20", lower=0, upper=1)
+    x21 = pm.Uniform("x21",lower=0, upper=1)
+    x22 = pm.Uniform("x22", lower=0, upper=1)
+    x23 = pm.Uniform("x23", lower=-1, upper=1)
+    x24 = pm.Uniform("x24", lower=0, upper=1)
+    x25 = pm.Uniform("x25", lower=0, upper=1)
+    x26 = pm.Uniform("x26", lower=-1, upper=1)
+    x27 = pm.Uniform("x27", lower=-1, upper=0)
+    x28 = pm.Uniform("x28", lower=-1, upper=0)
+    x29 = pm.Uniform("x29", lower=-1, upper=0)
+    x30 = pm.Uniform('x30', lower=-1, upper=0)
+    x31 = pm.Uniform("x31", lower=-1, upper=0)
+    x32 = pm.Uniform("x32", lower=-1, upper=1)
+    x33 = pm.Uniform("x33", lower=-1, upper=0)
+    x34 = pm.Uniform("x34", lower=-1, upper=0)
+    x35 = pm.Uniform("x35", lower=-1, upper=0)
+    x36 = pm.Uniform("x36", lower=-1, upper=0)
+    x37 = pm.Uniform("x37", lower=-1, upper=0)
+    interactionbds = x1+x2+x3+x4+x5+x6+x7+x8+x9+x10+x11+x12+x13+x14+x15+x16+x17+x18+x19+x20+x21+x22+x23+x24+x25+x26+x27+x28+x29+x30+x31+x32+x33+x34+x35+x36+x37
+    # combine dataframes
+    x = growth_bds + interactionbds
+    print(x)
+
     r =  x[0:7]
     # insert interaction matrices of 0
     x = np.insert(x,9,0)
@@ -58,9 +122,7 @@ def objectiveFunction(x):
     x = np.insert(x,36,0)
     x = np.insert(x,37,0)
     x = np.insert(x,38,0)
-    # x = np.insert(x,42,0)
     x = np.insert(x,44,0)
-    # x = np.insert(x,49,0)
     x = np.insert(x,51,0)
     # define X0, growthRate, interactionMatrix
     X0 = [1,0,1,1,0,1,1]
@@ -79,10 +141,10 @@ def objectiveFunction(x):
         # if the parameter set is viable (stable & all n > 0 at equilibrium); do the calculation
         if isStable == True:
             # ODE1
-            t_init = np.linspace(0, 4, 20)
+            t_init = np.linspace(0, 4, 40)
             results = solve_ivp(ecoNetwork, (0, 4), X0,  t_eval = t_init, args=(A, r), method = 'RK23')
             # reshape the outputs
-            y = (np.vstack(np.hsplit(results.y.reshape(len(species), 20).transpose(),1)))
+            y = (np.vstack(np.hsplit(results.y.reshape(len(species), 40).transpose(),1)))
             y = pd.DataFrame(data=y, columns=species)
             all_times = np.append(all_times, results.t)
             y['time'] = all_times
@@ -181,60 +243,12 @@ def objectiveFunction(x):
             last_year_2 = y_2.loc[y_2['time'] == 14]
             last_year_2 = last_year_2.drop('time', axis=1).values.flatten()
             # print the outputs
-            # print(last_year_2)
-            result = (((last_year_1[0]-0.86)**2) +  ((last_year_1[2]-1.4)**2) + ((last_year_1[3]-2.2)**2) + ((last_year_1[5]-10)**2) + ((last_year_1[6]-0.91)**2) + ((last_year_2[0]-0.72)**2) +  ((last_year_2[2]-2)**2) + ((last_year_2[3]-4.1)**2) + ((last_year_2[5]-28.8)**2) + ((last_year_2[6]-0.91)**2))
-            # print("r",result)  
-            return (result)
-        # otherwise return some high number (to stop minimizer errors)
-        else:
-            return 1e5
-    # otherwise return some high number
-    else:
-        return 1e5
-
-# ['arableGrass',   orgCarb   'roeDeer',     'thornyScrub',  'woodland'])
-#   0.86            1.4        2.2              10              0.91
-
-# ['arableGrass',  largeHerb, orgCarb  'roeDeer',tamworthPig,  'thornyScrub','woodland'])
-#   0.72                       2          4.1                     28.8          0.91
-
-growth_bds = ((0.3,0.4),(0.14,0.28),(0,1),(0.28,0.34),(0.01,0.3),(0.9,1),(0,0.014))
-# roe deer = 0.31 growth rate (+-50%)
-# carbon = forced to be low (0.01 max), otherwise minimizer makes it high & model predicts it'll be HIGHER without herbivore reintroductions
-# wild horses = 0.18-0.25; red deer = 0.15 (+-10% min/max)
-# feral hog  = 0.18-0.21; boar in England = 0.016-0.27 (+-10%min/max)
-# woodland = lots of studies (see code sheet); min to max (0.004-0.014); made it 0.1
-interactionbds = (
-                    (-0.4,-0.3),(-0.001,0),(-0.001,0),(-0.001,0),(-0.001,0),(-0.01,0),
-                    (0.3,0.4),(-0.8,-0.7),(0,0.1),(0.4,0.5),
-                    (0,1),(0,1),(-1,0),(0,1),(0,1),(0,1),(0,1),
-                    (0.5,0.6),(-0.8,-0.7),(0,0.1),(0.4,0.5),
-                    (0.5,0.6),(-0.5,-0.4),(0,0.1),(0.4,0.5),
-                    (-0.01,0),(-0.1,0),(-0.1,0),(-0.1,0),(-0.01,0),(-0.3,-0.2),
-                    (-0.01,0),(-0.01,0),(-0.01,0),(-0.01,0),(0,0.01),(-1,0)
-)
-
-# combine them into one dataframe
-bds =  growth_bds + interactionbds
-
-# growthGuess = [0.94, 0.28, 0.61, 0.39, 0.17, 0.83, 0.018]
-# interactionGuess = [
-#                     -0.85,-0.07,-0.02,-0.04,-0.003,-0.05,
-#                     0.38,-0.99,0.03,0.43,
-#                     0.37,0.15,-0.85,0.05,0.04,0.004,0.32,
-#                     0.59,-0.73,0.08,0.16,
-#                     0.62,-0.55,0.04,0.21,
-#                     -0.09,-0.06,-0.02,-0.003,-0.02,-0.08,
-#                     -0.005,-0.23,-0.03,-0.36,0.06,-0.33
-# ]
-
-# combined = growthGuess + interactionGuess
-# guess = np.array(combined)
-
-# optimization = optimize.minimize(objectiveFunction, x0 = guess, bounds = bds, method = 'L-BFGS-B', options ={'maxiter': 10000}, tol=1e-6)
-optimization = differential_evolution(objectiveFunction, bounds = bds, maxiter = 1)
-# optimization = optimize.fmin_l_bfgs_b(objectiveFunction, x0 = guess, bounds = bds, approx_grad = True, epsilon = 1e-04)
-
-# save to csv
-print(optimization, file=open("optimizationOutput.txt", "w"))
-# print(optimization)
+            result = last_year_1 + last_year_2
+            print("r",result) 
+            observed = pm.Normal("observed", mu = result, value=np.array([0.86,0,1.4,2.2,0,10,0.91,0.72,1.28,2,4.1,4.1,28.8,0.91])) 
+            
+    # M = pm.Model(objectiveFunction)
+    samples = pm.sample(10000)
+    pm.traceplot(samples, ['growth_bds', 'interactionbds'])
+    pm.traceplot(samples)
+    print(samples)
