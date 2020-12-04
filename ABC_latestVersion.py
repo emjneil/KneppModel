@@ -4,16 +4,13 @@
 from scipy.integrate import solve_ivp
 from scipy.optimize import differential_evolution
 # from scipy import integrate
-import pylab as p
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-import itertools as IT
-import string
 import timeit
 import seaborn as sns
-import random
 import numpy.matlib
+
 
 # time the program
 start = timeit.default_timer()
@@ -34,25 +31,25 @@ def ecoNetwork(t, X, A, r):
 def generateInteractionMatrix():
     # define the array
     interaction_matrix = [
-                [-0.39,-0.0007,0,-0.0004,-0.0006,-0.0007,-0.005],
-                [0.3,-0.7,0,0,0,0.05,0.4],
-                [0.1,0.07,-0.9,0.05,0.01,0.01,0.3],
-                [0.5,0,0,-0.8,0,0.07,0.4],
+                [-0.49,-0.00005,0,-0.00008,-0.00004,-0.005,-0.007],
+                [0.4,-0.7,0,0,0,0.02,0.4],
+                [0.4,0.2,-0.96,0.05,0.07,0.003,0.46],
+                [0.6,0,0,-0.75,0,0.07,0.4],
                 [0.6,0,0,0,-0.5,0.05,0.4],
-                [-0.001,-0.08,0,-0.09,-0.03,-0.004,-0.2],
-                [-0.002,-0.006,0,-0.005,-0.003,0.004,-0.07]
+                [-0.007,-0.07,0,-0.07,-0.08,-0.006,-0.3],
+                [-0.0001,-0.0005,0,-0.0006,-0.0004,0.003,-0.06]
                 ]
     # generate random uniform numbers
-    variation = np.random.uniform(low = 0.5, high = 1.5, size = (len(species),len((species))))
+    variation = np.random.uniform(low = 0.75, high = 1.25, size = (len(species),len((species))))
     interaction_matrix = interaction_matrix * variation
     # return array
     return interaction_matrix
 
 
 def generateGrowth():
-    growthRates = [0.31, 0.24, 0.71, 0.29, 0.27, 0.97, 0.013]
+    growthRates = [0.5, 0.26, 0.36, 0.29, 0.14, 0.96, 0.0056]
     # multiply by a range
-    variation = np.random.uniform(low = 0.5, high= 1.5, size = (len(species),))
+    variation = np.random.uniform(low = 0.75, high= 1.25, size = (len(species),))
     growth = growthRates * variation
     return growth
     
@@ -109,12 +106,12 @@ def calcStability(A, r, n):
 
 def runODE_1():
     # Define time points: first 5 years (2005-2009)
-    t = np.linspace(0, 4, 20)
+    t = np.linspace(0, 4, 8)
     all_runs = []
     all_times = []
     all_parameters = []
-    # number of simulations starts at 0 but will be added to (depending on how many parameters pass stability constraint)
     NUMBER_OF_SIMULATIONS = 0
+    # number of simulations starts at 0 but will be added to (depending on how many parameters pass stability constraint)
     for _ in range(totalSimulations):
         A = generateInteractionMatrix()
         r = generateGrowth()
@@ -140,24 +137,24 @@ def runODE_1():
             NUMBER_OF_SIMULATIONS += 1
     # check the final runs
     print(NUMBER_OF_SIMULATIONS)
-    final_runs = (np.vstack(np.hsplit(all_runs.reshape(len(species)*NUMBER_OF_SIMULATIONS, 20).transpose(),NUMBER_OF_SIMULATIONS)))
+    final_runs = (np.vstack(np.hsplit(all_runs.reshape(len(species)*NUMBER_OF_SIMULATIONS, 8).transpose(),NUMBER_OF_SIMULATIONS)))
     final_runs = pd.DataFrame(data=final_runs, columns=species)
     final_runs['time'] = all_times
     # append all the parameters to a dataframe
     all_parameters = pd.concat(all_parameters)
     # add ID to all_parameters
     all_parameters['ID'] = ([(x+1) for x in range(NUMBER_OF_SIMULATIONS) for _ in range(len(parameters_used))])
-    return final_runs, all_parameters, X0, NUMBER_OF_SIMULATIONS
+    return final_runs, all_parameters, NUMBER_OF_SIMULATIONS
 
 
 # --------- FILTER OUT UNREALISTIC RUNS -----------
 
 def filterRuns_1():
-    final_runs, all_parameters, X0, NUMBER_OF_SIMULATIONS = runODE_1()
+    final_runs, all_parameters, NUMBER_OF_SIMULATIONS = runODE_1()
     # add ID to dataframe
     IDs = np.arange(1,NUMBER_OF_SIMULATIONS+1)
-    final_runs['ID'] = np.repeat(IDs,20)
-    # select only the last run (filter to the year 2009)
+    final_runs['ID'] = np.repeat(IDs,8)
+    # select only the last year
     accepted_year = final_runs.loc[final_runs['time'] == 4]
     # add filtering criteria 
     accepted_simulations = accepted_year[
@@ -172,9 +169,7 @@ def filterRuns_1():
     accepted_parameters = all_parameters[all_parameters['ID'].isin(accepted_simulations['ID'])]
     # add accepted ID to original dataframe
     final_runs['accepted?'] = np.where(final_runs['ID'].isin(accepted_parameters['ID']), 'Accepted', 'Rejected')
-    # with pd.option_context('display.max_columns',None):
-    #     print(final_runs)
-    return accepted_parameters, accepted_simulations, final_runs, X0, NUMBER_OF_SIMULATIONS
+    return accepted_parameters, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS
 
 
 
@@ -182,7 +177,7 @@ def filterRuns_1():
 # # # # ---------------------- ODE #2: Years 2009-2018 -------------------------
 
 def generateParameters2():
-    accepted_parameters, accepted_simulations, final_runs, X0, NUMBER_OF_SIMULATIONS = filterRuns_1()
+    accepted_parameters, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS = filterRuns_1()
     # # select growth rates 
     growthRates_2 = accepted_parameters.loc[accepted_parameters['growth'].notnull(), ['growth']]
     growthRates_2 = pd.DataFrame(growthRates_2.values.reshape(len(accepted_simulations), len(species)), columns = species)
@@ -207,33 +202,33 @@ def generateParameters2():
     # run no reintroductions
     all_runs_2 = []
     all_times_2 = []
-    t_2 = np.linspace(4, 39, 50)
+    t_2 = np.linspace(4, 39, 20)
     # loop through each row of accepted parameters
     for X0_3, r_2, A_2 in zip(X0_noReintro,r_secondRun, np.array_split(A_secondRun,len(accepted_simulations))):
         # run the model for one year 2009-2010 (to account for herbivore numbers being manually controlled every year)
         noReintro_ABC = solve_ivp(ecoNetwork, (4, 39), X0_3,  t_eval = t_2, args=(A_2, r_2), method = 'RK23') 
         all_runs_2 = np.append(all_runs_2, noReintro_ABC.y)
         all_times_2 = np.append(all_times_2, noReintro_ABC.t)
-    no_reintro = (np.vstack(np.hsplit(all_runs_2.reshape(len(species)*len(accepted_simulations), 50).transpose(),len(accepted_simulations))))
+    no_reintro = (np.vstack(np.hsplit(all_runs_2.reshape(len(species)*len(accepted_simulations), 20).transpose(),len(accepted_simulations))))
     no_reintro = pd.DataFrame(data=no_reintro, columns=species)
     IDs = np.arange(1,1 + len(accepted_simulations))
-    no_reintro['ID'] = np.repeat(IDs,50)
+    no_reintro['ID'] = np.repeat(IDs,20)
     no_reintro['time'] = all_times_2
     filtered_FinalRuns = final_runs.loc[(final_runs['accepted?'] == "Accepted") ]
     no_reintro = pd.concat([filtered_FinalRuns, no_reintro])
     no_reintro['accepted?'] = "noReintro"
-    return r_secondRun, X0_secondRun, A_secondRun, accepted_simulations, accepted_parameters, final_runs, X0, NUMBER_OF_SIMULATIONS,no_reintro
+    return r_secondRun, X0_secondRun, A_secondRun, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, no_reintro
 
 
 
 # # # # # ------ SOLVE ODE #2: Pre-reintroductions (2009-2018) -------
 
 def runODE_2():
-    r_secondRun, X0_secondRun, A_secondRun, accepted_simulations, accepted_parameters, final_runs, X0, NUMBER_OF_SIMULATIONS, no_reintro  = generateParameters2()
+    r_secondRun, X0_secondRun, A_secondRun, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, no_reintro  = generateParameters2()
     all_runs_2 = []
     all_times_2 = []
     all_parameters_2 = []
-    t_2 = np.linspace(4, 5, 5)
+    t_2 = np.linspace(4, 5, 2)
     # loop through each row of accepted parameters
     for X0_3, r_2, A_2 in zip(X0_secondRun,r_secondRun, np.array_split(A_secondRun,len(accepted_simulations))):
         # concantenate the parameters
@@ -243,75 +238,75 @@ def runODE_2():
         # run the model for one year 2009-2010 (to account for herbivore numbers being manually controlled every year)
         second_ABC = solve_ivp(ecoNetwork, (4, 5), X0_3,  t_eval = t_2, args=(A_2, r_2), method = 'RK23')        
         # take those values and re-run for another year, adding forcings
-        starting_2010 = second_ABC.y[0:7, 4:5]
+        starting_2010 = second_ABC.y[0:7, 1:2]
         starting_values_2010 = starting_2010.flatten()
         starting_values_2010[1] = 2.0
         starting_values_2010[4] = 0.5
-        t_3 = np.linspace(5, 6, 5)
+        t_3 = np.linspace(5, 6, 2)
         # run the model for another year 2010-2011
         third_ABC = solve_ivp(ecoNetwork, (5, 6), starting_values_2010,  t_eval = t_3, args=(A_2, r_2), method = 'RK23')
         # take those values and re-run for another year, adding forcings
-        starting_2011 = third_ABC.y[0:7, 4:5]
+        starting_2011 = third_ABC.y[0:7, 1:2]
         starting_values_2011 = starting_2011.flatten()
         starting_values_2011[1] = 1.1
         starting_values_2011[4] = 1.3
-        t_4 = np.linspace(6, 7, 5)
+        t_4 = np.linspace(6, 7, 2)
         # run the model for 2011-2012
         fourth_ABC = solve_ivp(ecoNetwork, (6, 7), starting_values_2011,  t_eval = t_4, args=(A_2, r_2), method = 'RK23')
         # take those values and re-run for another year, adding forcings
-        starting_2012 = fourth_ABC.y[0:7, 4:5]
+        starting_2012 = fourth_ABC.y[0:7, 1:2]
         starting_values_2012 = starting_2012.flatten()
         starting_values_2012[1] = 1.1
         starting_values_2012[4] = 1.5
-        t_5 = np.linspace(7, 8, 5)
+        t_5 = np.linspace(7, 8, 2)
         # run the model for 2012-2013
         fifth_ABC = solve_ivp(ecoNetwork, (7, 8), starting_values_2012,  t_eval = t_5, args=(A_2, r_2), method = 'RK23')
         # take those values and re-run for another year, adding forcings
-        starting_2013 = fifth_ABC.y[0:7, 4:5]
+        starting_2013 = fifth_ABC.y[0:7, 1:2]
         starting_values_2013 = starting_2013.flatten()
         starting_values_2013[1] = 1.8
         starting_values_2013[4] = 0.18
-        t_6 = np.linspace(8, 9, 5)
+        t_6 = np.linspace(8, 9, 2)
         # run the model for 2011-2012
         sixth_ABC = solve_ivp(ecoNetwork, (8, 9), starting_values_2013,  t_eval = t_6, args=(A_2, r_2), method = 'RK23')
         # take those values and re-run for another year, adding forcings
-        starting_2014 = sixth_ABC.y[0:7, 4:5]
+        starting_2014 = sixth_ABC.y[0:7, 1:2]
         starting_values_2014 = starting_2014.flatten()
         starting_values_2014[1] = 0.6
         starting_values_2014[4] = 3
-        t_7 = np.linspace(9, 10, 5)
+        t_7 = np.linspace(9, 10, 2)
         # run the model for 2011-2012
         seventh_ABC = solve_ivp(ecoNetwork, (9, 10), starting_values_2014,  t_eval = t_7, args=(A_2, r_2), method = 'RK23')
         # take those values and re-run for another year, adding forcings
-        starting_2015 = seventh_ABC.y[0:7, 4:5]
+        starting_2015 = seventh_ABC.y[0:7, 1:2]
         starting_values_2015 = starting_2015.flatten()
         starting_values_2015[1] = 1.2
         starting_values_2015[4] = 0.5
-        t_8 = np.linspace(10, 11, 5)
+        t_8 = np.linspace(10, 11, 2)
         # run the model for 2011-2012
         eighth_ABC = solve_ivp(ecoNetwork, (10, 11), starting_values_2015,  t_eval = t_8, args=(A_2, r_2), method = 'RK23')
         # take those values and re-run for another year, adding forcings
-        starting_2016 = eighth_ABC.y[0:7, 4:5]
+        starting_2016 = eighth_ABC.y[0:7, 1:2]
         starting_values_2016 = starting_2016.flatten()
         starting_values_2016[1] = 1.21
         starting_values_2016[4] = 0.5
-        t_9 = np.linspace(11, 12, 5)
+        t_9 = np.linspace(11, 12, 2)
         # run the model for 2011-2012
         ninth_ABC = solve_ivp(ecoNetwork, (11, 12), starting_values_2016,  t_eval = t_9, args=(A_2, r_2), method = 'RK23')
         # take those values and re-run for another year, adding forcings
-        starting_2017 = ninth_ABC.y[0:7, 4:5]
+        starting_2017 = ninth_ABC.y[0:7, 1:2]
         starting_values_2017 = starting_2017.flatten()
         starting_values_2017[1] = np.random.uniform(low=0.56,high=2.0)
         starting_values_2017[4] = np.random.uniform(low=0.18,high=3)
-        t_10 = np.linspace(12, 13, 5)
+        t_10 = np.linspace(12, 13, 2)
         # run the model for 2011-2012
         tenth_ABC = solve_ivp(ecoNetwork, (12, 13), starting_values_2017,  t_eval = t_10, args=(A_2, r_2), method = 'RK23')
         # take those values and re-run for another year, adding forcings
-        starting_2018 = tenth_ABC.y[0:7, 4:5]
+        starting_2018 = tenth_ABC.y[0:7, 1:2]
         starting_values_2018 = starting_2018.flatten()
         starting_values_2018[1] = np.random.uniform(low=0.56,high=2.0)
         starting_values_2018[4] = np.random.uniform(low=0.18,high=3)
-        t_11 = np.linspace(13, 14, 5)
+        t_11 = np.linspace(13, 14, 2)
         # run the model for 2011-2012
         eleventh_ABC = solve_ivp(ecoNetwork, (13, 14), starting_values_2018,  t_eval = t_11, args=(A_2, r_2), method = 'RK23')
         # concatenate & append all the runs
@@ -323,7 +318,7 @@ def runODE_2():
         all_parameters_2.append(parameters_used_2)   
         all_times_2 = np.append(all_times_2, combined_times)
     # check the final runs
-    final_runs_2 = (np.vstack(np.hsplit(all_runs_2.reshape(len(species)*len(accepted_simulations), 50).transpose(),len(accepted_simulations))))
+    final_runs_2 = (np.vstack(np.hsplit(all_runs_2.reshape(len(species)*len(accepted_simulations), 20).transpose(),len(accepted_simulations))))
     final_runs_2 = pd.DataFrame(data=final_runs_2, columns=species)
     final_runs_2['time'] = all_times_2
     # append all the parameters to a dataframe
@@ -331,15 +326,15 @@ def runODE_2():
     # add ID to the dataframe & parameters
     all_parameters_2['ID'] = ([(x+1) for x in range(len(accepted_simulations)) for _ in range(len(parameters_used_2))])
     IDs = np.arange(1,1 + len(accepted_simulations))
-    final_runs_2['ID'] = np.repeat(IDs,50)
-    return final_runs_2, all_parameters_2, X0_secondRun, accepted_simulations, accepted_parameters, final_runs, X0, NUMBER_OF_SIMULATIONS, no_reintro
+    final_runs_2['ID'] = np.repeat(IDs,20)
+    return final_runs_2, all_parameters_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, no_reintro
 
 
 
 
 # --------- FILTER OUT UNREALISTIC RUNS: Post-reintroductions -----------
 def filterRuns_2():
-    final_runs_2, all_parameters_2, X0_secondRun, accepted_simulations, accepted_parameters, final_runs, X0, NUMBER_OF_SIMULATIONS, no_reintro = runODE_2()
+    final_runs_2, all_parameters_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, no_reintro = runODE_2()
     # select only the last run (filter to the year 2010); make sure these are in line with the new min/max X0 values (from the minimization), not the original X0 bounds
     accepted_year_2018 = final_runs_2.loc[final_runs_2['time'] == 14]
     accepted_simulations_2018 = accepted_year_2018[
@@ -354,7 +349,7 @@ def filterRuns_2():
     accepted_parameters_2018 = all_parameters_2[all_parameters_2['ID'].isin(accepted_simulations_2018['ID'])]
     # add accepted ID to original dataframe
     final_runs_2['accepted?'] = np.where(final_runs_2['ID'].isin(accepted_simulations_2018['ID']), 'Accepted', 'Rejected')
-    return accepted_simulations_2018, accepted_parameters_2018, final_runs_2, all_parameters_2, X0_secondRun, accepted_simulations, accepted_parameters, final_runs, NUMBER_OF_SIMULATIONS, no_reintro
+    return accepted_simulations_2018, accepted_parameters_2018, final_runs_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, no_reintro
 
 
 
@@ -362,7 +357,7 @@ def filterRuns_2():
 # # # # ---------------------- ODE #3: projecting 10 years (2018-2028) -------------------------
 
 def generateParameters3():
-    accepted_simulations_2018, accepted_parameters_2018, final_runs_2, all_parameters_2, X0_secondRun, accepted_simulations, accepted_parameters, final_runs, NUMBER_OF_SIMULATIONS, no_reintro = filterRuns_2()
+    accepted_simulations_2018, accepted_parameters_2018, final_runs_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, no_reintro = filterRuns_2()
     # # select growth rates 
     growthRates_3 = accepted_parameters_2018.loc[accepted_parameters_2018['growth'].notnull(), ['growth']]
     growthRates_3 = pd.DataFrame(growthRates_3.values.reshape(len(accepted_simulations_2018), len(species)), columns = species)
@@ -378,12 +373,11 @@ def generateParameters3():
     interaction_strength_3 = accepted_parameters_2018.drop(['X0', 'growth', 'ID'], axis=1)
     interaction_strength_3 = interaction_strength_3.dropna()
     A_thirdRun = interaction_strength_3.to_numpy()
-
     # check histograms
     fig, axes = plt.subplots(len(growthRates_3.columns)//7,7, figsize=(25, 10))
     for col, axis in zip(growthRates_3.columns, axes):
         growthRates_3.hist(column = col, ax=axis)
-    plt.show()
+    plt.savefig('histograms.png')
     # check correlation matrix
     growthRates_3.columns = ['grasslandParkland_growth', 'largeHerb_growth', 'organicCarbon_growth', 'roeDeer_growth', 'tamworthPig_growth', 'thornyScrub_growth', 'woodland_growth']
     # reshape int matrix
@@ -432,21 +426,23 @@ def generateParameters3():
     ax.set_yticklabels(
         ax.get_yticklabels(), 
         fontsize = 5)
+    plt.savefig('corrMatrix.png')
     plt.show()
-    return r_thirdRun, X0_thirdRun, A_thirdRun, accepted_simulations_2, accepted_parameters_2018, final_runs_2,  all_parameters_2, X0_secondRun, accepted_simulations, accepted_parameters, final_runs, NUMBER_OF_SIMULATIONS, no_reintro
+    return r_thirdRun, X0_thirdRun, A_thirdRun, accepted_simulations_2018, final_runs_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, no_reintro
 
 
 
 # # # # # ------ SOLVE ODE #3: Projecting forwards 10 years (2018-2028) -------
 
 def runODE_3():
-    r_thirdRun, X0_thirdRun, A_thirdRun, accepted_simulations_2, accepted_parameters_2018, final_runs_2,  all_parameters_2, X0_secondRun, accepted_simulations, accepted_parameters, final_runs, NUMBER_OF_SIMULATIONS, no_reintro  = generateParameters3()
+    # use those parameters to project into the future
+    r_thirdRun, X0_thirdRun, A_thirdRun, accepted_simulations_2018, final_runs_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, no_reintro  = generateParameters3()
     all_runs_3 = []
     all_parameters_3 = []
     all_times_3 = []
-    t = np.linspace(14, 15, 5)
+    t = np.linspace(14, 15, 2)
     # loop through each row of accepted parameters
-    for X0_4, r_4, A_4 in zip(X0_thirdRun,r_thirdRun, np.array_split(A_thirdRun,len(accepted_simulations_2))):
+    for X0_4, r_4, A_4 in zip(X0_thirdRun,r_thirdRun, np.array_split(A_thirdRun,len(accepted_simulations_2018))):
         # concantenate the parameters
         X0_growth_3 = pd.concat([pd.DataFrame(X0_4), pd.DataFrame(r_4)], axis = 1)
         X0_growth_3.columns = ['X0','growth']
@@ -454,182 +450,182 @@ def runODE_3():
         # run the model for one year 2018-2019 (to account for herbivore numbers being manually controlled every year)
         third_ABC = solve_ivp(ecoNetwork, (14, 15), X0_4,  t_eval = t, args=(A_4, r_4), method = 'RK23')        
         # take those values and re-run for another year, adding forcings
-        starting_2019 = third_ABC.y[0:7, 4:5]
+        starting_2019 = third_ABC.y[0:7, 1:2]
         starting_2019 = starting_2019.flatten()
         starting_2019[1] = np.random.uniform(low=0.56,high=2.0)
         starting_2019[4] =  np.random.uniform(low=0.18,high=3)
-        t_1 = np.linspace(15, 16, 5)
+        t_1 = np.linspace(15, 16, 2)
         # run the model for another year 2020
         fourth_ABC = solve_ivp(ecoNetwork, (15, 16), starting_2019,  t_eval = t_1, args=(A_4, r_4), method = 'RK23')
         # take those values and re-run for another year, adding forcings
-        starting_2020 = fourth_ABC.y[0:9, 4:5]
+        starting_2020 = fourth_ABC.y[0:9, 1:2]
         starting_2020 = starting_2020.flatten()
         starting_2020[1] = np.random.uniform(low=0.56,high=2.0)
         starting_2020[4] = np.random.uniform(low=0.18,high=3)
-        t_2 = np.linspace(16, 17, 5)
+        t_2 = np.linspace(16, 17, 2)
         # run the model for 2021
         fifth_ABC = solve_ivp(ecoNetwork, (16, 17), starting_2020,  t_eval = t_2, args=(A_4, r_4), method = 'RK23')
         # take those values and re-run for another year, adding forcings
-        starting_2021 = fifth_ABC.y[0:9, 4:5]
+        starting_2021 = fifth_ABC.y[0:9, 1:2]
         starting_2021 = starting_2021.flatten()
         starting_2021[1] = np.random.uniform(low=0.56,high=2.0)
         starting_2021[4] = np.random.uniform(low=0.18,high=3)
-        t_3 = np.linspace(17, 18, 5)
+        t_3 = np.linspace(17, 18, 2)
         # run the model for 2022
         sixth_ABC = solve_ivp(ecoNetwork, (17, 18), starting_2021,  t_eval = t_3, args=(A_4, r_4), method = 'RK23')
         # take those values and re-run for another year, adding forcings
-        starting_2022 = sixth_ABC.y[0:9, 4:5]
+        starting_2022 = sixth_ABC.y[0:9, 1:2]
         starting_2022 = starting_2022.flatten()
         starting_2022[1] = np.random.uniform(low=0.56,high=2.0)
         starting_2022[4] = np.random.uniform(low=0.18,high=3)
-        t_4 = np.linspace(18, 19, 5)
+        t_4 = np.linspace(18, 19, 2)
         # run the model for 2023
         seventh_ABC = solve_ivp(ecoNetwork, (18, 19), starting_2022,  t_eval = t_4, args=(A_4, r_4), method = 'RK23')
         # take those values and re-run for another year, adding forcings
-        starting_2023 = seventh_ABC.y[0:9, 4:5]
+        starting_2023 = seventh_ABC.y[0:9, 1:2]
         starting_2023 = starting_2023.flatten()
         starting_2023[1] = np.random.uniform(low=0.56,high=2.0)
         starting_2023[4] = np.random.uniform(low=0.18,high=3)
-        t_5 = np.linspace(19, 20, 5)
+        t_5 = np.linspace(19, 20, 2)
         # run the model for 2024
         eighth_ABC = solve_ivp(ecoNetwork, (19, 20), starting_2023,  t_eval = t_5, args=(A_4, r_4), method = 'RK23')
         # take those values and re-run for another year, adding forcings
-        starting_2024 = eighth_ABC.y[0:9, 4:5]
+        starting_2024 = eighth_ABC.y[0:9, 1:2]
         starting_2024 = starting_2024.flatten()
         starting_2024[1] = np.random.uniform(low=0.56,high=2.0)
         starting_2024[4] = np.random.uniform(low=0.18,high=3)
-        t_6 = np.linspace(20, 21, 5)
+        t_6 = np.linspace(20, 21, 2)
         # run the model for 2011-2012
         ninth_ABC = solve_ivp(ecoNetwork, (20, 21), starting_2024,  t_eval = t_6, args=(A_4, r_4), method = 'RK23')
         # take those values and re-run for another year, adding forcings
-        starting_2025 = ninth_ABC.y[0:9, 4:5]
+        starting_2025 = ninth_ABC.y[0:9, 1:2]
         starting_2025 = starting_2025.flatten()
         starting_2025[1] =np.random.uniform(low=0.56,high=2.0)
         starting_2025[4] = np.random.uniform(low=0.18,high=3)
-        t_7 = np.linspace(21, 22, 5)
+        t_7 = np.linspace(21, 22, 2)
         # run the model for 2011-2012
         tenth_ABC = solve_ivp(ecoNetwork, (21,22), starting_2025,  t_eval = t_7, args=(A_4, r_4), method = 'RK23')
         # take those values and re-run for another year, adding forcings
-        starting_2026 = tenth_ABC.y[0:9, 4:5]
+        starting_2026 = tenth_ABC.y[0:9, 1:2]
         starting_2026 = starting_2026.flatten()
         starting_2026[1] = np.random.uniform(low=0.56,high=2.0)
         starting_2026[4] = np.random.uniform(low=0.18,high=3)
-        t_8 = np.linspace(22, 23, 5)
+        t_8 = np.linspace(22, 23, 2)
         # run the model for 2011-2012
         eleventh_ABC = solve_ivp(ecoNetwork, (22, 23), starting_2026,  t_eval = t_8, args=(A_4, r_4), method = 'RK23')
         # take those values and re-run for another year, adding forcings
-        starting_2027 = eleventh_ABC.y[0:9, 4:5]
+        starting_2027 = eleventh_ABC.y[0:9, 1:2]
         starting_2027 = starting_2027.flatten()
         starting_2027[1] = np.random.uniform(low=0.56,high=2.0)
         starting_2027[4] = np.random.uniform(low=0.18,high=3)
-        t_9 = np.linspace(23, 24, 5)
+        t_9 = np.linspace(23, 24, 2)
         # run the model to 2028
         twelfth_ABC = solve_ivp(ecoNetwork, (23, 24), starting_2027,  t_eval = t_9, args=(A_4, r_4), method = 'RK23')
 
         # just to check longer (up to 25 yrs)
-        starting_2028 = twelfth_ABC.y[0:9, 4:5]
+        starting_2028 = twelfth_ABC.y[0:9,1:2]
         starting_2028 = starting_2028.flatten()
         starting_2028[1] = np.random.uniform(low=0.56,high=2.0)
         starting_2028[4] = np.random.uniform(low=0.18,high=3)
-        t_10 = np.linspace(24, 25, 5)
+        t_10 = np.linspace(24, 25, 2)
         # 2029
         thirteenth_ABC = solve_ivp(ecoNetwork, (24, 25), starting_2028,  t_eval = t_10, args=(A_4, r_4), method = 'RK23')
-        starting_2029 = thirteenth_ABC.y[0:9, 4:5]
+        starting_2029 = thirteenth_ABC.y[0:9, 1:2]
         starting_2029 = starting_2029.flatten()
         starting_2029[1] = np.random.uniform(low=0.56,high=2.0)
         starting_2029[4] = np.random.uniform(low=0.18,high=3)
-        t_11 = np.linspace(25, 26, 5)
+        t_11 = np.linspace(25, 26, 2)
         # 2030
         fourteenth_ABC = solve_ivp(ecoNetwork, (25, 26), starting_2029,  t_eval = t_11, args=(A_4, r_4), method = 'RK23')
-        starting_2030 = fourteenth_ABC.y[0:9, 4:5]
+        starting_2030 = fourteenth_ABC.y[0:9, 1:2]
         starting_2030 = starting_2030.flatten()
         starting_2030[1] = np.random.uniform(low=0.56,high=2.0)
         starting_2030[4] = np.random.uniform(low=0.18,high=3)
-        t_12 = np.linspace(26, 27, 5)
+        t_12 = np.linspace(26, 27, 2)
         # 2031
         fifteenth_ABC = solve_ivp(ecoNetwork, (26, 27), starting_2030,  t_eval = t_12, args=(A_4, r_4), method = 'RK23')
-        starting_2031 = fifteenth_ABC.y[0:9, 4:5]
+        starting_2031 = fifteenth_ABC.y[0:9, 1:2]
         starting_2031 = starting_2031.flatten()
         starting_2031[1] = np.random.uniform(low=0.56,high=2.0)
         starting_2031[4] = np.random.uniform(low=0.18,high=3)
-        t_13 = np.linspace(27, 28, 5)
+        t_13 = np.linspace(27, 28, 2)
         # 2032
         sixteenth_ABC = solve_ivp(ecoNetwork, (27, 28), starting_2031,  t_eval = t_13, args=(A_4, r_4), method = 'RK23')
-        starting_2032 = sixteenth_ABC.y[0:9, 4:5]
+        starting_2032 = sixteenth_ABC.y[0:9, 1:2]
         starting_2032 = starting_2032.flatten()
         starting_2032[1] = np.random.uniform(low=0.56,high=2.0)
         starting_2032[4] = np.random.uniform(low=0.18,high=3)
-        t_14 = np.linspace(28, 29, 5)
+        t_14 = np.linspace(28, 29, 2)
         # 2033
         seventeenth_ABC = solve_ivp(ecoNetwork, (28, 29), starting_2032,  t_eval = t_14, args=(A_4, r_4), method = 'RK23')
-        starting_2033 = seventeenth_ABC.y[0:9, 4:5]
+        starting_2033 = seventeenth_ABC.y[0:9, 1:2]
         starting_2033 = starting_2033.flatten()
         starting_2033[1] = np.random.uniform(low=0.56,high=2.0)
         starting_2033[4] = np.random.uniform(low=0.18,high=3)
-        t_15 = np.linspace(29, 30, 5)
+        t_15 = np.linspace(29, 30, 2)
         # 2034
         eighteenth_ABC = solve_ivp(ecoNetwork, (29, 30), starting_2033,  t_eval = t_15, args=(A_4, r_4), method = 'RK23')
-        starting_2034 = eighteenth_ABC.y[0:9, 4:5]
+        starting_2034 = eighteenth_ABC.y[0:9, 1:2]
         starting_2034 = starting_2034.flatten()
         starting_2034[1] = np.random.uniform(low=0.56,high=2.0)
         starting_2034[4] = np.random.uniform(low=0.18,high=3)
-        t_16 = np.linspace(30, 31, 5)
+        t_16 = np.linspace(30, 31, 2)
         # 2035
         nineteenth_ABC = solve_ivp(ecoNetwork, (30, 31), starting_2034,  t_eval = t_16, args=(A_4, r_4), method = 'RK23')
-        starting_2035 = nineteenth_ABC.y[0:9, 4:5]
+        starting_2035 = nineteenth_ABC.y[0:9, 1:2]
         starting_2035 = starting_2035.flatten()
         starting_2035[1] = np.random.uniform(low=0.56,high=2.0)
         starting_2035[4] = np.random.uniform(low=0.18,high=3)
-        t_17 = np.linspace(31, 32, 5)
+        t_17 = np.linspace(31, 32, 2)
         # 2036
         twentieth_ABC = solve_ivp(ecoNetwork, (31, 32), starting_2035,  t_eval = t_17, args=(A_4, r_4), method = 'RK23')
-        starting_2036 = twentieth_ABC.y[0:9, 4:5]
+        starting_2036 = twentieth_ABC.y[0:9, 1:2]
         starting_2036 = starting_2036.flatten()
         starting_2036[1] = np.random.uniform(low=0.56,high=2.0)
         starting_2036[4] = np.random.uniform(low=0.18,high=3)
-        t_18 = np.linspace(32, 33, 5)
+        t_18 = np.linspace(32, 33, 2)
         # 2037
         twentyone_ABC = solve_ivp(ecoNetwork, (32, 33), starting_2036,  t_eval = t_18, args=(A_4, r_4), method = 'RK23')
-        starting_2037 = twentyone_ABC.y[0:9, 4:5]
+        starting_2037 = twentyone_ABC.y[0:9, 1:2]
         starting_2037 = starting_2037.flatten()
         starting_2037[1] = np.random.uniform(low=0.56,high=2.0)
         starting_2037[4] = np.random.uniform(low=0.18,high=3)
-        t_19 = np.linspace(33, 34, 5)
+        t_19 = np.linspace(33, 34, 2)
         # 2038
         twentytwo_ABC = solve_ivp(ecoNetwork, (33, 34), starting_2037,  t_eval = t_19, args=(A_4, r_4), method = 'RK23')
-        starting_2038 = twentytwo_ABC.y[0:9, 4:5]
+        starting_2038 = twentytwo_ABC.y[0:9, 1:2]
         starting_2038 = starting_2038.flatten()
         starting_2038[1] = np.random.uniform(low=0.56,high=2.0)
         starting_2038[4] = np.random.uniform(low=0.18,high=3)
-        t_20 = np.linspace(34, 35, 5)
+        t_20 = np.linspace(34, 35, 2)
         # 2039
         twentythree_ABC = solve_ivp(ecoNetwork, (34, 35), starting_2038,  t_eval = t_20, args=(A_4, r_4), method = 'RK23')
-        starting_2039 = twentythree_ABC.y[0:9, 4:5]
+        starting_2039 = twentythree_ABC.y[0:9, 1:2]
         starting_2039 = starting_2039.flatten()
         starting_2039[1] = np.random.uniform(low=0.56,high=2.0)
         starting_2039[4] = np.random.uniform(low=0.18,high=3)
-        t_21 = np.linspace(35, 36, 5)
+        t_21 = np.linspace(35, 36, 2)
         # 2040
         twentyfour_ABC = solve_ivp(ecoNetwork, (35, 36), starting_2039,  t_eval = t_21, args=(A_4, r_4), method = 'RK23')
-        starting_2040 = twentyfour_ABC.y[0:9, 4:5]
+        starting_2040 = twentyfour_ABC.y[0:9, 1:2]
         starting_2040 = starting_2040.flatten()
         starting_2040[1] = np.random.uniform(low=0.56,high=2.0)
         starting_2040[4] = np.random.uniform(low=0.18,high=3)
-        t_22 = np.linspace(36, 37, 5)
+        t_22 = np.linspace(36, 37, 2)
         # 2041
         twentyfive_ABC = solve_ivp(ecoNetwork, (36, 37), starting_2040,  t_eval = t_22, args=(A_4, r_4), method = 'RK23')
-        starting_2041 = twentyfive_ABC.y[0:9, 4:5]
+        starting_2041 = twentyfive_ABC.y[0:9, 1:2]
         starting_2041 = starting_2041.flatten()
         starting_2041[1] = np.random.uniform(low=0.56,high=2.0)
         starting_2041[4] = np.random.uniform(low=0.18,high=3)
-        t_23 = np.linspace(37, 38, 5)
+        t_23 = np.linspace(37, 38, 2)
         # 2042
         twentysix_ABC = solve_ivp(ecoNetwork, (37, 38), starting_2041,  t_eval = t_23, args=(A_4, r_4), method = 'RK23')
-        starting_2042 = twentysix_ABC.y[0:9, 4:5]
+        starting_2042 = twentysix_ABC.y[0:9, 1:2]
         starting_2042 = starting_2042.flatten()
         starting_2042[1] = np.random.uniform(low=0.56,high=2.0)
         starting_2042[4] = np.random.uniform(low=0.18,high=3)
-        t_24 = np.linspace(38, 39, 5)
+        t_24 = np.linspace(38, 39, 2)
         # 2043
         twentyseven_ABC = solve_ivp(ecoNetwork, (38, 39), starting_2042,  t_eval = t_24, args=(A_4, r_4), method = 'RK23')
         # concatenate & append all the runs
@@ -642,17 +638,17 @@ def runODE_3():
         # append the times
         all_times_3 = np.append(all_times_3, combined_times_2)
     # check the final runs
-    final_runs_3 = (np.vstack(np.hsplit(all_runs_3.reshape(len(species)*len(accepted_simulations_2), 125).transpose(),len(accepted_simulations_2))))
+    final_runs_3 = (np.vstack(np.hsplit(all_runs_3.reshape(len(species)*len(accepted_simulations_2018), 50).transpose(),len(accepted_simulations_2018))))
     final_runs_3 = pd.DataFrame(data=final_runs_3, columns=species)
     # append all the parameters to a dataframe
     all_parameters_3 = pd.concat(all_parameters_3)
     # add ID to the dataframe & parameters
-    all_parameters_3['ID'] = ([(x+1) for x in range(len(accepted_simulations_2)) for _ in range(len(parameters_used_3))])
-    IDs = np.arange(1,1 + len(accepted_simulations_2))
-    final_runs_3['ID'] = np.repeat(IDs,125)
+    all_parameters_3['ID'] = ([(x+1) for x in range(len(accepted_simulations_2018)) for _ in range(len(parameters_used_3))])
+    IDs = np.arange(1,1 + len(accepted_simulations_2018))
+    final_runs_3['ID'] = np.repeat(IDs,50)
     final_runs_3['time'] = all_times_3
     final_runs_3['accepted?'] = np.repeat('Accepted', len(final_runs_3))
-    return final_runs_3, all_parameters_3, X0_thirdRun, accepted_simulations_2, accepted_parameters_2018, final_runs_2,  all_parameters_2, X0_secondRun, accepted_simulations, accepted_parameters, final_runs, NUMBER_OF_SIMULATIONS, no_reintro
+    return final_runs_3, accepted_simulations_2018, final_runs_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, no_reintro
 
 
 
@@ -660,7 +656,7 @@ def runODE_3():
 # # # # # ----------------------------- PLOTTING POPULATIONS (2000-2010) ----------------------------- 
 
 def plotting():
-    final_runs_3, all_parameters_3, X0_thirdRun, accepted_simulations_2018, accepted_parameters_2018, final_runs_2,  all_parameters_2, X0_secondRun, accepted_simulations, accepted_parameters, final_runs, NUMBER_OF_SIMULATIONS, no_reintro = runODE_3()
+    final_runs_3, accepted_simulations_2018, final_runs_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, no_reintro = runODE_3()
     # extract accepted nodes from all dataframes
     accepted_shape1 = np.repeat(final_runs['accepted?'], len(species))
     accepted_shape2 = np.repeat(final_runs_2['accepted?'], len(species))
@@ -683,10 +679,10 @@ def plotting():
     # concatenate them
     y_values = np.concatenate((final_runs1, final_runs2, final_runs3, y_noReintro), axis=0)
     # we want species column to be spec1,spec2,spec3,spec4, etc.
-    species_firstRun = np.tile(species, 20*NUMBER_OF_SIMULATIONS)
-    species_secondRun = np.tile(species, 50*len(accepted_simulations))
-    species_thirdRun = np.tile(species, 125*len(accepted_simulations_2018))
-    species_noReintro = np.tile(species, (50*len(accepted_simulations) + 20*len(accepted_simulations)))
+    species_firstRun = np.tile(species, 8*NUMBER_OF_SIMULATIONS)
+    species_secondRun = np.tile(species, 20*len(accepted_simulations))
+    species_thirdRun = np.tile(species, 50*len(accepted_simulations_2018))
+    species_noReintro = np.tile(species, (20*len(accepted_simulations) + 8*len(accepted_simulations)))
     species_list = np.concatenate((species_firstRun, species_secondRun, species_thirdRun, species_noReintro), axis=0)
     # time 
     firstODEyears = np.repeat(final_runs['time'],len(species))
@@ -709,14 +705,11 @@ def plotting():
     perc2 = final_df.groupby(['Time', 'runType','Ecosystem Element'])['Abundance %'].quantile(.05)
     perc2.name = "fivePerc"
     final_df = final_df.join(perc2, on=['Time','runType', 'Ecosystem Element'])
+    
     # filter the accepted runs to graph
     filtered_df = final_df.loc[(final_df['runType'] == "Accepted") | (final_df['runType'] == "noReintro") ]
+    filtered_df.to_csv('out.csv')
     filtered_rejectedAccepted = final_df.loc[(final_df['runType'] == "Accepted") | (final_df['runType'] == "Rejected") ]
-
-    # cool warm palette
-    # ['#6788ee', '#9abbff', '#c9d7f0', '#edd1c2', '#f7a889', '#e26952']
-    # pal = sns.color_palette("coolwarm")
-    # print(pal.as_hex())
 
     # Create an array with the colors you want to use
     colors = ["#6788ee", "#e26952"]
@@ -728,9 +721,7 @@ def plotting():
         ax.fill_between(ax.lines[2].get_xdata(),ax.lines[2].get_ydata(), ax.lines[4].get_ydata(), color = '#6788ee', alpha =0.2)
         ax.fill_between(ax.lines[3].get_xdata(),ax.lines[3].get_ydata(), ax.lines[5].get_ydata(), color = '#e26952', alpha=0.2)
         ax.set_ylabel('Abundance')
-    # g.map(plt.fill_between, 'Time', 'fivePerc', 'ninetyfivePerc', alpha=0.2)
     g.set(xticks=[0, 4, 14, 38])
-
     # add subplot titles
     axes = g.axes.flatten()
     # fill between the quantiles
@@ -753,10 +744,10 @@ def plotting():
     g.axes[3].vlines(x=14,ymin=1.7,ymax=6.7, color='r')
     g.axes[5].vlines(x=14,ymin=22.5,ymax=35.1, color='r')
     g.axes[6].vlines(x=14,ymin=0.6,ymax=1.3, color='r')
-
     # stop the plots from overlapping
     plt.tight_layout()
     plt.legend(labels=['Reintroductions', 'No reintroductions'],bbox_to_anchor=(2, 0), loc='lower right', fontsize=12)
+    plt.savefig('reintroNoReintro.png')
     plt.show()
 
 
@@ -770,9 +761,7 @@ def plotting():
         ax.fill_between(ax.lines[2].get_xdata(),ax.lines[2].get_ydata(), ax.lines[4].get_ydata(), color = '#6788ee', alpha =0.2)
         ax.fill_between(ax.lines[3].get_xdata(),ax.lines[3].get_ydata(), ax.lines[5].get_ydata(), color = '#e26952', alpha=0.2)
         ax.set_ylabel('Abundance')
-    # g.map(plt.fill_between, 'Time', 'fivePerc', 'ninetyfivePerc', alpha=0.2)
     r.set(xticks=[0, 4, 14, 38])
-
     # add subplot titles
     axes = r.axes.flatten()
     # fill between the quantiles
@@ -797,7 +786,8 @@ def plotting():
     r.axes[6].vlines(x=14,ymin=0.6,ymax=1.3, color='r')
     # stop the plots from overlapping
     plt.tight_layout()
-    plt.legend(labels=['Accepted Runs', 'Rejected Runs'],bbox_to_anchor=(2, 0), loc='lower right', fontsize=12)
+    plt.legend(labels=['Rejected Runs', 'Accepted Runs'],bbox_to_anchor=(2, 0), loc='lower right', fontsize=12)
+    plt.savefig('acceptedRejected.png')
     plt.show()
 
 

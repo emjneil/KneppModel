@@ -181,9 +181,9 @@ def objectiveFunction(x):
             last_year_2 = y_2.loc[y_2['time'] == 14]
             last_year_2 = last_year_2.drop('time', axis=1).values.flatten()
             # print the outputs
-            # print(last_year_2)
+            print(last_year_2)
             result = (((last_year_1[0]-0.86)**2) +  ((last_year_1[2]-1.4)**2) + ((last_year_1[3]-2.2)**2) + ((last_year_1[5]-10)**2) + ((last_year_1[6]-0.91)**2) + ((last_year_2[0]-0.72)**2) +  ((last_year_2[2]-2)**2) + ((last_year_2[3]-4.1)**2) + ((last_year_2[5]-28.8)**2) + ((last_year_2[6]-0.91)**2))
-            # print("r",result)  
+            print("r",result)  
             return (result)
         # otherwise return some high number (to stop minimizer errors)
         else:
@@ -198,20 +198,20 @@ def objectiveFunction(x):
 # ['arableGrass',  largeHerb, orgCarb  'roeDeer',tamworthPig,  'thornyScrub','woodland'])
 #   0.72                       2          4.1                     28.8          0.91
 
-growth_bds = ((0.3,0.4),(0.14,0.28),(0,1),(0.28,0.34),(0.01,0.3),(0.9,1),(0,0.014))
+growth_bds = ((0,1),(0.14,0.28),(0,1),(0.28,0.34),(0.01,0.3),(0.9,1),(0,0.014))
 # roe deer = 0.31 growth rate (+-50%)
 # carbon = forced to be low (0.01 max), otherwise minimizer makes it high & model predicts it'll be HIGHER without herbivore reintroductions
 # wild horses = 0.18-0.25; red deer = 0.15 (+-10% min/max)
 # feral hog  = 0.18-0.21; boar in England = 0.016-0.27 (+-10%min/max)
 # woodland = lots of studies (see code sheet); min to max (0.004-0.014); made it 0.1
 interactionbds = (
-                    (-0.4,-0.3),(-0.001,0),(-0.001,0),(-0.001,0),(-0.001,0),(-0.01,0),
-                    (0.3,0.4),(-0.8,-0.7),(0,0.1),(0.4,0.5),
-                    (0,1),(0,1),(-1,0),(0,1),(0,1),(0,1),(0,1),
-                    (0.5,0.6),(-0.8,-0.7),(0,0.1),(0.4,0.5),
-                    (0.5,0.6),(-0.5,-0.4),(0,0.1),(0.4,0.5),
+                    (-1,0),(-0.0001,0),(-0.0001,0),(-0.0001,0),(-0.01,0),(-0.01,0),
+                    (0.3,0.4),(-0.8,-0.7),(0.01,0.03),(0.4,0.45),
+                    (0,0.5),(0,0.5),(-1,0),(0,0.5),(0,0.5),(0,0.5),(0,0.5),
+                    (0.5,0.6),(-0.8,-0.7),(0.01,0.1),(0.4,0.5),
+                    (0.5,0.6),(-0.5,-0.4),(0.01,0.1),(0.4,0.5),
                     (-0.01,0),(-0.1,0),(-0.1,0),(-0.1,0),(-0.01,0),(-0.3,-0.2),
-                    (-0.01,0),(-0.01,0),(-0.01,0),(-0.01,0),(0,0.01),(-1,0)
+                    (-0.001,0),(-0.001,0),(-0.001,0),(-0.001,0),(0,0.01),(-1,0)
 )
 
 # combine them into one dataframe
@@ -232,9 +232,9 @@ bds =  growth_bds + interactionbds
 # guess = np.array(combined)
 
 # optimization = optimize.minimize(objectiveFunction, x0 = guess, bounds = bds, method = 'L-BFGS-B', options ={'maxiter': 10000}, tol=1e-6)
-optimization = differential_evolution(objectiveFunction, bounds = bds, maxiter = 1)
+optimization = differential_evolution(objectiveFunction, bounds = bds, maxiter = 1000)
 # optimization = optimize.fmin_l_bfgs_b(objectiveFunction, x0 = guess, bounds = bds, approx_grad = True, epsilon = 1e-04)
 
 # save to csv
-print(optimization, file=open("optimizationOutput.txt", "w"))
-# print(optimization)
+print(optimization, file=open("final_optimizationOutput.txt", "w"))
+print(optimization)
