@@ -1,5 +1,7 @@
 # ---- Approximate Bayesian Computation Model of the Knepp Estate (2000-2019) ------
 
+# Running on VSC: 90%; 75%; 50%; 25%; 10%
+
 # download packages
 from scipy.integrate import solve_ivp
 from scipy.optimize import differential_evolution
@@ -10,16 +12,17 @@ import numpy as np
 import timeit
 import seaborn as sns
 import numpy.matlib
+from scipy import stats
 
+print("practice")
 
 # time the program
 start = timeit.default_timer()
 
 # define the number of simulations to try
-totalSimulations = 5000
+totalSimulations = 100
 # store species in a list
 species = ['grasslandParkland','largeHerb','organicCarbon','roeDeer','tamworthPig','thornyScrub','woodland']
-
 # define the Lotka-Volterra equation
 def ecoNetwork(t, X, A, r):
     X[X<1e-6] = 0
@@ -40,7 +43,7 @@ def generateInteractionMatrix():
                 [-0.0001,-0.0005,0,-0.0006,-0.0004,0.003,-0.06]
                 ]
     # generate random uniform numbers
-    variation = np.random.uniform(low = 0.75, high = 1.25, size = (len(species),len((species))))
+    variation = np.random.uniform(low = 0.9, high=1.1, size = (len(species),len((species))))
     interaction_matrix = interaction_matrix * variation
     # return array
     return interaction_matrix
@@ -49,7 +52,7 @@ def generateInteractionMatrix():
 def generateGrowth():
     growthRates = [0.5, 0.26, 0.36, 0.29, 0.14, 0.96, 0.0056]
     # multiply by a range
-    variation = np.random.uniform(low = 0.75, high= 1.25, size = (len(species),))
+    variation = np.random.uniform(low = 0.9, high=1.1, size = (len(species),))
     growth = growthRates * variation
     return growth
     
@@ -188,8 +191,6 @@ def generateParameters2():
     # select X0 
     X0_2 = accepted_parameters.loc[accepted_parameters['X0'].notnull(), ['X0']]
     X0_2 = pd.DataFrame(X0_2.values.reshape(len(accepted_simulations), len(species)), columns = species)
-    # # when no reintroduction
-    X0_noReintro = X0_2.to_numpy()
     # # add reintroduced species
     X0_2.loc[:, 'largeHerb'] = [1 for i in X0_2.index]
     X0_2.loc[:,'tamworthPig'] = [1 for i in X0_2.index]
@@ -199,32 +200,14 @@ def generateParameters2():
     interaction_strength_2 = interaction_strength_2.dropna()
     # turn to array
     A_secondRun = interaction_strength_2.to_numpy()
-    # run no reintroductions
-    all_runs_2 = []
-    all_times_2 = []
-    t_2 = np.linspace(4, 39, 20)
-    # loop through each row of accepted parameters
-    for X0_3, r_2, A_2 in zip(X0_noReintro,r_secondRun, np.array_split(A_secondRun,len(accepted_simulations))):
-        # run the model for one year 2009-2010 (to account for herbivore numbers being manually controlled every year)
-        noReintro_ABC = solve_ivp(ecoNetwork, (4, 39), X0_3,  t_eval = t_2, args=(A_2, r_2), method = 'RK23') 
-        all_runs_2 = np.append(all_runs_2, noReintro_ABC.y)
-        all_times_2 = np.append(all_times_2, noReintro_ABC.t)
-    no_reintro = (np.vstack(np.hsplit(all_runs_2.reshape(len(species)*len(accepted_simulations), 20).transpose(),len(accepted_simulations))))
-    no_reintro = pd.DataFrame(data=no_reintro, columns=species)
-    IDs = np.arange(1,1 + len(accepted_simulations))
-    no_reintro['ID'] = np.repeat(IDs,20)
-    no_reintro['time'] = all_times_2
-    filtered_FinalRuns = final_runs.loc[(final_runs['accepted?'] == "Accepted") ]
-    no_reintro = pd.concat([filtered_FinalRuns, no_reintro])
-    no_reintro['accepted?'] = "noReintro"
-    return r_secondRun, X0_secondRun, A_secondRun, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, no_reintro
+    return r_secondRun, X0_secondRun, A_secondRun, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS
 
 
 
 # # # # # ------ SOLVE ODE #2: Pre-reintroductions (2009-2018) -------
 
 def runODE_2():
-    r_secondRun, X0_secondRun, A_secondRun, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, no_reintro  = generateParameters2()
+    r_secondRun, X0_secondRun, A_secondRun, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS  = generateParameters2()
     all_runs_2 = []
     all_times_2 = []
     all_parameters_2 = []
@@ -327,14 +310,14 @@ def runODE_2():
     all_parameters_2['ID'] = ([(x+1) for x in range(len(accepted_simulations)) for _ in range(len(parameters_used_2))])
     IDs = np.arange(1,1 + len(accepted_simulations))
     final_runs_2['ID'] = np.repeat(IDs,20)
-    return final_runs_2, all_parameters_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, no_reintro
+    return final_runs_2, all_parameters_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, X0_secondRun
 
 
 
 
 # --------- FILTER OUT UNREALISTIC RUNS: Post-reintroductions -----------
 def filterRuns_2():
-    final_runs_2, all_parameters_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, no_reintro = runODE_2()
+    final_runs_2, all_parameters_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, X0_secondRun  = runODE_2()
     # select only the last run (filter to the year 2010); make sure these are in line with the new min/max X0 values (from the minimization), not the original X0 bounds
     accepted_year_2018 = final_runs_2.loc[final_runs_2['time'] == 14]
     accepted_simulations_2018 = accepted_year_2018[
@@ -349,7 +332,7 @@ def filterRuns_2():
     accepted_parameters_2018 = all_parameters_2[all_parameters_2['ID'].isin(accepted_simulations_2018['ID'])]
     # add accepted ID to original dataframe
     final_runs_2['accepted?'] = np.where(final_runs_2['ID'].isin(accepted_simulations_2018['ID']), 'Accepted', 'Rejected')
-    return accepted_simulations_2018, accepted_parameters_2018, final_runs_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, no_reintro
+    return accepted_simulations_2018, accepted_parameters_2018, final_runs_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, X0_secondRun
 
 
 
@@ -357,7 +340,7 @@ def filterRuns_2():
 # # # # ---------------------- ODE #3: projecting 10 years (2018-2028) -------------------------
 
 def generateParameters3():
-    accepted_simulations_2018, accepted_parameters_2018, final_runs_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, no_reintro = filterRuns_2()
+    accepted_simulations_2018, accepted_parameters_2018, final_runs_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, X0_secondRun = filterRuns_2()
     # # select growth rates 
     growthRates_3 = accepted_parameters_2018.loc[accepted_parameters_2018['growth'].notnull(), ['growth']]
     growthRates_3 = pd.DataFrame(growthRates_3.values.reshape(len(accepted_simulations_2018), len(species)), columns = species)
@@ -368,7 +351,6 @@ def generateParameters3():
     # select X0 
     X0_3 = accepted_parameters_2018.loc[accepted_parameters_2018['X0'].notnull(), ['X0']]
     X0_3 = pd.DataFrame(X0_3.values.reshape(len(accepted_simulations_2), len(species)), columns = species)
-    X0_thirdRun = X0_3.to_numpy()
     # # select interaction matrices part of the dataframes 
     interaction_strength_3 = accepted_parameters_2018.drop(['X0', 'growth', 'ID'], axis=1)
     interaction_strength_3 = interaction_strength_3.dropna()
@@ -377,7 +359,7 @@ def generateParameters3():
     fig, axes = plt.subplots(len(growthRates_3.columns)//7,7, figsize=(25, 10))
     for col, axis in zip(growthRates_3.columns, axes):
         growthRates_3.hist(column = col, ax=axis)
-    plt.savefig('histograms.png')
+    plt.savefig('histograms_5mil_practice.png')
     # check correlation matrix
     growthRates_3.columns = ['grasslandParkland_growth', 'largeHerb_growth', 'organicCarbon_growth', 'roeDeer_growth', 'tamworthPig_growth', 'thornyScrub_growth', 'woodland_growth']
     # reshape int matrix
@@ -406,12 +388,21 @@ def generateParameters3():
     combined = pd.concat([growthRates_3, arableInts, largeHerbInts, orgCarbInts, roeDeerInts, tamworthPigInts, thornyScrubInts, woodlandInts], axis=1)
     combined = combined.loc[:, (combined != 0).any(axis=0)]
     correlationMatrix = combined.corr()
+    # calculate p values and remove non-significant ones
+    p_matrix = np.zeros(shape=(correlationMatrix.shape[1],correlationMatrix.shape[1]))
+    for col in correlationMatrix.columns:
+            for col2 in correlationMatrix.drop(col,axis=1).columns:
+                _ , p = stats.pearsonr(correlationMatrix[col],correlationMatrix[col2])
+                p_matrix[correlationMatrix.columns.to_list().index(col),correlationMatrix.columns.to_list().index(col2)] = p
+    p_matrix = pd.DataFrame(data=p_matrix, index=correlationMatrix.index, columns=correlationMatrix.index)
+    # select only the significant ones, show their corr
+    signif_Matrix = correlationMatrix.where(p_matrix.values < 0.05)
     # with pd.option_context('display.max_columns',None):
     #     print("correlation matrix", correlationMatrix)
     # plot it
     plt.subplots(figsize=(10,10))
     ax = sns.heatmap(
-    correlationMatrix, 
+    signif_Matrix, 
     vmin=-1, vmax=1, center=0,
     cmap=sns.diverging_palette(20, 220, n=200),
     square=True,
@@ -426,17 +417,18 @@ def generateParameters3():
     ax.set_yticklabels(
         ax.get_yticklabels(), 
         fontsize = 5)
-    plt.savefig('corrMatrix.png')
+    plt.savefig('corrMatrix_5mil_practice.png')
     plt.show()
-    return r_thirdRun, X0_thirdRun, A_thirdRun, accepted_simulations_2018, final_runs_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, no_reintro
+    return r_thirdRun, X0_3, A_thirdRun, accepted_simulations_2018, final_runs_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, X0_secondRun
 
 
 
 # # # # # ------ SOLVE ODE #3: Projecting forwards 10 years (2018-2028) -------
 
 def runODE_3():
-    # use those parameters to project into the future
-    r_thirdRun, X0_thirdRun, A_thirdRun, accepted_simulations_2018, final_runs_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, no_reintro  = generateParameters3()
+    r_thirdRun, X0_3, A_thirdRun, accepted_simulations_2018, final_runs_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, X0_secondRun  = generateParameters3()
+    # project into the future
+    X0_thirdRun = X0_3.to_numpy()
     all_runs_3 = []
     all_parameters_3 = []
     all_times_3 = []
@@ -521,7 +513,6 @@ def runODE_3():
         t_9 = np.linspace(23, 24, 2)
         # run the model to 2028
         twelfth_ABC = solve_ivp(ecoNetwork, (23, 24), starting_2027,  t_eval = t_9, args=(A_4, r_4), method = 'RK23')
-
         # just to check longer (up to 25 yrs)
         starting_2028 = twelfth_ABC.y[0:9,1:2]
         starting_2028 = starting_2028.flatten()
@@ -648,7 +639,51 @@ def runODE_3():
     final_runs_3['ID'] = np.repeat(IDs,50)
     final_runs_3['time'] = all_times_3
     final_runs_3['accepted?'] = np.repeat('Accepted', len(final_runs_3))
-    return final_runs_3, accepted_simulations_2018, final_runs_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, no_reintro
+
+
+    # set reintroduced species to zero to see what would've happened without reintroductions
+    X0_3_noReintro = X0_3
+    X0_3_noReintro.loc[:, 'largeHerb'] = [0 for i in X0_3_noReintro.index]
+    X0_3_noReintro.loc[:,'tamworthPig'] = [0 for i in X0_3_noReintro.index]
+    X0_thirdRun_noReintro = X0_3_noReintro.to_numpy()
+    # loop through each row of accepted parameters
+    all_runs_2 = []
+    all_times_2 = []
+    t_noReintro = np.linspace(4, 39, 20)
+    for X0_noReintro, r_4, A_4 in zip(X0_thirdRun_noReintro,r_thirdRun, np.array_split(A_thirdRun,len(accepted_simulations_2018))):
+        # run the model for one year 2009-2010 (to account for herbivore numbers being manually controlled every year)
+        noReintro_ABC = solve_ivp(ecoNetwork, (4, 39), X0_noReintro,  t_eval = t_noReintro, args=(A_4, r_4), method = 'RK23') 
+        all_runs_2 = np.append(all_runs_2, noReintro_ABC.y)
+        all_times_2 = np.append(all_times_2, noReintro_ABC.t)
+    no_reintro = (np.vstack(np.hsplit(all_runs_2.reshape(len(species)*len(accepted_simulations_2018), 20).transpose(),len(accepted_simulations_2018))))
+    no_reintro = pd.DataFrame(data=no_reintro, columns=species)
+    IDs_2 = np.arange(1,1 + len(accepted_simulations_2018))
+    no_reintro['ID'] = np.repeat(IDs_2,20)
+    no_reintro['time'] = all_times_2
+    # concantenate this will the accepted runs from years 1-5
+    filtered_FinalRuns = final_runs.loc[(final_runs['accepted?'] == "Accepted") ]
+    no_reintro = pd.concat([filtered_FinalRuns, no_reintro])
+    no_reintro['accepted?'] = "noReintro"
+
+    # what if there had been no culling?
+    all_runs_noCulls = []
+    all_times_noCulls = []
+    t_noCulls = np.linspace(4, 39, 20)
+    X0_noCull = X0_secondRun
+    # loop through each row of accepted parameters
+    for X0_noCulling, r_4, A_4 in zip(X0_noCull,r_thirdRun, np.array_split(A_thirdRun,len(accepted_simulations_2018))):
+        # run the model for one year 2009-2010 (to account for herbivore numbers being manually controlled every year)
+        noCull_ABC = solve_ivp(ecoNetwork, (4, 39), X0_noCulling,  t_eval = t_noCulls, args=(A_4, r_4), method = 'RK23') 
+        all_runs_noCulls = np.append(all_runs_noCulls, noCull_ABC.y)
+        all_times_noCulls = np.append(all_times_noCulls, noCull_ABC.t)
+    no_Cull = (np.vstack(np.hsplit(all_runs_noCulls.reshape(len(species)*len(accepted_simulations_2018), 20).transpose(),len(accepted_simulations_2018))))
+    no_Cull = pd.DataFrame(data=no_Cull, columns=species)
+    IDs_3 = np.arange(1,1 + len(accepted_simulations_2018))
+    no_Cull['ID'] = np.repeat(IDs_3,20)
+    no_Cull['time'] = all_times_noCulls
+    no_Cull = pd.concat([filtered_FinalRuns, no_Cull])
+    no_Cull['accepted?'] = "noCulls"
+    return final_runs_3, accepted_simulations_2018, final_runs_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, no_reintro, no_Cull
 
 
 
@@ -656,41 +691,45 @@ def runODE_3():
 # # # # # ----------------------------- PLOTTING POPULATIONS (2000-2010) ----------------------------- 
 
 def plotting():
-    final_runs_3, accepted_simulations_2018, final_runs_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, no_reintro = runODE_3()
+    final_runs_3, accepted_simulations_2018, final_runs_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, no_reintro, no_Cull = runODE_3()
     # extract accepted nodes from all dataframes
     accepted_shape1 = np.repeat(final_runs['accepted?'], len(species))
     accepted_shape2 = np.repeat(final_runs_2['accepted?'], len(species))
     accepted_shape3 = np.repeat(final_runs_3['accepted?'], len(species))
     accepted_shape4 = np.repeat(no_reintro['accepted?'], len(species))
+    accepted_shape5 = np.repeat(no_Cull['accepted?'], len(species))
     # concatenate them
-    accepted_shape = pd.concat([accepted_shape1, accepted_shape2, accepted_shape3, accepted_shape4], axis=0)
+    accepted_shape = pd.concat([accepted_shape1, accepted_shape2, accepted_shape3, accepted_shape4, accepted_shape5], axis=0)
     # add a grouping variable to graph each run separately
     grouping1 = np.repeat(final_runs['ID'], len(species))
     grouping2 = np.repeat(final_runs_2['ID'], len(species))
     grouping3 = np.repeat(final_runs_3['ID'], len(species))
     grouping4 = np.repeat(no_reintro['ID'], len(species))
+    grouping5 = np.repeat(no_Cull['ID'], len(species))
     # concantenate them 
-    grouping_variable = np.concatenate((grouping1, grouping2, grouping3, grouping4), axis=0)
+    grouping_variable = np.concatenate((grouping1, grouping2, grouping3, grouping4, grouping5), axis=0)
     # # extract the node values from all dataframes
     final_runs1 = final_runs.drop(['ID','accepted?', 'time'], axis=1).values.flatten()
     final_runs2 = final_runs_2.drop(['ID','accepted?', 'time'], axis=1).values.flatten()
     final_runs3 = final_runs_3.drop(['ID','accepted?', 'time'], axis=1).values.flatten()
     y_noReintro = no_reintro.drop(['ID', 'accepted?','time'], axis=1).values.flatten()
+    y_noCull= no_Cull.drop(['ID', 'accepted?','time'], axis=1).values.flatten()
     # concatenate them
-    y_values = np.concatenate((final_runs1, final_runs2, final_runs3, y_noReintro), axis=0)
+    y_values = np.concatenate((final_runs1, final_runs2, final_runs3, y_noReintro, y_noCull), axis=0)
     # we want species column to be spec1,spec2,spec3,spec4, etc.
     species_firstRun = np.tile(species, 8*NUMBER_OF_SIMULATIONS)
     species_secondRun = np.tile(species, 20*len(accepted_simulations))
     species_thirdRun = np.tile(species, 50*len(accepted_simulations_2018))
-    species_noReintro = np.tile(species, (20*len(accepted_simulations) + 8*len(accepted_simulations)))
-    species_list = np.concatenate((species_firstRun, species_secondRun, species_thirdRun, species_noReintro), axis=0)
+    species_noReintro = np.tile(species, (20*len(accepted_simulations_2018)) + (8*len(accepted_simulations)))
+    species_noCull = np.tile(species, (20*len(accepted_simulations_2018)) + (8*len(accepted_simulations)))
+    species_list = np.concatenate((species_firstRun, species_secondRun, species_thirdRun, species_noReintro, species_noCull), axis=0)
     # time 
     firstODEyears = np.repeat(final_runs['time'],len(species))
     secondODEyears = np.repeat(final_runs_2['time'],len(species))
     thirdODEyears = np.repeat(final_runs_3['time'],len(species))
     indices_noReintro = np.repeat(no_reintro['time'],len(species))
-    indices = pd.concat([firstODEyears, secondODEyears, thirdODEyears, indices_noReintro], axis=0)
-
+    indices_noCull = np.repeat(no_Cull['time'],len(species))
+    indices = pd.concat([firstODEyears, secondODEyears, thirdODEyears, indices_noReintro, indices_noCull], axis=0)
     # put it in a dataframe
     final_df = pd.DataFrame(
         {'Abundance %': y_values, 'runNumber': grouping_variable, 'Ecosystem Element': species_list, 'Time': indices, 'runType': accepted_shape})
@@ -705,13 +744,13 @@ def plotting():
     perc2 = final_df.groupby(['Time', 'runType','Ecosystem Element'])['Abundance %'].quantile(.05)
     perc2.name = "fivePerc"
     final_df = final_df.join(perc2, on=['Time','runType', 'Ecosystem Element'])
-    
     # filter the accepted runs to graph
     filtered_df = final_df.loc[(final_df['runType'] == "Accepted") | (final_df['runType'] == "noReintro") ]
-    filtered_df.to_csv('out.csv')
     filtered_rejectedAccepted = final_df.loc[(final_df['runType'] == "Accepted") | (final_df['runType'] == "Rejected") ]
+    filtered_noCull= final_df.loc[(final_df['runType'] == "Accepted") | (final_df['runType'] == "noCulls") ]
 
-    # Create an array with the colors you want to use
+
+    # Accepted vs. Counterfactual graph (no reintroductions vs. reintroductions)
     colors = ["#6788ee", "#e26952"]
     g = sns.FacetGrid(filtered_df, col="Ecosystem Element", hue = "runType", palette = colors, col_wrap=4, sharey = False)
     g.map(sns.lineplot, 'Time', 'Median')
@@ -747,11 +786,11 @@ def plotting():
     # stop the plots from overlapping
     plt.tight_layout()
     plt.legend(labels=['Reintroductions', 'No reintroductions'],bbox_to_anchor=(2, 0), loc='lower right', fontsize=12)
-    plt.savefig('reintroNoReintro.png')
+    plt.savefig('reintroNoReintro_1mil_practice.png')
     plt.show()
 
 
-    # Create an array with the colors you want to use
+    # Accepted vs. rejected runs graph
     colors = ["#6788ee", "#e26952"]
     r = sns.FacetGrid(filtered_rejectedAccepted, col="Ecosystem Element", hue = "runType", palette = colors, col_wrap=4, sharey = False)
     r.map(sns.lineplot, 'Time', 'Median')
@@ -786,8 +825,49 @@ def plotting():
     r.axes[6].vlines(x=14,ymin=0.6,ymax=1.3, color='r')
     # stop the plots from overlapping
     plt.tight_layout()
-    plt.legend(labels=['Rejected Runs', 'Accepted Runs'],bbox_to_anchor=(2, 0), loc='lower right', fontsize=12)
-    plt.savefig('acceptedRejected.png')
+    plt.legend(labels=['Accepted Runs', 'Rejected Runs'],bbox_to_anchor=(2, 0), loc='lower right', fontsize=12)
+    plt.savefig('acceptedRejected_1mil_practice.png')
+    plt.show()
+
+
+
+    # Different culling levels graph
+    colors = ["#6788ee", "#e26952"]
+    n = sns.FacetGrid(filtered_noCull, col="Ecosystem Element", hue = "runType", palette = colors, col_wrap=4, sharey = False)
+    n.map(sns.lineplot, 'Time', 'Median')
+    n.map(sns.lineplot, 'Time', 'fivePerc')
+    n.map(sns.lineplot, 'Time', 'ninetyfivePerc')
+    for ax in n.axes.flat:
+        ax.fill_between(ax.lines[2].get_xdata(),ax.lines[2].get_ydata(), ax.lines[4].get_ydata(), color = '#6788ee', alpha =0.2)
+        ax.fill_between(ax.lines[3].get_xdata(),ax.lines[3].get_ydata(), ax.lines[5].get_ydata(), color = '#e26952', alpha=0.2)
+        ax.set_ylabel('Abundance')
+    n.set(xticks=[0, 4, 14, 38])
+    # add subplot titles
+    axes = n.axes.flatten()
+    # fill between the quantiles
+    axes[0].set_title("Grassland & parkland")
+    axes[1].set_title("Large herbivores")
+    axes[2].set_title("Organic carbon")
+    axes[3].set_title("Roe deer")
+    axes[4].set_title("Tamworth pigs")
+    axes[5].set_title("Thorny scrubland")
+    axes[6].set_title("Woodland")
+    # add filter lines
+    n.axes[0].vlines(x=4,ymin=0.7,ymax=1, color='r')
+    n.axes[2].vlines(x=4,ymin=0.95,ymax=1.9, color='r')
+    n.axes[3].vlines(x=4,ymin=1,ymax=3.3, color='r')
+    n.axes[5].vlines(x=4,ymin=1,ymax=20.9, color='r')
+    n.axes[6].vlines(x=4,ymin=0.6,ymax=1.3, color='r')
+    # plot next set of filter lines
+    n.axes[0].vlines(x=14,ymin=0.6,ymax=0.86, color='r')
+    n.axes[2].vlines(x=14,ymin=1.7,ymax=2.2, color='r')
+    n.axes[3].vlines(x=14,ymin=1.7,ymax=6.7, color='r')
+    n.axes[5].vlines(x=14,ymin=22.5,ymax=35.1, color='r')
+    n.axes[6].vlines(x=14,ymin=0.6,ymax=1.3, color='r')
+    # stop the plots from overlapping
+    plt.tight_layout()
+    plt.legend(labels=['Normal culling rates', 'No culling'],bbox_to_anchor=(2, 0), loc='lower right', fontsize=12)
+    plt.savefig('cullsNoculls_1mil_practice.png')
     plt.show()
 
 
