@@ -20,7 +20,7 @@ start = timeit.default_timer()
 totalSimulations = 1000
 
 # store species in a list
-species = ['grasslandParkland','largeHerb','organicCarbon','roeDeer','tamworthPig','thornyScrub','woodland']
+species = ['exmoorPony','fallowDeer','grasslandParkland','longhornCattle','organicCarbon','redDeer','roeDeer','tamworthPig','thornyScrub','woodland']
 # define the Lotka-Volterra equation
 def ecoNetwork(t, X, A, r):
     X[X<1e-8] = 0
@@ -109,7 +109,7 @@ def calcStability(A, r, n):
 
 def runODE_1():
     # Define time points: first 5 years (2005-2009)
-    t = np.linspace(0, 4, 12)
+    t = np.linspace(0, 48, 144)
     t_eco = np.linspace(0, 1, 2)
     all_runs = []
     all_times = []
@@ -147,7 +147,7 @@ def runODE_1():
                 parameters_used = pd.concat([X0_growth, pd.DataFrame(A, index = species, columns = species)])
                 all_parameters.append(parameters_used)
                 # run the ODE
-                first_ABC = solve_ivp(ecoNetwork, (0, 4), X0,  t_eval = t, args=(A, r), method = 'RK23')
+                first_ABC = solve_ivp(ecoNetwork, (0, 48), X0,  t_eval = t, args=(A, r), method = 'RK23')
                 # append all the runs
                 all_runs = np.append(all_runs, first_ABC.y)
                 all_times = np.append(all_times, first_ABC.t)
@@ -160,7 +160,7 @@ def runODE_1():
     print("number of stable & ecologically sound simulations", NUMBER_OF_SIMULATIONS)
     
     # put together the final runs
-    final_runs = (np.vstack(np.hsplit(all_runs.reshape(len(species)*NUMBER_OF_SIMULATIONS, 12).transpose(),NUMBER_OF_SIMULATIONS)))
+    final_runs = (np.vstack(np.hsplit(all_runs.reshape(len(species)*NUMBER_OF_SIMULATIONS, 144).transpose(),NUMBER_OF_SIMULATIONS)))
     final_runs = pd.DataFrame(data=final_runs, columns=species)
     final_runs['time'] = all_times
     with pd.option_context('display.max_columns',None):
@@ -180,9 +180,9 @@ def filterRuns_1():
     final_runs, all_parameters, NUMBER_OF_SIMULATIONS = runODE_1()
     # add ID to dataframe
     IDs = np.arange(1,NUMBER_OF_SIMULATIONS+1)
-    final_runs['ID'] = np.repeat(IDs,12)
+    final_runs['ID'] = np.repeat(IDs,144)
     # select only the last year
-    accepted_year = final_runs.loc[final_runs['time'] == 4]
+    accepted_year = final_runs.loc[final_runs['time'] == 48]
     with pd.option_context('display.max_columns',None):
         print(accepted_year)
     # add filtering criteria 
@@ -230,7 +230,7 @@ def generateParameters2():
 
 
 
-# # # # # ------ SOLVE ODE #2: Pre-reintroductions (2009-2018) -------
+# # # # # ------ SOLVE ODE #2: Post-reintroductions (2009-2018) -------
 
 def runODE_2():
     r_secondRun, X0_secondRun, A_secondRun, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS  = generateParameters2()
@@ -837,7 +837,7 @@ def plotting():
     # concatenate them
     y_values = np.concatenate((final_runs1, final_runs2, final_runs3, y_noReintro, y_noCull), axis=0)
     # we want species column to be spec1,spec2,spec3,spec4, etc.
-    species_firstRun = np.tile(species, 12*NUMBER_OF_SIMULATIONS)
+    species_firstRun = np.tile(species, 144*NUMBER_OF_SIMULATIONS)
     species_secondRun = np.tile(species, 33*len(accepted_simulations))
     species_thirdRun = np.tile(species, 75*len(accepted_simulations_2018))
     species_noReintro = np.tile(species, (105*len(accepted_simulations_2018)) + (12*len(accepted_simulations)))
