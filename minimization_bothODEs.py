@@ -1,4 +1,4 @@
-# # ---- Approximate Bayesian Computation Model of the Knepp Estate (2000-2019) ------
+# ---- Approximate Bayesian Computation Model of the Knepp Estate (2000-2019) ------
 from scipy import integrate
 from scipy.integrate import solve_ivp
 from scipy import optimize
@@ -274,42 +274,42 @@ def objectiveFunction(x):
 
             # in 2015, ponies = the same, fallow deer started at 3.33 next year but 0.88 were culled; longhorn got to maximum 2.45; pigs got to maximum 1.1
             # (((last_values_2015[0]-0.43)**2)/0.43) + 
-            # (((last_values_2015[1]-4.21)**2)/4.21) + 
+            (((last_values_2015[1]-4.21)**2)/4.21) + 
             (((last_values_2015[3]-2.53)**2)/2.53) + 
-            # (((last_values_2015[7]-1.15)**2)/1.15) +
+            (((last_values_2015[7]-1.15)**2)/1.15) +
 
             # # in 2016, ponies = the same, fallow deer = 3.9 but 25 were culled; longhorn got to maximum 2.03; pig got to maximum 0.85
             # (((last_values_2016[0]-0.48)**2)/0.48) + 
-            # (((last_values_2016[1]-4.52)**2)/4.52) + 
+            (((last_values_2016[1]-4.52)**2)/4.52) + 
             (((last_values_2016[3]-2.19)**2)/2.19) + 
-            # (((last_values_2016[7]-0.95)**2)/0.95)  +
+            (((last_values_2016[7]-0.95)**2)/0.95)  +
 
             # # in 2017, ponies = the same; fallow = 7.34 + 1.36 culled, this was forced instead of filtered bc it seems too high for natural growth rate (maybe supplemented?), cows got to max 2.06; red deer got to 1.85 + 2 culled; pig got to 1.1
             # (((last_values_2017[0]-0.43)**2)/0.43) + 
             # # (((last_values_2017[1]-8.05)**2)/8.05) +
             (((last_values_2017[3]-2.11)**2)/2.11) + 
-            # (((last_values_2017[5]-2.0)**2)/2.0) +
+            (((last_values_2017[5]-2.0)**2)/2.0) +
             # (((last_values_2017[7]-1.45)**2)/1.45) +
 
             # # in 2018, ponies = same, fallow = 6.62 + 57 culled; cows got to max 2.21; reds got to 2.85 + 3 culled; pigs got to max 1.15
             # (((last_values_2018[0]-0.39)**2)/0.39) + 
-            # (((last_values_2018[1]-7.98)**2)/7.98) + 
+            (((last_values_2018[1]-7.98)**2)/7.98) + 
             (((last_values_2018[3]-2.3)**2)/2.3) + 
-            # (((last_values_2018[5]-3.08)**2)/3.08) + 
-            # (((last_values_2018[7]-1.15)**2)/1.15) +
+            (((last_values_2018[5]-3.08)**2)/3.08) + 
+            (((last_values_2018[7]-1.15)**2)/1.15) +
 
             # # in 2019, ponies = 0, fallow = 6.62 + 1.36 culled; longhorn maximum took off filtering condition for tamworth pigs. it got up to 1.8 in one month but was culled back that same month; minimizer isn't dealing well with this
-            # (((last_values_2019[1]-7.55)**2)/7.55) + 
+            (((last_values_2019[1]-7.55)**2)/7.55) + 
             (((last_values_2019[3]-2.21)**2)/2.21) + 
-            # (((last_values_2019[5]-3.39)**2)/3.39) + 
+            (((last_values_2019[5]-3.39)**2)/3.39) + 
             # (((last_values_2019[7]-1.85)**2)/1.85) +
 
             # 2020 filtering conditions for all nodes 
             # (((last_year_2[0]-0.65)**2)/0.65) + 
             (((last_year_2[2]-0.74)**2)/0.74) + 
             (((last_year_2[4]-2)**2)/2) + 
-            # (((last_year_2[6]-4.2)**2)/4.2) + 
-            # (((last_year_2[7]-0.95)**2)/0.95) +
+            (((last_year_2[6]-4.2)**2)/4.2) + 
+            (((last_year_2[7]-0.95)**2)/0.95) +
             (((last_year_2[8]-25.4)**2)/25.4) + (((last_year_2[9]-1.33)**2)/1.33))
             
         if result < 10:
@@ -328,47 +328,52 @@ def objectiveFunction(x):
 # [exmoor pony    fallow    'arableGrass',  longhorn, orgCarb    red deer   'roeDeer',tamworthPig,  'thornyScrub','woodland'])
 #    0.65         > 5.88         0.74       1.53        2        > 2.7         4.2      > 0.95           25.4          1.33
 
-growth_bds = ((0,1),(0.6,0.8),(0.03,0.037))
+growth_bds = ((0.6,1),(0.5,0.8),(0.03,0.08))
+
+# VSC leaning on data
+# Terminal leaning on methods
 
 interactionbds = (
     # # # exmoor pony; these have no growth (no stallions) - special case
     # (-0.01,-0.001),
 
     # fallow deer
-    # (-8,-4),(1,15),(0,1),(0,5),
-    (-0.11,-0.09),(0.4,1),(0,0.01),(0,1),
+    # (-7.6,-7.5),(21.5,22),(0.5,0.7),(19.5,20), # leaning on methods
+    (-0.09,-0.07),(0.4,0.7),(0,0.1),(0,0.15), # leaning on data
     # -1 to 0: -0.083, 0.63, 0.000066, 0.24, (0.19, passed all filters)
     # -0.6 to -0.1: -0.1, 0.39, 0.002, 0.6 (0.17, passed all filters)
     # -0.4 to -0.6: -0.4, 0.0092, 0.0052, 1.68 (1.03, failed all filters)
 
     # grassland parkland
-    (-0.001,0),(-0.001,0),(-1,0),(-0.001,0),(-0.001,0),(-0.001,0),(-0.001,-0.0001),(-0.1,0),(-0.1,0),
+    (-0.001,-0.0001),(-0.001,-0.0001),(-1,0),(-0.001,-0.0001),(-0.001,-0.0001),(-0.001,-0.0001),(-0.001,-0.0005),(-0.03,-0.01),(-0.03,-0.01),
     
     # longhorn cattle 
-    (17,20),(-6,-5),(0.01,0.1),(0.2,1),
+    # (8.5,11),(-6.5,-6),(0,0.1),(5,6), # leaning on methods
+    (0.8,0.9),(-0.65,-0.5),(0.01,0.05),(0.1,0.15), # leaning on data
     # 4.12, -7.63, 0.15, 8.1 got to 0.09 but first filter was too low (2.25)
     
     # organic carbon
     (0.001,0.005),(0.001,0.005),(0.07,0.09),(0.001,0.005),(-0.1,-0.096),(0.002,0.005),(0.001,0.005),(0.001,0.005),(0.001,0.0015),(0.07,0.09),
     
     # red deer
-    (0,25),(-8,-4),(0,0.5),(0,25),
+    (0.4,0.6),(-0.35,-0.2),(0,0.1),(0.3,0.4), # leaning on data
+    # (3,3.5),(-5.6,-5.3),(0.3,0.5),(2.6,3), # leaning on methods
     # -1 to 0: 0.75, -0.28, 0.018, 0.12 - (0.093, passed all filters)
-    # -0.6 to -0.4: 0.19, -0.41, 0.046, 0.13 - (0.079, passed all filters)
-
+    # -0.6 to -0.4: 0.19, -0.41, 0.046, 0.13 - (0.079, passed all filters
+    
     # roe deer
-    (1.54,1.55),(-6.5,-6.47),(0.91,0.93),(1.95,2.2),
+    (1.54,3),(-7,-6),(0.1,0.9),(1.95,3),
     # tamworth pig
-    (3.3,3.4),(-7.3,-7),(0.06,0.09),(2.4,2.6),
+    (3,3.5),(-7.3,-7),(0.06,0.09),(2,2.6),
     # thorny scrubland
-    (-0.1,0),(-0.1,0),(-0.1,0),(-0.1,0),(-0.1,0),(-0.1,0),(-0.1,0),(-0.1,0),
+    (-0.1,0),(-0.1,0),(-0.1,0),(-0.1,0),(-0.1,0),(-0.1,0),(-0.005,-0.001),(-0.1,-0.01),
     # woodland
-    (-0.001,-0.0002),(-0.001,-0.0002),(-0.001,-0.0002),(-0.001,-0.0002),(-0.001,-0.0002),(-0.001,-0.0002),(0.0001,0.0003),(-0.009,-0.007))
+    (-0.01,-0.001),(-0.01,-0.001),(-0.01,-0.001),(-0.01,-0.001),(-0.01,-0.001),(-0.01,-0.001),(0.0001,0.001),(-0.009,-0.007))
 
 
 # combine them into one dataframe
 bds =  growth_bds + interactionbds
 
-optimization = differential_evolution(objectiveFunction, bounds = bds, maxiter = 25)
+optimization = differential_evolution(objectiveFunction, bounds = bds, maxiter = 150)
 # print(optimization, file=open("final_optimizationOutput.txt", "w"))
 print(optimization)

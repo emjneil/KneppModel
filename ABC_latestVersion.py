@@ -1,5 +1,9 @@
 # ---- Approximate Bayesian Computation Model of the Knepp Estate (2000-2019) ------
 
+# things to change depending on the parameter set:
+# 1. filtering conditions
+# 2. min/max euro bison negative interactions
+
 # download packages
 from scipy.integrate import solve_ivp
 from scipy.optimize import differential_evolution
@@ -17,10 +21,10 @@ import csv
 start = timeit.default_timer()
 
 # define the number of simulations to try
-totalSimulations = 2500
+totalSimulations = 1000
 
 # store species in a list
-species = ['exmoorPony','fallowDeer','grasslandParkland','longhornCattle','organicCarbon','redDeer','roeDeer','tamworthPig','thornyScrub','woodland']
+species = ['europeanBison','exmoorPony','fallowDeer','grasslandParkland','longhornCattle','organicCarbon','redDeer','roeDeer','tamworthPig','thornyScrub','woodland']
 # define the Lotka-Volterra equation
 def ecoNetwork(t, X, A, r):
     X[X<1e-8] = 0
@@ -31,29 +35,57 @@ def ecoNetwork(t, X, A, r):
 
 def generateInteractionMatrix():
     # define the array
+
+    # PARAMETER SET 1: leaning on the data (some consumers have incorrect negative diagonals)
     interaction_matrix = [
+                # european bison - pos interactions through optimizer; neg interactions random higher than others 
+                [-7.68, 0, 0, 6.29, 0, 0, 0, 0, 0, 0.069, 4.57],
                 # exmoor pony - special case, no growth
-                [-0.001, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, -0.001, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                 # fallow deer 
-                [0, -0.1, 0.39, 0, 0, 0, 0, 0, 0.002, 0.6],
+                [0, 0, -0.083, 0.42, 0, 0, 0, 0, 0, 0.011, 0.13],
                 # grassland parkland
-                [-0.0008, -0.0006, -0.72, -0.00056, 0, -0.0006, -0.00028, -0.00089, -0.0043, -0.1],
+                [0, -0.00064, -0.00067, -0.84, -0.00044, -0.00026, 0, -0.00054, -0.00092, -0.011, -0.021],
                 # longhorn cattle  
-                [0, 0, 0.66, -0.41, 0, 0, 0, 0, 0.017, 0.13],
+                [0, 0, 0, 0.84, -0.59, 0, 0, 0, 0, 0.029, 0.12],
                 # organic carbon
-                [0.0011, 0.001, 0.076, 0.0017, -0.097, 0.0024, 0.0027, 0.0046, 0.001, 0.079],
+                [0, 0.0024, 0.0047, 0.06, 0.0029, -0.098, 0.0033, 0.0014, 0.003, 0.0015, 0.06],  
                 # red deer  
-                [0, 0, 0.58, 0, 0, -0.87, 0, 0, 0.073, 0.27],
+                [0, 0, 0, 0.41, 0, 0, -0.26, 0, 0, 0.013, 0.33],
                 # roe deer 
-                [0, 0, 0.39, 0, 0, 0, -0.72, 0, 0.073, 0.65],
+                [0, 0, 0, 3.3, 0, 0, 0, -6.41, 0, 0.81, 2.78],
                 # tamworth pig 
-                [0, 0, 0.36, 0, 0, 0, 0, -0.94, 0.0091, 0.74],  
+                [0, 0, 0, 3.06, 0, 0, 0, 0, -7.11, 0.086, 2.28],  
                 # thorny scrub
-                [-0.043, -0.033, 0, -0.044, 0, -0.039, -0.044, -0.047, -0.0017, -0.053],
+                [0, -0.00036, -0.016, 0, -0.074, 0, -0.045, -0.044, -0.044, -0.0032, -0.02],
                 # woodland
-                [-0.00045, -0.0007, 0, -0.00092, 0, -0.0004, -0.00062, -0.00064, 0.00024, -0.0087]
+                [0, -0.0041, -0.0028, 0, -0.0052, 0, -0.0014, -0.0039, -0.0056, 0.0004, -0.007]
                 ]
 
+        # # PARAMETER SET 2: leaning on the methods (some consumers have incorrect yearly data)
+        #         # european bison - pos interactions through optimizer; neg interactions random higher than others 
+        #         [-7.81, 0, 0, 6.17, 0, 0, 0, 0, 0, 0.043, 4.95],
+        #         # exmoor pony - special case, no growth
+        #         [0, -0.001, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        #         # fallow deer 
+        #         [0, 0, -7.57, 21.87, 0, 0, 0, 0, 0, 0.67, 19.77],
+        #         # grassland parkland
+        #         [0, -0.00058, -0.00025, -0.87, -0.00064, -0.00024, 0, -0.00051, -0.00082, -0.011, -0.017],
+        #         # longhorn cattle  
+        #         [0, 0, 0, 9.02, -6.28, 0, 0, 0, 0, 0.021, 5.17],
+        #         # organic carbon
+        #         [0, 0.0046, 0.0027, 0.071, 0.0017, -0.097, 0.0027, 0.0046, 0.0014, 0.0015, 0.059],  
+        #         # red deer  
+        #         [0, 0, 0, 3.34, 0, 0, -5.39, 0, 0, 0.46, 2.83],
+        #         # roe deer 
+        #         [0, 0, 0, 3.80, 0, 0, 0, -6.34, 0, 0.8, 2.89],
+        #         # tamworth pig 
+        #         [0, 0, 0, 3.04, 0, 0, 0, 0, -7.18, 0.12, 2.12],  
+        #         # thorny scrub
+        #         [0, -0.098, -0.019, 0, -0.051, 0, -0.024, -0.04, -0.056, -0.0011, -0.023],
+        #         # woodland
+        #         [0, -0.0043, -0.0018, 0, -0.0032, 0, -0.0053, -0.0018, -0.0014, 0.00027, -0.0078]
+        #         ]
 
     # generate random uniform numbers
     variation = np.random.uniform(low = 0.95, high=1.05, size = (len(species),len((species))))
@@ -63,7 +95,11 @@ def generateInteractionMatrix():
 
 
 def generateGrowth():
-    growthRates = [0, 0, 0.82, 0, 0, 0, 0, 0, 0.73, 0.032] 
+    # PARAMETER SET 1: leaning on the data (some consumers have incorrect negative diagonals)
+    growthRates = [0, 0, 0, 0.89, 0, 0, 0, 0, 0, 0.68, 0.057] 
+    # PARAMETER SET 2: leaning on the methods (some consumers have incorrect yearly data)
+    # growthRates = [0, 0, 0, 0.9, 0, 0, 0, 0, 0, 0.67, 0.054] 
+
     # multiply by a range
     variation = np.random.uniform(low = 0.95, high=1.05, size = (len(species),))
     growth = growthRates * variation
@@ -72,7 +108,7 @@ def generateGrowth():
 
 def generateX0():
     # scale everything to abundance of one (except species to be reintroduced)
-    X0 = [0, 0, 1, 0, 1, 0, 1, 0, 1, 1]
+    X0 = [0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 1]
     return X0
 
 
@@ -107,7 +143,7 @@ def calcJacobian(A, r, n):
     i_matrix = np.eye(len(n))
     # put n into an array to multiply by A
     n_array = np.matlib.repmat(n, 1, len(n))
-    n_array = np.reshape (n_array, (10,10))
+    n_array = np.reshape (n_array, (11,11))
     # calculate
     J = i_matrix * r + A * n_array + i_matrix * np.matmul(A, n)
     return J
@@ -147,14 +183,15 @@ def runODE_1():
             # check ecological parameters (primary producers shouldn't go negative when on their own)
             all_ecoCheck = []
             for i in range(len(species)):
-                X0_ecoCheck = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                X0_ecoCheck = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
                 X0_ecoCheck[i] = 1
                 ecoCheck_ABC = solve_ivp(ecoNetwork, (0, 1), X0_ecoCheck,  t_eval = t_eco, args=(A, r), method = 'RK23') 
                 all_ecoCheck = np.append(all_ecoCheck, ecoCheck_ABC.y)
-            all_ecoCheck_results = (np.vstack(np.hsplit(all_ecoCheck.reshape(len(species), 20).transpose(),1)))
+            all_ecoCheck_results = (np.vstack(np.hsplit(all_ecoCheck.reshape(len(species), 22).transpose(),1)))
             all_ecoCheck_results = pd.DataFrame(data=all_ecoCheck_results, columns=species)
             # ecological reality check: primary producers should not decline with no herbivores present
-            if (all_ecoCheck_results.loc[5,'grasslandParkland'] >= 1) & (all_ecoCheck_results.loc[17,'thornyScrub'] >= 1) & (all_ecoCheck_results.loc[19,'woodland'] >= 1):
+            
+            if (all_ecoCheck_results.loc[7,'grasslandParkland'] >= 1) & (all_ecoCheck_results.loc[19,'thornyScrub'] >= 1) & (all_ecoCheck_results.loc[21,'woodland'] >= 1):
                 # remember the parameters used
                 X0_growth = pd.concat([pd.DataFrame(X0), pd.DataFrame(r)], axis = 1)
                 X0_growth.columns = ['X0','growth']
@@ -254,107 +291,107 @@ def runODE_2():
         t = np.linspace(4, 4.95, 2)
         second_ABC = solve_ivp(ecoNetwork, (4,4.95), X0_3,  t_eval = t, args=(A_2, r_2), method = 'RK23')
         # 2010: fallow deer reintroduced
-        starting_values_2010 = second_ABC.y[0:10, 1:2].flatten()
-        starting_values_2010[0] = 0.57
-        starting_values_2010[1] = 1
-        starting_values_2010[3] = 1.45
-        starting_values_2010[7] = 0.85
+        starting_values_2010 = second_ABC.y[0:11, 1:2].flatten()
+        starting_values_2010[1] = 0.57
+        starting_values_2010[2] = 1
+        starting_values_2010[4] = 1.45
+        starting_values_2010[8] = 0.85
         t_1 = np.linspace(5, 5.95, 2)
         third_ABC = solve_ivp(ecoNetwork, (5,5.95), starting_values_2010,  t_eval = t_1, args=(A_2, r_2), method = 'RK23')
         # 2011
-        starting_values_2011 = third_ABC.y[0:10, 1:2].flatten()
-        starting_values_2011[0] = 0.65
-        starting_values_2011[1] = 1.93
-        starting_values_2011[3] = 1.74
-        starting_values_2011[7] = 1.1
+        starting_values_2011 = third_ABC.y[0:11, 1:2].flatten()
+        starting_values_2011[1] = 0.65
+        starting_values_2011[2] = 1.93
+        starting_values_2011[4] = 1.74
+        starting_values_2011[8] = 1.1
         t_2 = np.linspace(6, 6.95, 2)
         fourth_ABC = solve_ivp(ecoNetwork, (6,6.95), starting_values_2011,  t_eval = t_2, args=(A_2, r_2), method = 'RK23')
         # 2012
-        starting_2012 = fourth_ABC.y[0:10, 1:2].flatten()
+        starting_2012 = fourth_ABC.y[0:11, 1:2].flatten()
         starting_values_2012 = starting_2012.copy()
-        starting_values_2012[0] = 0.74
-        starting_values_2012[1] = 2.38
-        starting_values_2012[3] = 2.19
-        starting_values_2012[7] = 1.65
+        starting_values_2012[1] = 0.74
+        starting_values_2012[2] = 2.38
+        starting_values_2012[4] = 2.19
+        starting_values_2012[8] = 1.65
         t_3 = np.linspace(7, 7.95, 2)
         fifth_ABC = solve_ivp(ecoNetwork, (7,7.95), starting_values_2012,  t_eval = t_3, args=(A_2, r_2), method = 'RK23')
         # 2013: red deer reintroduced
-        starting_2013 = fifth_ABC.y[0:10, 1:2].flatten()
+        starting_2013 = fifth_ABC.y[0:11, 1:2].flatten()
         starting_values_2013 = starting_2013.copy()
-        starting_values_2013[0] = 0.43
-        starting_values_2013[1] = 2.38
-        starting_values_2013[3] = 2.43
-        starting_values_2013[5] = 1
-        starting_values_2013[7] = 0.3
+        starting_values_2013[1] = 0.43
+        starting_values_2013[2] = 2.38
+        starting_values_2013[4] = 2.43
+        starting_values_2013[6] = 1
+        starting_values_2013[8] = 0.3
         t_4 = np.linspace(8, 8.95, 2)
         sixth_ABC = solve_ivp(ecoNetwork, (8,8.95), starting_values_2013,  t_eval = t_4, args=(A_2, r_2), method = 'RK23')
         # 2014
-        starting_2014 = sixth_ABC.y[0:10, 1:2].flatten()
+        starting_2014 = sixth_ABC.y[0:11, 1:2].flatten()
         starting_values_2014 = starting_2014.copy()
-        starting_values_2014[0] = 0.43
-        starting_values_2014[1] = 2.38
-        starting_values_2014[3] = 4.98
-        starting_values_2014[5] = 1
-        starting_values_2014[7] = 0.9
+        starting_values_2014[1] = 0.43
+        starting_values_2014[2] = 2.38
+        starting_values_2014[4] = 4.98
+        starting_values_2014[6] = 1
+        starting_values_2014[8] = 0.9
         t_5 = np.linspace(9, 9.95, 2)
         seventh_ABC = solve_ivp(ecoNetwork, (9,9.95), starting_values_2014,  t_eval = t_5, args=(A_2, r_2), method = 'RK23')
         # 2015
-        starting_values_2015 = seventh_ABC.y[0:10, 1:2].flatten()
-        starting_values_2015[0] = 0.43
-        starting_values_2015[1] = 2.38
-        starting_values_2015[3] = 2.01
-        starting_values_2015[5] = 1
-        starting_values_2015[7] = 0.9
+        starting_values_2015 = seventh_ABC.y[0:11, 1:2].flatten()
+        starting_values_2015[1] = 0.43
+        starting_values_2015[2] = 2.38
+        starting_values_2015[4] = 2.01
+        starting_values_2015[6] = 1
+        starting_values_2015[8] = 0.9
         t_2015 = np.linspace(10, 10.95, 2)
         ABC_2015 = solve_ivp(ecoNetwork, (10,10.95), starting_values_2015,  t_eval = t_2015, args=(A_2, r_2), method = 'RK23')
-        last_values_2015 = ABC_2015.y[0:10, 1:2].flatten()
+        last_values_2015 = ABC_2015.y[0:11, 1:2].flatten()
         # 2016
         starting_values_2016 = last_values_2015.copy()
-        starting_values_2016[0] = 0.48
-        starting_values_2016[1] = 3.33
-        starting_values_2016[3] = 1.62
-        starting_values_2016[5] = 2
-        starting_values_2016[7] = 0.4
+        starting_values_2016[1] = 0.48
+        starting_values_2016[2] = 3.33
+        starting_values_2016[4] = 1.62
+        starting_values_2016[6] = 2
+        starting_values_2016[8] = 0.4
         t_2016 = np.linspace(11, 11.95, 2)
         ABC_2016 = solve_ivp(ecoNetwork, (11,11.95), starting_values_2016,  t_eval = t_2016, args=(A_2, r_2), method = 'RK23')
-        last_values_2016 = ABC_2016.y[0:10, 1:2].flatten()
+        last_values_2016 = ABC_2016.y[0:11, 1:2].flatten()
         # 2017
         starting_values_2017 = last_values_2016.copy()
-        starting_values_2017[0] = 0.43
-        starting_values_2017[1] = 3.93
-        starting_values_2017[3] = 1.49
-        starting_values_2017[5] = 1.08
-        starting_values_2017[7] = 0.35
+        starting_values_2017[1] = 0.43
+        starting_values_2017[2] = 3.93
+        starting_values_2017[4] = 1.49
+        starting_values_2017[6] = 1.08
+        starting_values_2017[8] = 0.35
         t_2017 = np.linspace(12, 12.95, 2)
         ABC_2017 = solve_ivp(ecoNetwork, (12,12.95), starting_values_2017,  t_eval = t_2017, args=(A_2, r_2), method = 'RK23')
-        last_values_2017 = ABC_2017.y[0:10, 1:2].flatten()
+        last_values_2017 = ABC_2017.y[0:11, 1:2].flatten()
         # 2018
         starting_values_2018 = last_values_2017.copy()
-        starting_values_2018[0] = 0.39
-        starting_values_2018[1] = 5.98
-        starting_values_2018[3] = 1.66
-        starting_values_2018[5] = 1.85
-        starting_values_2018[7] = 0.8
+        starting_values_2018[1] = 0.39
+        starting_values_2018[2] = 5.98
+        starting_values_2018[4] = 1.66
+        starting_values_2018[6] = 1.85
+        starting_values_2018[8] = 0.8
         t_2018 = np.linspace(13, 13.95, 2)
         ABC_2018 = solve_ivp(ecoNetwork, (13,13.95), starting_values_2018,  t_eval = t_2018, args=(A_2, r_2), method = 'RK23')
-        last_values_2018 = ABC_2018.y[0:10, 1:2].flatten()
+        last_values_2018 = ABC_2018.y[0:11, 1:2].flatten()
         # 2019
         starting_values_2019 = last_values_2018.copy()
-        starting_values_2019[0] = 0
-        starting_values_2019[1] = 6.62
-        starting_values_2019[3] = 1.64
-        starting_values_2019[5] = 2.85
-        starting_values_2019[7] = 0.45
+        starting_values_2019[1] = 0
+        starting_values_2019[2] = 6.62
+        starting_values_2019[4] = 1.64
+        starting_values_2019[6] = 2.85
+        starting_values_2019[8] = 0.45
         t_2019 = np.linspace(14, 14.95, 2)
         ABC_2019 = solve_ivp(ecoNetwork, (14,14.95), starting_values_2019,  t_eval = t_2019, args=(A_2, r_2), method = 'RK23')
-        last_values_2019 = ABC_2019.y[0:10, 1:2].flatten()
+        last_values_2019 = ABC_2019.y[0:11, 1:2].flatten()
         # 2020
         starting_values_2020 = last_values_2019.copy()
-        starting_values_2020[0] = 0.65
-        starting_values_2020[1] = 5.88
-        starting_values_2020[3] = 1.53
-        starting_values_2020[5] = 2.7
-        starting_values_2020[7] = 0.35
+        starting_values_2020[1] = 0.65
+        starting_values_2020[2] = 5.88
+        starting_values_2020[4] = 1.53
+        starting_values_2020[6] = 2.7
+        starting_values_2020[8] = 0.35
         t_2020 = np.linspace(15, 16, 2)
         ABC_2020 = solve_ivp(ecoNetwork, (15,16), starting_values_2020,  t_eval = t_2020, args=(A_2, r_2), method = 'RK23')
         # concatenate & append all the runs
@@ -389,40 +426,41 @@ def filterRuns_2():
     accepted_simulations_2015 = final_runs_2[(final_runs_2['time'] == 10.95) & 
     (final_runs_2['exmoorPony'] <= 0.48) & (final_runs_2['exmoorPony'] >= 0.39) & 
     (final_runs_2['fallowDeer'] <= 4.81) & (final_runs_2['fallowDeer'] >= 3.6) & 
-    (final_runs_2['longhornCattle'] <= 2.72) & (final_runs_2['longhornCattle'] >= 2.34) & 
-    (final_runs_2['tamworthPig'] <= 1.65) & (final_runs_2['tamworthPig'] >= 0.65)]
+    (final_runs_2['longhornCattle'] <= 2.66) & (final_runs_2['longhornCattle'] >= 2.4) & 
+    (final_runs_2['tamworthPig'] <= 1.40) & (final_runs_2['tamworthPig'] >= 0.9)]
     filtered_2015 = final_runs_2[final_runs_2['ID'].isin(accepted_simulations_2015['ID'])]
     print("number passed 2015 filters:", filtered_2015.shape[0]/24)
     # filter 2016 values : ponies = the same, fallow deer = 3.9 but 25 were culled; longhorn got to maximum 2.03; pig got to maximum 0.85
     accepted_simulations_2016 = filtered_2015[(filtered_2015['time'] == 11.95) & 
     (filtered_2015['exmoorPony'] <= 0.52) & (filtered_2015['exmoorPony'] >= 0.43) & 
     (filtered_2015['fallowDeer'] <= 5.12) & (filtered_2015['fallowDeer'] >= 3.93) & 
-    (filtered_2015['longhornCattle'] <= 2.38) & (filtered_2015['longhornCattle'] >= 2.00) & 
-    (filtered_2015['tamworthPig'] <= 1.45) & (filtered_2015['tamworthPig'] >= 0.45)]
+    (filtered_2015['longhornCattle'] <= 2.32) & (filtered_2015['longhornCattle'] >= 2.06) & 
+    (filtered_2015['tamworthPig'] <= 1.20) & (filtered_2015['tamworthPig'] >= 0.7)]
     filtered_2016 = filtered_2015[filtered_2015['ID'].isin(accepted_simulations_2016['ID'])]
     print("number passed 2016 filters:", filtered_2016.shape[0]/24)
     # filter 2017 values : ponies = the same; fallow = 7.34 + 1.36 culled (this was maybe supplemented so no filter), same with red; cows got to max 2.06; red deer got to 1.85 + 2 culled; pig got to 1.1
     accepted_simulations_2017 = filtered_2016[(filtered_2016['time'] == 12.95) & 
     (filtered_2016['exmoorPony'] <= 0.48) & (filtered_2016['exmoorPony'] >= 0.39) & 
+    (filtered_2016['longhornCattle'] <= 2.25) & (filtered_2016['longhornCattle'] >= 1.98) & 
     # (filtered_2016['fallowDeer'] <= 8.86) & (filtered_2016['fallowDeer'] >= 7.25) & 
-    (filtered_2016['redDeer'] <= 2.78) & (filtered_2016['redDeer'] >= 1.23) &
+    (filtered_2016['redDeer'] <= 2.39) & (filtered_2016['redDeer'] >= 1.62) &
     (filtered_2016['tamworthPig'] <= 1.95) & (filtered_2016['tamworthPig'] >= 0.95)]
     filtered_2017 = filtered_2016[filtered_2016['ID'].isin(accepted_simulations_2017['ID'])]
     print("number passed 2017 filters:", filtered_2017.shape[0]/24)
     # filter 2018 values : p ponies = same, fallow = 6.62 + 57 culled; cows got to max 2.21; reds got to 2.85 + 3 culled; pigs got to max 1.15
     accepted_simulations_2018 = filtered_2017[(filtered_2017['time'] == 13.95) & 
     (filtered_2017['exmoorPony'] <= 0.43) & (filtered_2017['exmoorPony'] >= 0.35) & 
-    (filtered_2017['fallowDeer'] <= 8.81) & (filtered_2017['fallowDeer'] >= 7.14) & 
-    (filtered_2017['longhornCattle'] <= 2.49) & (filtered_2017['longhornCattle'] >= 2.11) & 
-    (filtered_2017['redDeer'] <= 3.85) & (filtered_2017['redDeer'] >= 2.31) & 
-    (filtered_2017['tamworthPig'] <= 1.65) & (filtered_2017['tamworthPig'] >= 0.65)]
+    (filtered_2017['fallowDeer'] <= 8.57) & (filtered_2017['fallowDeer'] >= 7.38) & 
+    (filtered_2017['longhornCattle'] <= 2.43) & (filtered_2017['longhornCattle'] >= 2.17) & 
+    (filtered_2017['redDeer'] <= 3.46) & (filtered_2017['redDeer'] >= 2.69) & 
+    (filtered_2017['tamworthPig'] <= 1.14) & (filtered_2017['tamworthPig'] >= 0.90)]
     filtered_2018 = filtered_2017[filtered_2017['ID'].isin(accepted_simulations_2018['ID'])]
     print("number passed 2018 filters:", filtered_2018.shape[0]/24)
     # filter 2019 values : ponies = 0, fallow = 6.62 + 1.36 culled; longhorn maximum 2
     accepted_simulations_2019 = filtered_2018[(filtered_2018['time'] == 14.95) & 
     (filtered_2018['fallowDeer'] <= 8.14) & (filtered_2018['fallowDeer'] >= 6.95) & 
-    (filtered_2018['longhornCattle'] <= 2.40) & (filtered_2018['longhornCattle'] >= 2.02) & 
-    (filtered_2018['redDeer'] <= 4.16) & (filtered_2018['redDeer'] >= 2.6)]
+    (filtered_2018['longhornCattle'] <= 2.34) & (filtered_2018['longhornCattle'] >= 2.08) & 
+    (filtered_2018['redDeer'] <= 3.78) & (filtered_2018['redDeer'] >= 3.0)]
     # (filtered_2018['tamworthPig'] <= 2.04) & (filtered_2018['tamworthPig'] >= 1.67)]
     filtered_2019 = filtered_2018[filtered_2018['ID'].isin(accepted_simulations_2019['ID'])]
     print("number passed 2019 filters:", filtered_2019.shape[0]/24)
@@ -432,7 +470,7 @@ def filterRuns_2():
     accepted_simulations_2020 = filtered_2020.loc[
     # 2020  - no filtering for fallow or red deer bc we don't know what they've grown to yet (next survey March 2021)
     (filtered_2020['exmoorPony'] <= 0.7) & (filtered_2020['exmoorPony'] >= 0.61) &
-    (filtered_2020['tamworthPig'] <= 1.45) & (filtered_2020['tamworthPig'] >= 0.45) &
+    (filtered_2020['tamworthPig'] <= 1.20) & (filtered_2020['tamworthPig'] >= 0.7) &
     (filtered_2020['roeDeer'] <= 6.68) & (filtered_2020['roeDeer'] >= 1.67) &
     (filtered_2020['grasslandParkland'] <= 0.86) & (filtered_2020['grasslandParkland'] >= 0.61) &
     (filtered_2020['woodland'] <= 1.69) & (filtered_2020['woodland'] >= 0.98) &
@@ -469,6 +507,7 @@ def generateParameters3():
     interaction_strength_3 = interaction_strength_3.dropna()
     A_thirdRun = interaction_strength_3.to_numpy()
 
+
     # HISTOGRAMS
     # growth rates
     growth_filtered = growthRates_3[["grasslandParkland","thornyScrub","woodland"]]
@@ -477,39 +516,42 @@ def generateParameters3():
         growth_filtered.hist(column = col, ax = axis, bins = 25)
 
     # CORRELATION MATRIX
-    growthRates_3.columns = ['exmoorPony_growth', 'fallowDeer_growth', 'grasslandParkland_growth', 'longhornCattle_growth','organicCarbon_growth', 'redDeer_growth', 'roeDeer_growth', 'tamworthPig_growth', 'thornyScrub_growth', 'woodland_growth']
+    growthRates_3.columns = ['euroBison_growth','exmoorPony_growth', 'fallowDeer_growth', 'grasslandParkland_growth', 'longhornCattle_growth','organicCarbon_growth', 'redDeer_growth', 'roeDeer_growth', 'tamworthPig_growth', 'thornyScrub_growth', 'woodland_growth']
     # reshape int matrix
+    euroBisonInts = interaction_strength_3[interaction_strength_3.index=='europeanBison']
+    euroBisonInts.columns = ['bison_bison', 'bison_pony','bison_fallow','bison_grass','bison_cattle','bison_carbon','bison_red','bison_roe','bison_pig','bison_scrub','bison_wood']
+    euroBisonInts = euroBisonInts.reset_index(drop=True)
     exmoorInts = interaction_strength_3[interaction_strength_3.index=='exmoorPony']
-    exmoorInts.columns = ['pony_pony', 'pony_fallow','pony_grass','pony_cattle','pony_carbon','pony_red','pony_roe','pony_pig','pony_scrub','pony_wood']
+    exmoorInts.columns = ['pony_bison','pony_pony', 'pony_fallow','pony_grass','pony_cattle','pony_carbon','pony_red','pony_roe','pony_pig','pony_scrub','pony_wood']
     exmoorInts = exmoorInts.reset_index(drop=True)
     fallowInts = interaction_strength_3[interaction_strength_3.index=='fallowDeer']
-    fallowInts.columns = ['fallow_pony', 'fallow_fallow', 'fallow_grass','fallow_cattle','fallow_carbon','fallow_red', 'fallow_roe', 'fallow_pig', 'fallow_scrub', 'fallow_wood']
+    fallowInts.columns = ['fallow_bison', 'fallow_pony', 'fallow_fallow', 'fallow_grass','fallow_cattle','fallow_carbon','fallow_red', 'fallow_roe', 'fallow_pig', 'fallow_scrub', 'fallow_wood']
     fallowInts = fallowInts.reset_index(drop=True)
     arableInts = interaction_strength_3[interaction_strength_3.index=='grasslandParkland']
-    arableInts.columns = ['grass_pony', 'grass_fallow', 'grass_grass','grass_cattle','grass_carbon','grass_red', 'grass_roe', 'grass_pig', 'grass_scrub', 'grass_wood']
+    arableInts.columns = ['grass_bison','grass_pony', 'grass_fallow', 'grass_grass','grass_cattle','grass_carbon','grass_red', 'grass_roe', 'grass_pig', 'grass_scrub', 'grass_wood']
     arableInts = arableInts.reset_index(drop=True)
     longhornInts = interaction_strength_3[interaction_strength_3.index=='longhornCattle']
-    longhornInts.columns = ['cattle_pony', 'cattle_fallow', 'cattle_grass','cattle_cattle','cattle_carbon','cattle_red', 'cattle_roe', 'cattle_pig', 'cattle_scrub', 'cattle_wood']
+    longhornInts.columns = ['cattle_bison','cattle_pony', 'cattle_fallow', 'cattle_grass','cattle_cattle','cattle_carbon','cattle_red', 'cattle_roe', 'cattle_pig', 'cattle_scrub', 'cattle_wood']
     longhornInts = longhornInts.reset_index(drop=True)
     orgCarbInts = interaction_strength_3[interaction_strength_3.index=='organicCarbon']
-    orgCarbInts.columns = ['carbon_pony', 'carbon_fallow', 'carbon_grass','carbon_cattle','carbon_carbon','carbon_red', 'carbon_roe', 'carbon_pig', 'carbon_scrub', 'carbon_wood']
+    orgCarbInts.columns = ['carbon_bison','carbon_pony', 'carbon_fallow', 'carbon_grass','carbon_cattle','carbon_carbon','carbon_red', 'carbon_roe', 'carbon_pig', 'carbon_scrub', 'carbon_wood']
     orgCarbInts = orgCarbInts.reset_index(drop=True)
     redDeerInts = interaction_strength_3[interaction_strength_3.index=='redDeer']
-    redDeerInts.columns = ['red_pony', 'red_fallow', 'red_grass','red_cattle','red_carbon','red_red', 'red_roe', 'red_pig', 'red_scrub', 'red_wood']
+    redDeerInts.columns = ['red_bison','red_pony', 'red_fallow', 'red_grass','red_cattle','red_carbon','red_red', 'red_roe', 'red_pig', 'red_scrub', 'red_wood']
     redDeerInts = redDeerInts.reset_index(drop=True)
     roeDeerInts = interaction_strength_3[interaction_strength_3.index=='roeDeer']
-    roeDeerInts.columns = ['roe_pony', 'roe_fallow', 'roe_grass','roe_cattle','roe_carbon','roe_red', 'roe_roe', 'roe_pig', 'roe_scrub', 'roe_wood']
+    roeDeerInts.columns = ['roe_bison','roe_pony', 'roe_fallow', 'roe_grass','roe_cattle','roe_carbon','roe_red', 'roe_roe', 'roe_pig', 'roe_scrub', 'roe_wood']
     roeDeerInts = roeDeerInts.reset_index(drop=True)
     tamworthPigInts = interaction_strength_3[interaction_strength_3.index=='tamworthPig']
-    tamworthPigInts.columns = ['pig_pony', 'pig_fallow', 'pig_grass','pig_cattle','pig_carbon','pig_red', 'pig_roe', 'pig_pig', 'pig_scrub', 'pig_wood']
+    tamworthPigInts.columns = ['pig_bison','pig_pony', 'pig_fallow', 'pig_grass','pig_cattle','pig_carbon','pig_red', 'pig_roe', 'pig_pig', 'pig_scrub', 'pig_wood']
     tamworthPigInts = tamworthPigInts.reset_index(drop=True)
     thornyScrubInts = interaction_strength_3[interaction_strength_3.index=='thornyScrub']
-    thornyScrubInts.columns = ['scrub_pony', 'scrub_fallow', 'scrub_grass','scrub_cattle','scrub_carbon','scrub_red', 'scrub_roe', 'scrub_pig', 'scrub_scrub', 'scrub_wood']
+    thornyScrubInts.columns = ['scrub_bison','scrub_pony', 'scrub_fallow', 'scrub_grass','scrub_cattle','scrub_carbon','scrub_red', 'scrub_roe', 'scrub_pig', 'scrub_scrub', 'scrub_wood']
     thornyScrubInts = thornyScrubInts.reset_index(drop=True)
     woodlandInts = interaction_strength_3[interaction_strength_3.index=='woodland']
-    woodlandInts.columns = ['wood_pony', 'wood_fallow', 'wood_grass','wood_cattle','wood_carbon','wood_red', 'wood_roe', 'wood_pig', 'wood_scrub', 'wood_wood']
+    woodlandInts.columns = ['wood_bison','wood_pony', 'wood_fallow', 'wood_grass','wood_cattle','wood_carbon','wood_red', 'wood_roe', 'wood_pig', 'wood_scrub', 'wood_wood']
     woodlandInts = woodlandInts.reset_index(drop=True)
-    combined = pd.concat([growthRates_3, exmoorInts, fallowInts, arableInts, longhornInts, orgCarbInts, redDeerInts, roeDeerInts, tamworthPigInts, thornyScrubInts, woodlandInts], axis=1)
+    combined = pd.concat([growthRates_3, euroBisonInts, exmoorInts, fallowInts, arableInts, longhornInts, orgCarbInts, redDeerInts, roeDeerInts, tamworthPigInts, thornyScrubInts, woodlandInts], axis=1)
     combined = combined.loc[:, (combined != 0).any(axis=0)]
     correlationMatrix = combined.corr()
 
@@ -561,7 +603,7 @@ def generateParameters3():
     # generate mask for upper triangle
     mask = np.triu(np.ones_like(signif_Matrix, dtype=bool))
     # plot it
-    plt.subplots(figsize=(10,10))
+    plt.subplots(figsize=(11,11))
     ax = sns.heatmap(
     signif_Matrix, 
     vmin=-1, vmax=1, center=0,
@@ -597,11 +639,11 @@ def runODE_3():
     # loop through each row of accepted parameters
     for X0_4, r_4, A_4 in zip(X0_thirdRun,r_thirdRun, np.array_split(A_thirdRun,len(accepted_simulations_2020))):
         # starting values for 2021 - the stocking densities
-        X0_4[0] =  0.65
-        X0_4[1] =  5.88
-        X0_4[3] =  1.53
-        X0_4[5] =  2.69
-        X0_4[7] =  0.95
+        X0_4[1] =  0.65
+        X0_4[2] =  5.88
+        X0_4[4] =  1.53
+        X0_4[6] =  2.69
+        X0_4[8] =  0.95
         # concantenate the parameters
         X0_growth_3 = pd.concat([pd.DataFrame(X0_4), pd.DataFrame(r_4)], axis = 1)
         X0_growth_3.columns = ['X0','growth']
@@ -609,86 +651,86 @@ def runODE_3():
         # 2021
         ABC_2021 = solve_ivp(ecoNetwork, (16, 16.95), X0_4,  t_eval = t, args=(A_4, r_4), method = 'RK23')        
         # ten percent above/below 2021 values
-        starting_2022 = ABC_2021.y[0:10, 1:2].flatten()
-        starting_2022[0] = np.random.uniform(low=0.59,high=0.72)
-        starting_2022[1] =  np.random.uniform(low=5.3,high=6.5)
-        starting_2022[3] =  np.random.uniform(low=1.38,high=1.7)
-        starting_2022[5] =  np.random.uniform(low=2.42,high=3.0)
-        starting_2022[7] =  np.random.uniform(low=0.86,high=1.0)
+        starting_2022 = ABC_2021.y[0:11, 1:2].flatten()
+        starting_2022[1] = np.random.uniform(low=0.61,high=0.7)  
+        starting_2022[2] =  np.random.uniform(low=5.3,high=6.5)
+        starting_2022[4] =  np.random.uniform(low=1.38,high=1.7)
+        starting_2022[6] =  np.random.uniform(low=2.42,high=3.0)
+        starting_2022[8] =  np.random.uniform(low=0.86,high=1.0)
         t_1 = np.linspace(17, 17.95, 2)
         # 2022
         ABC_2022 = solve_ivp(ecoNetwork, (17, 17.95), starting_2022,  t_eval = t_1, args=(A_4, r_4), method = 'RK23')
-        starting_2023 = ABC_2022.y[0:10, 1:2].flatten()
-        starting_2023[0] = np.random.uniform(low=0.59,high=0.72)
-        starting_2023[1] =  np.random.uniform(low=5.3,high=6.5)
-        starting_2023[3] =  np.random.uniform(low=1.38,high=1.7)
-        starting_2023[5] =  np.random.uniform(low=2.42,high=3.0)
-        starting_2023[7] =  np.random.uniform(low=0.86,high=1.0)
+        starting_2023 = ABC_2022.y[0:11, 1:2].flatten()
+        starting_2023[1] = np.random.uniform(low=0.61,high=0.7)
+        starting_2023[2] =  np.random.uniform(low=5.3,high=6.5)
+        starting_2023[4] =  np.random.uniform(low=1.38,high=1.7)
+        starting_2023[6] =  np.random.uniform(low=2.42,high=3.0)
+        starting_2023[8] =  np.random.uniform(low=0.86,high=1.0)
         t_2 = np.linspace(18, 18.95, 2)
         # 2023
         ABC_2023 = solve_ivp(ecoNetwork, (18, 18.95), starting_2023,  t_eval = t_2, args=(A_4, r_4), method = 'RK23')
         # take those values and re-run for another year, adding forcings
-        starting_2024 = ABC_2023.y[0:10, 1:2].flatten()
-        starting_2024[0] = np.random.uniform(low=0.59,high=0.72)
-        starting_2024[1] =  np.random.uniform(low=5.3,high=6.5)
-        starting_2024[3] =  np.random.uniform(low=1.38,high=1.7)
-        starting_2024[5] =  np.random.uniform(low=2.42,high=3.0)
-        starting_2024[7] =  np.random.uniform(low=0.86,high=1.0)
+        starting_2024 = ABC_2023.y[0:11, 1:2].flatten()
+        starting_2024[1] = np.random.uniform(low=0.61,high=0.7)
+        starting_2024[2] =  np.random.uniform(low=5.3,high=6.5)
+        starting_2024[4] =  np.random.uniform(low=1.38,high=1.7)
+        starting_2024[6] =  np.random.uniform(low=2.42,high=3.0)
+        starting_2024[8] =  np.random.uniform(low=0.86,high=1.0)
         t_3 = np.linspace(19, 19.95, 2)
         # run the model for 2024
         ABC_2024 = solve_ivp(ecoNetwork, (19, 19.95), starting_2024,  t_eval = t_3, args=(A_4, r_4), method = 'RK23')
         # take those values and re-run for another year, adding forcings
-        starting_2025 = ABC_2024.y[0:10, 1:2].flatten()
-        starting_2025[0] = np.random.uniform(low=0.59,high=0.72)
-        starting_2025[1] =  np.random.uniform(low=5.3,high=6.5)
-        starting_2025[3] =  np.random.uniform(low=1.38,high=1.7)
-        starting_2025[5] =  np.random.uniform(low=2.42,high=3.0)
-        starting_2025[7] =  np.random.uniform(low=0.86,high=1.0)
+        starting_2025 = ABC_2024.y[0:11, 1:2].flatten()
+        starting_2025[1] = np.random.uniform(low=0.61,high=0.7)
+        starting_2025[2] =  np.random.uniform(low=5.3,high=6.5)
+        starting_2025[4] =  np.random.uniform(low=1.38,high=1.7)
+        starting_2025[6] =  np.random.uniform(low=2.42,high=3.0)
+        starting_2025[8] =  np.random.uniform(low=0.86,high=1.0)
         t_4 = np.linspace(20, 20.95, 2)
         # run the model for 2025
         ABC_2025 = solve_ivp(ecoNetwork, (20, 20.95), starting_2025,  t_eval = t_4, args=(A_4, r_4), method = 'RK23')
-        starting_2026 = ABC_2025.y[0:10, 1:2].flatten()
-        starting_2026[0] = np.random.uniform(low=0.59,high=0.72)
-        starting_2026[1] =  np.random.uniform(low=5.3,high=6.5)
-        starting_2026[3] =  np.random.uniform(low=1.38,high=1.7)
-        starting_2026[5] =  np.random.uniform(low=2.42,high=3.0)
-        starting_2026[7] =  np.random.uniform(low=0.86,high=1.0)
+        starting_2026 = ABC_2025.y[0:11, 1:2].flatten()
+        starting_2026[1] = np.random.uniform(low=0.61,high=0.7)
+        starting_2026[2] =  np.random.uniform(low=5.3,high=6.5)
+        starting_2026[4] =  np.random.uniform(low=1.38,high=1.7)
+        starting_2026[6] =  np.random.uniform(low=2.42,high=3.0)
+        starting_2026[8] =  np.random.uniform(low=0.86,high=1.0)
         t_5 = np.linspace(21, 21.95, 2)
         # 2026
         ABC_2026 = solve_ivp(ecoNetwork, (21, 21.95), starting_2026,  t_eval = t_5, args=(A_4, r_4), method = 'RK23')
-        starting_2027 = ABC_2026.y[0:10, 1:2].flatten()
-        starting_2027[0] = np.random.uniform(low=0.59,high=0.72)
-        starting_2027[1] =  np.random.uniform(low=5.3,high=6.5)
-        starting_2027[3] =  np.random.uniform(low=1.38,high=1.7)
-        starting_2027[5] =  np.random.uniform(low=2.42,high=3.0)
-        starting_2027[7] =  np.random.uniform(low=0.86,high=1.0)
+        starting_2027 = ABC_2026.y[0:11, 1:2].flatten()
+        starting_2027[1] = np.random.uniform(low=0.61,high=0.7)
+        starting_2027[2] =  np.random.uniform(low=5.3,high=6.5)
+        starting_2027[4] =  np.random.uniform(low=1.38,high=1.7)
+        starting_2027[6] =  np.random.uniform(low=2.42,high=3.0)
+        starting_2027[8] =  np.random.uniform(low=0.86,high=1.0)
         t_6 = np.linspace(22, 22.95, 2)
         # 2027
         ABC_2027 = solve_ivp(ecoNetwork, (22, 22.95), starting_2027,  t_eval = t_6, args=(A_4, r_4), method = 'RK23')
-        starting_2028 = ABC_2027.y[0:10, 1:2].flatten()
-        starting_2028[0] = np.random.uniform(low=0.59,high=0.72)
-        starting_2028[1] =  np.random.uniform(low=5.3,high=6.5)
-        starting_2028[3] =  np.random.uniform(low=1.38,high=1.7)
-        starting_2028[5] =  np.random.uniform(low=2.42,high=3.0)
-        starting_2028[7] =  np.random.uniform(low=0.86,high=1.0)
+        starting_2028 = ABC_2027.y[0:11, 1:2].flatten()
+        starting_2028[1] = np.random.uniform(low=0.61,high=0.7)
+        starting_2028[2] =  np.random.uniform(low=5.3,high=6.5)
+        starting_2028[4] =  np.random.uniform(low=1.38,high=1.7)
+        starting_2028[6] =  np.random.uniform(low=2.42,high=3.0)
+        starting_2028[8] =  np.random.uniform(low=0.86,high=1.0)
         t_7 = np.linspace(23, 23.95, 2)
         # 2028
         ABC_2028 = solve_ivp(ecoNetwork, (23, 23.95), starting_2028,  t_eval = t_7, args=(A_4, r_4), method = 'RK23')
-        starting_2029 = ABC_2028.y[0:10, 1:2].flatten()
-        starting_2029[0] = np.random.uniform(low=0.59,high=0.72)
-        starting_2029[1] =  np.random.uniform(low=5.3,high=6.5)
-        starting_2029[3] =  np.random.uniform(low=1.38,high=1.7)
-        starting_2029[5] =  np.random.uniform(low=2.42,high=3.0)
-        starting_2029[7] =  np.random.uniform(low=0.86,high=1.0)
+        starting_2029 = ABC_2028.y[0:11, 1:2].flatten()
+        starting_2029[1] = np.random.uniform(low=0.61,high=0.7)
+        starting_2029[2] =  np.random.uniform(low=5.3,high=6.5)
+        starting_2029[4] =  np.random.uniform(low=1.38,high=1.7)
+        starting_2029[6] =  np.random.uniform(low=2.42,high=3.0)
+        starting_2029[8] =  np.random.uniform(low=0.86,high=1.0)
         t_8 = np.linspace(24, 24.95, 2)
         # 2029
         ABC_2029 = solve_ivp(ecoNetwork, (24, 24.95), starting_2028,  t_eval = t_8, args=(A_4, r_4), method = 'RK23')
-        starting_2030 = ABC_2029.y[0:10, 1:2].flatten()
-        starting_2030[0] = np.random.uniform(low=0.59,high=0.72)
-        starting_2030[1] =  np.random.uniform(low=5.3,high=6.5)
-        starting_2030[3] =  np.random.uniform(low=1.38,high=1.7)
-        starting_2030[5] =  np.random.uniform(low=2.42,high=3.0)
-        starting_2030[7] =  np.random.uniform(low=0.86,high=1.0)
+        starting_2030 = ABC_2029.y[0:11, 1:2].flatten()
+        starting_2030[1] = np.random.uniform(low=0.61,high=0.7)
+        starting_2030[2] =  np.random.uniform(low=5.3,high=6.5)
+        starting_2030[4] =  np.random.uniform(low=1.38,high=1.7)
+        starting_2030[6] =  np.random.uniform(low=2.42,high=3.0)
+        starting_2030[8] =  np.random.uniform(low=0.86,high=1.0)
         t_9 = np.linspace(25, 26, 2)
         # 2030
         ABC_2030 = solve_ivp(ecoNetwork, (25, 26), starting_2030,  t_eval = t_9, args=(A_4, r_4), method = 'RK23')
@@ -705,12 +747,13 @@ def runODE_3():
     final_runs_3 = pd.DataFrame(data=final_runs_3, columns=species)
     # append all the parameters to a dataframe
     all_parameters_3 = pd.concat(all_parameters_3)
-    # add ID to the dataframe & parameters
+    # add ID to the dataframe & parameters 
     all_parameters_3['ID'] = ([(x+1) for x in range(len(accepted_simulations_2020)) for _ in range(len(parameters_used_3))])
     IDs = np.arange(1,1 + len(accepted_simulations_2020))
     final_runs_3['ID'] = np.repeat(IDs,20)
     final_runs_3['time'] = all_times_3
     final_runs_3['accepted?'] = np.repeat('Accepted', len(final_runs_3))
+
 
 
     # EXPERIMENT 1: What would have happened if reintroductions hadn't occurred?
@@ -750,194 +793,194 @@ def runODE_3():
     # loop through each row of accepted parameters
     for X0_stocking, r_5, A_5 in zip(X0_stockingRate,r_thirdRun, np.array_split(A_thirdRun,len(accepted_simulations_2020))):
         # 2009
-        X0_stocking[0] =  1.25
-        X0_stocking[3] =  1.25
-        X0_stocking[7] =  1.25
+        X0_stocking[1] =  1.25
+        X0_stocking[4] =  1.25
+        X0_stocking[8] =  1.25
         ABC_stockingRate_2009 = solve_ivp(ecoNetwork, (4,4.95), X0_stocking,  t_eval = t1_stockingRate, args=(A_5, r_5), method = 'RK23')
-        stocking_values_2010 = ABC_stockingRate_2009.y[0:10, 1:2].flatten()
+        stocking_values_2010 = ABC_stockingRate_2009.y[0:11, 1:2].flatten()
         # 2010: fallow deer reintroduced
-        stocking_values_2010[0] =  0.57*1.25
-        stocking_values_2010[1] =  1*1.25
-        stocking_values_2010[3] =  1.45*1.25
-        stocking_values_2010[7] =  0.85*1.25
+        stocking_values_2010[1] =  0.57*1.25
+        stocking_values_2010[2] =  1*1.25
+        stocking_values_2010[4] =  1.45*1.25
+        stocking_values_2010[8] =  0.85*1.25
         t2_stockingRate = np.linspace(5, 5.95, 2)
         ABC_stockingRate_2010 = solve_ivp(ecoNetwork, (5,5.95), stocking_values_2010,  t_eval = t2_stockingRate, args=(A_5, r_5), method = 'RK23')
         # 2011
-        stocking_values_2011 = ABC_stockingRate_2010.y[0:10, 1:2].flatten()
-        stocking_values_2011[0] =  0.65*1.25
-        stocking_values_2011[1] =  1.93*1.25
-        stocking_values_2011[3] =  1.74*1.25
-        stocking_values_2011[7] =  1.1*1.25
+        stocking_values_2011 = ABC_stockingRate_2010.y[0:11, 1:2].flatten()
+        stocking_values_2011[1] =  0.65*1.25
+        stocking_values_2011[2] =  1.93*1.25
+        stocking_values_2011[4] =  1.74*1.25
+        stocking_values_2011[8] =  1.1*1.25
         t3_stockingRate = np.linspace(6, 6.95, 2)
         ABC_stockingRate_2011 = solve_ivp(ecoNetwork, (6,6.95), stocking_values_2011,  t_eval = t3_stockingRate, args=(A_5, r_5), method = 'RK23')
         # 2012
-        stocking_values_2012 = ABC_stockingRate_2011.y[0:10, 1:2].flatten()
-        stocking_values_2012[0] =  0.74*1.25
-        stocking_values_2012[1] =  2.38*1.25
-        stocking_values_2012[3] =  2.19*1.25
-        stocking_values_2012[7] =  1.65*1.25
+        stocking_values_2012 = ABC_stockingRate_2011.y[0:11, 1:2].flatten()
+        stocking_values_2012[1] =  0.74*1.25
+        stocking_values_2012[2] =  2.38*1.25
+        stocking_values_2012[4] =  2.19*1.25
+        stocking_values_2012[8] =  1.65*1.25
         t4_stockingRate = np.linspace(7, 7.95, 2)
         ABC_stockingRate_2012 = solve_ivp(ecoNetwork, (7,7.95), stocking_values_2012,  t_eval = t4_stockingRate, args=(A_5, r_5), method = 'RK23')
         # 2013: red deer reintroduced
-        stocking_values_2013 = ABC_stockingRate_2012.y[0:10, 1:2].flatten()
-        stocking_values_2013[0] =  0.43*1.25
-        stocking_values_2013[1] =  2.38*1.25
-        stocking_values_2013[3] =  2.43*1.25
-        stocking_values_2013[5] =  1*1.25
-        stocking_values_2013[7] =  0.3*1.25
+        stocking_values_2013 = ABC_stockingRate_2012.y[0:11, 1:2].flatten()
+        stocking_values_2013[1] =  0.43*1.25
+        stocking_values_2013[2] =  2.38*1.25
+        stocking_values_2013[4] =  2.43*1.25
+        stocking_values_2013[6] =  1*1.25
+        stocking_values_2013[8] =  0.3*1.25
         t5_stockingRate = np.linspace(8, 8.95, 2)
         ABC_stockingRate_2013 = solve_ivp(ecoNetwork, (8,8.95), stocking_values_2013,  t_eval = t5_stockingRate, args=(A_5, r_5), method = 'RK23')
         # 2014
-        stocking_values_2014 = ABC_stockingRate_2013.y[0:10, 1:2].flatten()
-        stocking_values_2014[0] =  0.43*1.25
-        stocking_values_2014[1] =  2.38*1.25
-        stocking_values_2014[3] =  4.98*1.25
-        stocking_values_2014[5] =  1*1.25
-        stocking_values_2014[7] =  0.9*1.25
+        stocking_values_2014 = ABC_stockingRate_2013.y[0:11, 1:2].flatten()
+        stocking_values_2014[1] =  0.43*1.25
+        stocking_values_2014[2] =  2.38*1.25
+        stocking_values_2014[4] =  4.98*1.25
+        stocking_values_2014[6] =  1*1.25
+        stocking_values_2014[8] =  0.9*1.25
         t6_stockingRate = np.linspace(9, 9.95, 2)
         ABC_stockingRate_2014 = solve_ivp(ecoNetwork, (9,9.95), stocking_values_2014,  t_eval = t6_stockingRate, args=(A_5, r_5), method = 'RK23')
         # 2015
-        stocking_values_2015 = ABC_stockingRate_2014.y[0:10, 1:2].flatten()
-        stocking_values_2015[0] =  0.43*1.25
-        stocking_values_2015[1] =  2.38*1.25
-        stocking_values_2015[3] =  2.01*1.25
-        stocking_values_2015[5] =  1*1.25
-        stocking_values_2015[7] =  0.9*1.25
+        stocking_values_2015 = ABC_stockingRate_2014.y[0:11, 1:2].flatten()
+        stocking_values_2015[1] =  0.43*1.25
+        stocking_values_2015[2] =  2.38*1.25
+        stocking_values_2015[4] =  2.01*1.25
+        stocking_values_2015[6] =  1*1.25
+        stocking_values_2015[8] =  0.9*1.25
         t7_stockingRate = np.linspace(10, 10.95, 2)
         ABC_stockingRate_2015 = solve_ivp(ecoNetwork, (10,10.95), stocking_values_2015,  t_eval = t7_stockingRate, args=(A_5, r_5), method = 'RK23')
-        stocking_values_2016 = ABC_stockingRate_2015.y[0:10, 1:2].flatten()
+        stocking_values_2016 = ABC_stockingRate_2015.y[0:11, 1:2].flatten()
         # 2016
-        stocking_values_2016[0] =  0.48*1.25
-        stocking_values_2016[1] =  3.33*1.25
-        stocking_values_2016[3] =  1.62*1.25
-        stocking_values_2016[5] =  2*1.25
-        stocking_values_2016[7] =  0.4*1.25
+        stocking_values_2016[1] =  0.48*1.25
+        stocking_values_2016[2] =  3.33*1.25
+        stocking_values_2016[4] =  1.62*1.25
+        stocking_values_2016[6] =  2*1.25
+        stocking_values_2016[8] =  0.4*1.25
         t8_stockingRate = np.linspace(11, 11.95, 2)
         ABC_stockingRate_2016 = solve_ivp(ecoNetwork, (11,11.95), stocking_values_2016,  t_eval = t8_stockingRate, args=(A_5, r_5), method = 'RK23')
-        stocking_values_2017 = ABC_stockingRate_2016.y[0:10, 1:2].flatten()
+        stocking_values_2017 = ABC_stockingRate_2016.y[0:11, 1:2].flatten()
         # 2017
-        stocking_values_2017[0] =  0.43*1.25
-        stocking_values_2017[1] =  3.93*1.25
-        stocking_values_2017[3] =  1.49*1.25
-        stocking_values_2017[5] =  1.08*1.25
-        stocking_values_2017[7] =  0.35*1.25
+        stocking_values_2017[1] =  0.43*1.25
+        stocking_values_2017[2] =  3.93*1.25
+        stocking_values_2017[4] =  1.49*1.25
+        stocking_values_2017[6] =  1.08*1.25
+        stocking_values_2017[8] =  0.35*1.25
         t9_stockingRate = np.linspace(12, 12.95, 2)
         ABC_stockingRate_2017 = solve_ivp(ecoNetwork, (12,12.95), stocking_values_2017,  t_eval = t9_stockingRate, args=(A_5, r_5), method = 'RK23')
         # 2018
-        stocking_values_2018 = ABC_stockingRate_2017.y[0:10, 1:2].flatten()
-        stocking_values_2018[0] =  0.39*1.25
-        stocking_values_2018[1] =  5.98*1.25
-        stocking_values_2018[3] =  1.66*1.25
-        stocking_values_2018[5] =  1.85*1.25
-        stocking_values_2018[7] =  0.8*1.25
+        stocking_values_2018 = ABC_stockingRate_2017.y[0:11, 1:2].flatten()
+        stocking_values_2018[1] =  0.39*1.25
+        stocking_values_2018[2] =  5.98*1.25
+        stocking_values_2018[4] =  1.66*1.25
+        stocking_values_2018[6] =  1.85*1.25
+        stocking_values_2018[8] =  0.8*1.25
         t95_stockingRate = np.linspace(13, 13.95, 2)
         ABC_stockingRate_2018 = solve_ivp(ecoNetwork, (13,13.95), stocking_values_2018,  t_eval = t95_stockingRate, args=(A_5, r_5), method = 'RK23')
-        stocking_values_2019 = ABC_stockingRate_2018.y[0:10, 1:2].flatten()
+        stocking_values_2019 = ABC_stockingRate_2018.y[0:11, 1:2].flatten()
         # 2019
-        stocking_values_2019[0] =  0
-        stocking_values_2019[1] =  6.62*1.25
-        stocking_values_2019[3] =  1.64*1.25
-        stocking_values_2019[5] =  2.85*1.25
-        stocking_values_2019[7] =  0.45*1.25
+        stocking_values_2019[1] =  0
+        stocking_values_2019[2] =  6.62*1.25
+        stocking_values_2019[4] =  1.64*1.25
+        stocking_values_2019[6] =  2.85*1.25
+        stocking_values_2019[8] =  0.45*1.25
         t10_stockingRate = np.linspace(14, 14.95, 2)
         ABC_stockingRate_2019 = solve_ivp(ecoNetwork, (14,14.95), stocking_values_2019,  t_eval = t10_stockingRate, args=(A_5, r_5), method = 'RK23')
-        stocking_values_2020 = ABC_stockingRate_2019.y[0:10, 1:2].flatten()
+        stocking_values_2020 = ABC_stockingRate_2019.y[0:11, 1:2].flatten()
         # 2020
-        stocking_values_2020[0] =  0.65*1.25
-        stocking_values_2020[1] =  5.88*1.25
-        stocking_values_2020[3] =  1.53*1.25
-        stocking_values_2020[5] =  2.69*1.25
-        stocking_values_2020[7] =  0.95*1.25
+        stocking_values_2020[1] =  0.65*1.25
+        stocking_values_2020[2] =  5.88*1.25
+        stocking_values_2020[4] =  1.53*1.25
+        stocking_values_2020[6] =  2.69*1.25
+        stocking_values_2020[8] =  0.95*1.25
         t11_stockingRate = np.linspace(15, 15.95, 2)
         ABC_stockingRate_2020 = solve_ivp(ecoNetwork, (15,15.95), stocking_values_2020,  t_eval = t11_stockingRate, args=(A_5, r_5), method = 'RK23')
-        stocking_values_2021 = ABC_stockingRate_2020.y[0:10, 1:2].flatten()
+        stocking_values_2021 = ABC_stockingRate_2020.y[0:11, 1:2].flatten()
         # 2021 - future projections
-        stocking_values_2021[0] =  0.65*1.25
-        stocking_values_2021[1] =  5.88*1.25
-        stocking_values_2021[3] =  1.53*1.25
-        stocking_values_2021[5] =  2.69*1.25
-        stocking_values_2021[7] =  0.95*1.25
+        stocking_values_2021[1] =  0.65*1.25
+        stocking_values_2021[2] =  5.88*1.25
+        stocking_values_2021[4] =  1.53*1.25
+        stocking_values_2021[6] =  2.69*1.25
+        stocking_values_2021[8] =  0.95*1.25
         t12_stockingRate = np.linspace(16, 16.95, 2)
         ABC_stockingRate_2021 = solve_ivp(ecoNetwork, (16,16.95), stocking_values_2021,  t_eval = t12_stockingRate, args=(A_5, r_5), method = 'RK23')
-        stocking_values_2022 = ABC_stockingRate_2021.y[0:10, 1:2].flatten()
+        stocking_values_2022 = ABC_stockingRate_2021.y[0:11, 1:2].flatten()
         # 2022
-        stocking_values_2022[0] =  0.65*1.25
-        stocking_values_2022[1] =  5.88*1.25
-        stocking_values_2022[3] =  1.53*1.25
-        stocking_values_2022[5] =  2.69*1.25
-        stocking_values_2022[7] =  0.95*1.25
+        stocking_values_2022[1] =  0.65*1.25
+        stocking_values_2022[2] =  5.88*1.25
+        stocking_values_2022[4] =  1.53*1.25
+        stocking_values_2022[6] =  2.69*1.25
+        stocking_values_2022[8] =  0.95*1.25
         t13_stockingRate = np.linspace(17, 17.95, 2)
         ABC_stockingRate_2022 = solve_ivp(ecoNetwork, (17,17.95), stocking_values_2022,  t_eval = t13_stockingRate, args=(A_5, r_5), method = 'RK23')
-        stocking_values_2023 = ABC_stockingRate_2022.y[0:10, 1:2].flatten()
+        stocking_values_2023 = ABC_stockingRate_2022.y[0:11, 1:2].flatten()
         # 2023
-        stocking_values_2023[0] =  0.65*1.25
-        stocking_values_2023[1] =  5.88*1.25
-        stocking_values_2023[3] =  1.53*1.25
-        stocking_values_2023[5] =  2.69*1.25
-        stocking_values_2023[7] =  0.95*1.25
+        stocking_values_2023[1] =  0.65*1.25
+        stocking_values_2023[2] =  5.88*1.25
+        stocking_values_2023[4] =  1.53*1.25
+        stocking_values_2023[6] =  2.69*1.25
+        stocking_values_2023[8] =  0.95*1.25
         t14_stockingRate = np.linspace(18, 18.95, 2)
         ABC_stockingRate_2023 = solve_ivp(ecoNetwork, (18,18.95), stocking_values_2023,  t_eval = t14_stockingRate, args=(A_5, r_5), method = 'RK23')
-        stocking_values_2024 = ABC_stockingRate_2023.y[0:10, 1:2].flatten()
+        stocking_values_2024 = ABC_stockingRate_2023.y[0:11, 1:2].flatten()
         # 2024
-        stocking_values_2024[0] =  0.65*1.25
-        stocking_values_2024[1] =  5.88*1.25
-        stocking_values_2024[3] =  1.53*1.25
-        stocking_values_2024[5] =  2.69*1.25
-        stocking_values_2024[7] =  0.95*1.25
+        stocking_values_2024[1] =  0.65*1.25
+        stocking_values_2024[2] =  5.88*1.25
+        stocking_values_2024[4] =  1.53*1.25
+        stocking_values_2024[6] =  2.69*1.25
+        stocking_values_2024[8] =  0.95*1.25
         t15_stockingRate = np.linspace(19, 19.95, 2)
         ABC_stockingRate_2024 = solve_ivp(ecoNetwork, (19,19.95), stocking_values_2024,  t_eval = t15_stockingRate, args=(A_5, r_5), method = 'RK23')
-        stocking_values_2025 = ABC_stockingRate_2024.y[0:10, 1:2].flatten()
+        stocking_values_2025 = ABC_stockingRate_2024.y[0:11, 1:2].flatten()
         # 2025
-        stocking_values_2025[0] =  0.65*1.25
-        stocking_values_2025[1] =  5.88*1.25
-        stocking_values_2025[3] =  1.53*1.25
-        stocking_values_2025[5] =  2.69*1.25
-        stocking_values_2025[7] =  0.95*1.25
+        stocking_values_2025[1] =  0.65*1.25
+        stocking_values_2025[2] =  5.88*1.25
+        stocking_values_2025[4] =  1.53*1.25
+        stocking_values_2025[6] =  2.69*1.25
+        stocking_values_2025[8] =  0.95*1.25
         t16_stockingRate = np.linspace(20, 20.95, 2)
         ABC_stockingRate_2025 = solve_ivp(ecoNetwork, (20,20.95), stocking_values_2025,  t_eval = t16_stockingRate, args=(A_5, r_5), method = 'RK23')
-        stocking_values_2026 = ABC_stockingRate_2025.y[0:10, 1:2].flatten()
+        stocking_values_2026 = ABC_stockingRate_2025.y[0:11, 1:2].flatten()
         # 2026
-        stocking_values_2026[0] =  0.65*1.25
-        stocking_values_2026[1] =  5.88*1.25
-        stocking_values_2026[3] =  1.53*1.25
-        stocking_values_2026[5] =  2.69*1.25
-        stocking_values_2026[7] =  0.95*1.25
+        stocking_values_2026[1] =  0.65*1.25
+        stocking_values_2026[2] =  5.88*1.25
+        stocking_values_2026[4] =  1.53*1.25
+        stocking_values_2026[6] =  2.69*1.25
+        stocking_values_2026[8] =  0.95*1.25
         t17_stockingRate = np.linspace(21, 21.95, 2)
         ABC_stockingRate_2026 = solve_ivp(ecoNetwork, (21,21.95), stocking_values_2026,  t_eval = t17_stockingRate, args=(A_5, r_5), method = 'RK23')
-        stocking_values_2027 = ABC_stockingRate_2026.y[0:10, 1:2].flatten()
+        stocking_values_2027 = ABC_stockingRate_2026.y[0:11, 1:2].flatten()
         # 2027
-        stocking_values_2027[0] =  0.65*1.25
-        stocking_values_2027[1] =  5.88*1.25
-        stocking_values_2027[3] =  1.53*1.25
-        stocking_values_2027[5] =  2.69*1.25
-        stocking_values_2027[7] =  0.95*1.25
+        stocking_values_2027[1] =  0.65*1.25
+        stocking_values_2027[2] =  5.88*1.25
+        stocking_values_2027[4] =  1.53*1.25
+        stocking_values_2027[6] =  2.69*1.25
+        stocking_values_2027[8] =  0.95*1.25
         t18_stockingRate = np.linspace(22, 22.95, 2)
         ABC_stockingRate_2027 = solve_ivp(ecoNetwork, (22,22.95), stocking_values_2027,  t_eval = t18_stockingRate, args=(A_5, r_5), method = 'RK23')
-        stocking_values_2028 = ABC_stockingRate_2027.y[0:10, 1:2].flatten()
+        stocking_values_2028 = ABC_stockingRate_2027.y[0:11, 1:2].flatten()
         # 2028
-        stocking_values_2028[0] =  0.65*1.25
-        stocking_values_2028[1] =  5.88*1.25
-        stocking_values_2028[3] =  1.53*1.25
-        stocking_values_2028[5] =  2.69*1.25
-        stocking_values_2028[7] =  0.95*1.25
+        stocking_values_2028[1] =  0.65*1.25
+        stocking_values_2028[2] =  5.88*1.25
+        stocking_values_2028[4] =  1.53*1.25
+        stocking_values_2028[6] =  2.69*1.25
+        stocking_values_2028[8] =  0.95*1.25
         t19_stockingRate = np.linspace(23, 23.95, 2)
         ABC_stockingRate_2028 = solve_ivp(ecoNetwork, (23,23.95), stocking_values_2028,  t_eval = t19_stockingRate, args=(A_5, r_5), method = 'RK23')
-        stocking_values_2029 = ABC_stockingRate_2028.y[0:10, 1:2].flatten()
+        stocking_values_2029 = ABC_stockingRate_2028.y[0:11, 1:2].flatten()
         # 2029
-        stocking_values_2029[0] =  0.65*1.25
-        stocking_values_2029[1] =  5.88*1.25
-        stocking_values_2029[3] =  1.53*1.25
-        stocking_values_2029[5] =  2.69*1.25
-        stocking_values_2029[7] =  0.95*1.25
+        stocking_values_2029[1] =  0.65*1.25
+        stocking_values_2029[2] =  5.88*1.25
+        stocking_values_2029[4] =  1.53*1.25
+        stocking_values_2029[6] =  2.69*1.25
+        stocking_values_2029[8] =  0.95*1.25
         t20_stockingRate = np.linspace(24, 24.95, 2)
         ABC_stockingRate_2029 = solve_ivp(ecoNetwork, (24,24.95), stocking_values_2029,  t_eval = t20_stockingRate, args=(A_5, r_5), method = 'RK23')
-        stocking_values_2030 = ABC_stockingRate_2029.y[0:10, 1:2].flatten()
+        stocking_values_2030 = ABC_stockingRate_2029.y[0:11, 1:2].flatten()
         # 2030
-        stocking_values_2030[0] =  0.65*1.25
-        stocking_values_2030[1] =  5.88*1.25
-        stocking_values_2030[3] =  1.53*1.25
-        stocking_values_2030[5] =  2.69*1.25
-        stocking_values_2030[7] =  0.95*1.25
+        stocking_values_2030[1] =  0.65*1.25
+        stocking_values_2030[2] =  5.88*1.25
+        stocking_values_2030[4] =  1.53*1.25
+        stocking_values_2030[6] =  2.69*1.25
+        stocking_values_2030[8] =  0.95*1.25
         t21_stockingRate = np.linspace(25, 26, 2)
         ABC_stockingRate_2030 = solve_ivp(ecoNetwork, (25, 26), stocking_values_2030,  t_eval = t21_stockingRate, args=(A_5, r_5), method = 'RK23')
         # concantenate the runs
@@ -953,7 +996,6 @@ def runODE_3():
     stockingValues_double = pd.concat([filtered_FinalRuns, stockingValues_double])
     stockingValues_double['accepted?'] = "stockingDensity_double"
 
-
     # EXPERIMENT 3: What if stocking densities were half what they are currently?
     all_runs_stockingRate_half = []
     all_times_stockingRate_half = []
@@ -961,178 +1003,178 @@ def runODE_3():
     # loop through each row of accepted parameters
     for X0_stocking_half, r_5, A_5 in zip(X0_stockingRate_half,r_thirdRun, np.array_split(A_thirdRun,len(accepted_simulations_2020))):
         # 2009
-        X0_stocking_half[0] = 0.5
-        X0_stocking_half[3] = 0.5
-        X0_stocking_half[7] = 0.5
+        X0_stocking_half[1] = 0.5
+        X0_stocking_half[4] = 0.5
+        X0_stocking_half[8] = 0.5
         ABC_halfStockingRate_2009 = solve_ivp(ecoNetwork, (4,4.95), X0_stocking_half,  t_eval = t1_stockingRate, args=(A_5, r_5), method = 'RK23')
-        half_stocking_values_2010 = ABC_halfStockingRate_2009.y[0:10, 1:2].flatten()
+        half_stocking_values_2010 = ABC_halfStockingRate_2009.y[0:11, 1:2].flatten()
         # 2010: fallow deer reintroduced
-        half_stocking_values_2010[0] =  0.57/2
-        half_stocking_values_2010[1] =  1/2
-        half_stocking_values_2010[3] =  1.45/2
-        half_stocking_values_2010[7] =  0.85/2
+        half_stocking_values_2010[1] =  0.57/2
+        half_stocking_values_2010[2] =  1/2
+        half_stocking_values_2010[4] =  1.45/2
+        half_stocking_values_2010[8] =  0.85/2
         ABC_halfStockingRate_2010 = solve_ivp(ecoNetwork, (5,5.95), half_stocking_values_2010,  t_eval = t2_stockingRate, args=(A_5, r_5), method = 'RK23')
         # 2011
-        half_stocking_values_2011 = ABC_halfStockingRate_2010.y[0:10, 1:2].flatten()
-        half_stocking_values_2011[0] =  0.65/2
-        half_stocking_values_2011[1] =  1.93/2
-        half_stocking_values_2011[3] =  1.74/2
-        half_stocking_values_2011[7] =  1.1/2
+        half_stocking_values_2011 = ABC_halfStockingRate_2010.y[0:11, 1:2].flatten()
+        half_stocking_values_2011[1] =  0.65/2
+        half_stocking_values_2011[2] =  1.93/2
+        half_stocking_values_2011[4] =  1.74/2
+        half_stocking_values_2011[8] =  1.1/2
         ABC_halfStockingRate_2011 = solve_ivp(ecoNetwork, (6,6.95), half_stocking_values_2011,  t_eval = t3_stockingRate, args=(A_5, r_5), method = 'RK23')
         # 2012
-        half_stocking_values_2012 = ABC_halfStockingRate_2011.y[0:10, 1:2].flatten()
-        half_stocking_values_2012[0] =  0.74/2
-        half_stocking_values_2012[1] =  2.38/2
-        half_stocking_values_2012[3] =  2.19/2
-        half_stocking_values_2012[7] =  1.65/2
+        half_stocking_values_2012 = ABC_halfStockingRate_2011.y[0:11, 1:2].flatten()
+        half_stocking_values_2012[1] =  0.74/2
+        half_stocking_values_2012[2] =  2.38/2
+        half_stocking_values_2012[4] =  2.19/2
+        half_stocking_values_2012[8] =  1.65/2
         ABC_halfStockingRate_2012 = solve_ivp(ecoNetwork, (7,7.95), half_stocking_values_2012,  t_eval = t4_stockingRate, args=(A_5, r_5), method = 'RK23')
         # 2013: red deer reintroduced
-        half_stocking_values_2013 = ABC_halfStockingRate_2012.y[0:10, 1:2].flatten()
-        half_stocking_values_2013[0] =  0.43/2
-        half_stocking_values_2013[1] =  2.38/2
-        half_stocking_values_2013[3] =  2.43/2
-        half_stocking_values_2013[5] =  1/2
-        half_stocking_values_2013[7] =  0.3/2
+        half_stocking_values_2013 = ABC_halfStockingRate_2012.y[0:11, 1:2].flatten()
+        half_stocking_values_2013[1] =  0.43/2
+        half_stocking_values_2013[2] =  2.38/2
+        half_stocking_values_2013[4] =  2.43/2
+        half_stocking_values_2013[6] =  1/2
+        half_stocking_values_2013[8] =  0.3/2
         t5_stockingRate = np.linspace(8, 8.95, 2)
         ABC_halfStockingRate_2013 = solve_ivp(ecoNetwork, (8,8.95), half_stocking_values_2013,  t_eval = t5_stockingRate, args=(A_5, r_5), method = 'RK23')
         # 2014
-        half_stocking_values_2014 = ABC_halfStockingRate_2013.y[0:10, 1:2].flatten()
-        half_stocking_values_2014[0] =  0.43/2
-        half_stocking_values_2014[1] =  2.38/2
-        half_stocking_values_2014[3] =  4.98/2
-        half_stocking_values_2014[5] =  1/2
-        half_stocking_values_2014[7] =  0.9/2
+        half_stocking_values_2014 = ABC_halfStockingRate_2013.y[0:11, 1:2].flatten()
+        half_stocking_values_2014[1] =  0.43/2
+        half_stocking_values_2014[2] =  2.38/2
+        half_stocking_values_2014[4] =  4.98/2
+        half_stocking_values_2014[6] =  1/2
+        half_stocking_values_2014[8] =  0.9/2
         ABC_halfStockingRate_2014 = solve_ivp(ecoNetwork, (9,9.95), half_stocking_values_2014,  t_eval = t6_stockingRate, args=(A_5, r_5), method = 'RK23')
         # 2015
-        half_stocking_values_2015 = ABC_halfStockingRate_2014.y[0:10, 1:2].flatten()
-        half_stocking_values_2015[0] =  0.43/2
-        half_stocking_values_2015[1] =  2.38/2
-        half_stocking_values_2015[3] =  2.01/2
-        half_stocking_values_2015[5] =  1/2
-        half_stocking_values_2015[7] =  0.9/2
+        half_stocking_values_2015 = ABC_halfStockingRate_2014.y[0:11, 1:2].flatten()
+        half_stocking_values_2015[1] =  0.43/2
+        half_stocking_values_2015[2] =  2.38/2
+        half_stocking_values_2015[4] =  2.01/2
+        half_stocking_values_2015[6] =  1/2
+        half_stocking_values_2015[8] =  0.9/2
         ABC_halfStockingRate_2015 = solve_ivp(ecoNetwork, (10,10.95), half_stocking_values_2015,  t_eval = t7_stockingRate, args=(A_5, r_5), method = 'RK23')
-        half_stocking_values_2016 = ABC_halfStockingRate_2015.y[0:10, 1:2].flatten()
+        half_stocking_values_2016 = ABC_halfStockingRate_2015.y[0:11, 1:2].flatten()
         # 2016
-        half_stocking_values_2016[0] =  0.48/2
-        half_stocking_values_2016[1] =  3.33/2
-        half_stocking_values_2016[3] =  1.62/2
-        half_stocking_values_2016[5] =  2/2
-        half_stocking_values_2016[7] =  0.4/2
+        half_stocking_values_2016[1] =  0.48/2
+        half_stocking_values_2016[2] =  3.33/2
+        half_stocking_values_2016[4] =  1.62/2
+        half_stocking_values_2016[6] =  2/2
+        half_stocking_values_2016[8] =  0.4/2
         ABC_halfStockingRate_2016 = solve_ivp(ecoNetwork, (11,11.95), half_stocking_values_2016,  t_eval = t8_stockingRate, args=(A_5, r_5), method = 'RK23')
-        half_stocking_values_2017 = ABC_halfStockingRate_2016.y[0:10, 1:2].flatten()
+        half_stocking_values_2017 = ABC_halfStockingRate_2016.y[0:11, 1:2].flatten()
         # 2017
-        half_stocking_values_2017[0] =  0.43/2
-        half_stocking_values_2017[1] =  3.93/2
-        half_stocking_values_2017[3] =  1.49/2
-        half_stocking_values_2017[5] =  1.08/2
-        half_stocking_values_2017[7] =  0.35/2
+        half_stocking_values_2017[1] =  0.43/2
+        half_stocking_values_2017[2] =  3.93/2
+        half_stocking_values_2017[4] =  1.49/2
+        half_stocking_values_2017[6] =  1.08/2
+        half_stocking_values_2017[8] =  0.35/2
         ABC_halfStockingRate_2017 = solve_ivp(ecoNetwork, (12,12.95), half_stocking_values_2017,  t_eval = t9_stockingRate, args=(A_5, r_5), method = 'RK23')
         # 2018
-        half_stocking_values_2018 = ABC_halfStockingRate_2017.y[0:10,1:2].flatten()
-        half_stocking_values_2018[0] =  0.39/2
-        half_stocking_values_2018[1] =  5.98/2
-        half_stocking_values_2018[3] =  1.66/2
-        half_stocking_values_2018[5] =  1.85/2
-        half_stocking_values_2018[7] =  0.8/2
+        half_stocking_values_2018 = ABC_halfStockingRate_2017.y[0:11,1:2].flatten()
+        half_stocking_values_2018[1] =  0.39/2
+        half_stocking_values_2018[2] =  5.98/2
+        half_stocking_values_2018[4] =  1.66/2
+        half_stocking_values_2018[6] =  1.85/2
+        half_stocking_values_2018[8] =  0.8/2
         ABC_halfStockingRate_2018 = solve_ivp(ecoNetwork, (13,13.95), half_stocking_values_2018,  t_eval = t95_stockingRate, args=(A_5, r_5), method = 'RK23')
-        half_stocking_values_2019 = ABC_halfStockingRate_2018.y[0:10, 1:2].flatten()
+        half_stocking_values_2019 = ABC_halfStockingRate_2018.y[0:11, 1:2].flatten()
         # 2019
-        half_stocking_values_2019[0] =  0
-        half_stocking_values_2019[1] =  6.62/2
-        half_stocking_values_2019[3] =  1.64/2
-        half_stocking_values_2019[5] =  2.85/2
-        half_stocking_values_2019[7] =  0.45/2
+        half_stocking_values_2019[1] =  0
+        half_stocking_values_2019[2] =  6.62/2
+        half_stocking_values_2019[4] =  1.64/2
+        half_stocking_values_2019[6] =  2.85/2
+        half_stocking_values_2019[8] =  0.45/2
         ABC_halfStockingRate_2019 = solve_ivp(ecoNetwork, (14,14.95), half_stocking_values_2019,  t_eval = t10_stockingRate, args=(A_5, r_5), method = 'RK23')
-        half_stocking_values_2020 = ABC_halfStockingRate_2019.y[0:10, 1:2].flatten()
+        half_stocking_values_2020 = ABC_halfStockingRate_2019.y[0:11, 1:2].flatten()
         # 2020
-        half_stocking_values_2020[0] =  0.65/2
-        half_stocking_values_2020[1] =  5.88/2
-        half_stocking_values_2020[3] =  1.53/2
-        half_stocking_values_2020[5] =  2.69/2
-        half_stocking_values_2020[7] =  0.95/2
+        half_stocking_values_2020[1] =  0.65/2
+        half_stocking_values_2020[2] =  5.88/2
+        half_stocking_values_2020[4] =  1.53/2
+        half_stocking_values_2020[6] =  2.69/2
+        half_stocking_values_2020[8] =  0.95/2
         t11_stockingRate = np.linspace(15, 15.95, 2)
         ABC_halfStockingRate_2020 = solve_ivp(ecoNetwork, (15,15.95), half_stocking_values_2020,  t_eval = t11_stockingRate, args=(A_5, r_5), method = 'RK23')
-        half_stocking_values_2021 = ABC_halfStockingRate_2020.y[0:10, 1:2].flatten()
+        half_stocking_values_2021 = ABC_halfStockingRate_2020.y[0:11, 1:2].flatten()
         # 2021 - future projections
-        half_stocking_values_2021[0] =  0.65/2
-        half_stocking_values_2021[1] =  5.88/2
-        half_stocking_values_2021[3] =  1.53/2
-        half_stocking_values_2021[5] =  2.69/2
-        half_stocking_values_2021[7] =  0.95/2
+        half_stocking_values_2021[1] =  0.65/2
+        half_stocking_values_2021[2] =  5.88/2
+        half_stocking_values_2021[4] =  1.53/2
+        half_stocking_values_2021[6] =  2.69/2
+        half_stocking_values_2021[8] =  0.95/2
         t12_stockingRate = np.linspace(16, 16.95, 2)
         ABC_halfStockingRate_2021 = solve_ivp(ecoNetwork, (16,16.95), half_stocking_values_2021,  t_eval = t12_stockingRate, args=(A_5, r_5), method = 'RK23')
-        half_stocking_values_2022 = ABC_halfStockingRate_2021.y[0:10, 1:2].flatten()
+        half_stocking_values_2022 = ABC_halfStockingRate_2021.y[0:11, 1:2].flatten()
         # 2022
-        half_stocking_values_2022[0] =  0.65/2
-        half_stocking_values_2022[1] =  5.88/2
-        half_stocking_values_2022[3] =  1.53/2
-        half_stocking_values_2022[5] =  2.69/2
-        half_stocking_values_2022[7] =  0.95/2
+        half_stocking_values_2022[1] =  0.65/2
+        half_stocking_values_2022[2] =  5.88/2
+        half_stocking_values_2022[4] =  1.53/2
+        half_stocking_values_2022[6] =  2.69/2
+        half_stocking_values_2022[8] =  0.95/2
         ABC_halfStockingRate_2022 = solve_ivp(ecoNetwork, (17,17.95), half_stocking_values_2022,  t_eval = t13_stockingRate, args=(A_5, r_5), method = 'RK23')
-        half_stocking_values_2023 = ABC_halfStockingRate_2022.y[0:10, 1:2].flatten()
+        half_stocking_values_2023 = ABC_halfStockingRate_2022.y[0:11, 1:2].flatten()
         # 2023
-        half_stocking_values_2023[0] =  0.65/2
-        half_stocking_values_2023[1] =  5.88/2
-        half_stocking_values_2023[3] =  1.53/2
-        half_stocking_values_2023[5] =  2.69/2
-        half_stocking_values_2023[7] =  0.95/2
+        half_stocking_values_2023[1] =  0.65/2
+        half_stocking_values_2023[2] =  5.88/2
+        half_stocking_values_2023[4] =  1.53/2
+        half_stocking_values_2023[6] =  2.69/2
+        half_stocking_values_2023[8] =  0.95/2
         ABC_halfStockingRate_2023 = solve_ivp(ecoNetwork, (18,18.95), half_stocking_values_2023,  t_eval = t14_stockingRate, args=(A_5, r_5), method = 'RK23')
-        half_stocking_values_2024 = ABC_halfStockingRate_2023.y[0:10, 1:2].flatten()
+        half_stocking_values_2024 = ABC_halfStockingRate_2023.y[0:11, 1:2].flatten()
         # 2024
-        half_stocking_values_2024[0] =  0.65/2
-        half_stocking_values_2024[1] =  5.88/2
-        half_stocking_values_2024[3] =  1.53/2
-        half_stocking_values_2024[5] =  2.69/2
-        half_stocking_values_2024[7] =  0.95/2
+        half_stocking_values_2024[1] =  0.65/2
+        half_stocking_values_2024[2] =  5.88/2
+        half_stocking_values_2024[4] =  1.53/2
+        half_stocking_values_2024[6] =  2.69/2
+        half_stocking_values_2024[8] =  0.95/2
         ABC_halfStockingRate_2024 = solve_ivp(ecoNetwork, (19,19.95), half_stocking_values_2024,  t_eval = t15_stockingRate, args=(A_5, r_5), method = 'RK23')
-        half_stocking_values_2025 = ABC_halfStockingRate_2024.y[0:10, 1:2].flatten()
+        half_stocking_values_2025 = ABC_halfStockingRate_2024.y[0:11, 1:2].flatten()
         # 2025
-        half_stocking_values_2025[0] =  0.65/2
-        half_stocking_values_2025[1] =  5.88/2
-        half_stocking_values_2025[3] =  1.53/2
-        half_stocking_values_2025[5] =  2.69/2
-        half_stocking_values_2025[7] =  0.95/2
+        half_stocking_values_2025[1] =  0.65/2
+        half_stocking_values_2025[2] =  5.88/2
+        half_stocking_values_2025[4] =  1.53/2
+        half_stocking_values_2025[6] =  2.69/2
+        half_stocking_values_2025[8] =  0.95/2
         ABC_halfStockingRate_2025 = solve_ivp(ecoNetwork, (20,20.95), half_stocking_values_2025,  t_eval = t16_stockingRate, args=(A_5, r_5), method = 'RK23')
-        half_stocking_values_2026 = ABC_halfStockingRate_2025.y[0:10, 0:1].flatten()
+        half_stocking_values_2026 = ABC_halfStockingRate_2025.y[0:11, 1:2].flatten()
         # 2026
-        half_stocking_values_2026[0] =  0.65/2
-        half_stocking_values_2026[1] =  5.88/2
-        half_stocking_values_2026[3] =  1.53/2
-        half_stocking_values_2026[5] =  2.69/2
-        half_stocking_values_2026[7] =  0.95/2
+        half_stocking_values_2026[1] =  0.65/2
+        half_stocking_values_2026[2] =  5.88/2
+        half_stocking_values_2026[4] =  1.53/2
+        half_stocking_values_2026[6] =  2.69/2
+        half_stocking_values_2026[8] =  0.95/2
         ABC_halfStockingRate_2026 = solve_ivp(ecoNetwork, (21,21.95), half_stocking_values_2026,  t_eval = t17_stockingRate, args=(A_5, r_5), method = 'RK23')
-        half_stocking_values_2027 = ABC_halfStockingRate_2026.y[0:10, 1:2].flatten()
+        half_stocking_values_2027 = ABC_halfStockingRate_2026.y[0:11, 1:2].flatten()
         # 2027
-        half_stocking_values_2027[0] =  0.65/2
-        half_stocking_values_2027[1] =  5.88/2
-        half_stocking_values_2027[3] =  1.53/2
-        half_stocking_values_2027[5] =  2.69/2
-        half_stocking_values_2027[7] =  0.95/2
+        half_stocking_values_2027[1] =  0.65/2
+        half_stocking_values_2027[2] =  5.88/2
+        half_stocking_values_2027[4] =  1.53/2
+        half_stocking_values_2027[6] =  2.69/2
+        half_stocking_values_2027[8] =  0.95/2
         ABC_halfStockingRate_2027 = solve_ivp(ecoNetwork, (22,22.95), half_stocking_values_2027,  t_eval = t18_stockingRate, args=(A_5, r_5), method = 'RK23')
-        half_stocking_values_2028 = ABC_halfStockingRate_2027.y[0:10, 1:2].flatten()
+        half_stocking_values_2028 = ABC_halfStockingRate_2027.y[0:11, 1:2].flatten()
         # 2028
-        half_stocking_values_2028[0] =  0.65/2
-        half_stocking_values_2028[1] =  5.88/2
-        half_stocking_values_2028[3] =  1.53/2
-        half_stocking_values_2028[5] =  2.69/2
-        half_stocking_values_2028[7] =  0.95/2
+        half_stocking_values_2028[1] =  0.65/2
+        half_stocking_values_2028[2] =  5.88/2
+        half_stocking_values_2028[4] =  1.53/2
+        half_stocking_values_2028[6] =  2.69/2
+        half_stocking_values_2028[8] =  0.95/2
         ABC_halfStockingRate_2028 = solve_ivp(ecoNetwork, (23,23.95), half_stocking_values_2028,  t_eval = t19_stockingRate, args=(A_5, r_5), method = 'RK23')
-        half_stocking_values_2029 = ABC_halfStockingRate_2028.y[0:10, 1:2].flatten()
+        half_stocking_values_2029 = ABC_halfStockingRate_2028.y[0:11, 1:2].flatten()
         # 2029
-        half_stocking_values_2029[0] =  0.65/2
-        half_stocking_values_2029[1] =  5.88/2
-        half_stocking_values_2029[3] =  1.53/2
-        half_stocking_values_2029[5] =  2.69/2
-        half_stocking_values_2029[7] =  0.95/2
+        half_stocking_values_2029[1] =  0.65/2
+        half_stocking_values_2029[2] =  5.88/2
+        half_stocking_values_2029[4] =  1.53/2
+        half_stocking_values_2029[6] =  2.69/2
+        half_stocking_values_2029[8] =  0.95/2
         t20_stockingRate = np.linspace(24, 24.95, 2)
         ABC_halfStockingRate_2029 = solve_ivp(ecoNetwork, (24,24.95), half_stocking_values_2029,  t_eval = t20_stockingRate, args=(A_5, r_5), method = 'RK23')
-        half_stocking_values_2030 = ABC_halfStockingRate_2029.y[0:10,1:2].flatten()
+        half_stocking_values_2030 = ABC_halfStockingRate_2029.y[0:11,1:2].flatten()
         # 2030
-        half_stocking_values_2030[0] =  0.65/2
-        half_stocking_values_2030[1] =  5.88/2
-        half_stocking_values_2030[3] =  1.53/2
-        half_stocking_values_2030[5] =  2.69/2
-        half_stocking_values_2030[7] =  0.95/2
+        half_stocking_values_2030[1] =  0.65/2
+        half_stocking_values_2030[2] =  5.88/2
+        half_stocking_values_2030[4] =  1.53/2
+        half_stocking_values_2030[6] =  2.69/2
+        half_stocking_values_2030[8] =  0.95/2
         ABC_halfStockingRate_2030 = solve_ivp(ecoNetwork, (25, 26), half_stocking_values_2030,  t_eval = t21_stockingRate, args=(A_5, r_5), method = 'RK23')
         # append the runs
         combined_runs_stockingRate_half = np.hstack((ABC_halfStockingRate_2009.y, ABC_halfStockingRate_2010.y, ABC_halfStockingRate_2011.y, ABC_halfStockingRate_2012.y, ABC_halfStockingRate_2013.y, ABC_halfStockingRate_2014.y, ABC_halfStockingRate_2015.y, ABC_halfStockingRate_2016.y, ABC_halfStockingRate_2017.y, ABC_halfStockingRate_2018.y, ABC_halfStockingRate_2019.y, ABC_halfStockingRate_2020.y, ABC_halfStockingRate_2021.y, ABC_halfStockingRate_2022.y, ABC_halfStockingRate_2023.y, ABC_halfStockingRate_2024.y, ABC_halfStockingRate_2025.y, ABC_halfStockingRate_2026.y, ABC_halfStockingRate_2027.y, ABC_halfStockingRate_2028.y, ABC_halfStockingRate_2029.y, ABC_halfStockingRate_2030.y))
@@ -1147,8 +1189,6 @@ def runODE_3():
     stockingValues_half['accepted?'] = "stockingDensity_half"
 
 
-
-
     # EXPERIMENT 4: What if there was no culling?
     all_runs_noCulls = []
     all_times_noCulls = []
@@ -1156,9 +1196,9 @@ def runODE_3():
     X0_noCull = X0_secondRun.copy()
     # loop through each row of accepted parameters
     for X0_noCulling, r_7, A_7 in zip(X0_noCull,r_thirdRun, np.array_split(A_thirdRun,len(accepted_simulations_2020))):
-        # run the model for one year 2009-2010 (to account for herbivore numbers being manually controlled every year)
-        X0_noCulling[1] = 1
-        X0_noCulling[5] = 1
+        # all are already reintroduced except fallow & red (add these)
+        X0_noCulling[2] = 1
+        X0_noCulling[6] = 1
         noCull_ABC = solve_ivp(ecoNetwork, (4, 26), X0_noCulling,  t_eval = t_noCulls, args=(A_7, r_7), method = 'RK23') 
         all_runs_noCulls = np.append(all_runs_noCulls, noCull_ABC.y)
         all_times_noCulls = np.append(all_times_noCulls, noCull_ABC.t)
@@ -1171,21 +1211,149 @@ def runODE_3():
     no_Cull['accepted?'] = "noCulls"
 
 
+    # EXPERIMENT 5: What if we reintroduce European bison?
+    all_runs_euroBison = []
+    all_times_euroBison = []
+    X0_euroBison = X0_3.to_numpy()
+    t_bison = np.linspace(16, 16.95, 2)
+    # loop through each row of accepted parameters
+    for XO_bisonReintro, r_5, A_5 in zip(X0_euroBison,r_thirdRun, np.array_split(A_thirdRun,len(accepted_simulations_2020))):
+        # starting values for 2021 - the stocking densities
+        XO_bisonReintro[1] =  0.65
+        XO_bisonReintro[2] =  5.88
+        XO_bisonReintro[4] =  1.53
+        XO_bisonReintro[6] =  2.69
+        XO_bisonReintro[8] =  0.95
+        # add bison
+        XO_bisonReintro[0] = 1
+        # and their interactions (primary producers & carbon)
+        A_5[3][0] = np.random.uniform(low=-0.001, high=-0.00064)
+        A_5[5][0] = np.random.uniform(low=0.0046, high=0.01)
+        A_5[9][0] = np.random.uniform(low=-0.1, high=-0.098)
+        A_5[10][0] = np.random.uniform(low=-0.01, high=-0.0053)
+        # 2021 - future projections
+        euroBison_ABC_2021 = solve_ivp(ecoNetwork, (16,16.95), XO_bisonReintro,  t_eval = t_bison, args=(A_5, r_5), method = 'RK23')
+        bisonReintro_2022 = euroBison_ABC_2021.y[0:11, 1:2].flatten()
+        # 2022
+        bisonReintro_2022[0] =  np.random.uniform(low=0.9,high=1.1)
+        bisonReintro_2022[1] =  np.random.uniform(low=0.61,high=0.7)
+        bisonReintro_2022[2] =  np.random.uniform(low=5.3,high=6.5)
+        bisonReintro_2022[4] =  np.random.uniform(low=1.38,high=1.7)
+        bisonReintro_2022[6] =  np.random.uniform(low=2.42,high=3.0)
+        bisonReintro_2022[8] =  np.random.uniform(low=0.86,high=1.0)
+        t_1 = np.linspace(17, 17.95, 2)
+        euroBison_ABC_2022 = solve_ivp(ecoNetwork, (17,17.95), bisonReintro_2022,  t_eval = t_1, args=(A_5, r_5), method = 'RK23')
+        bisonReintro_2023 = euroBison_ABC_2022.y[0:11, 1:2].flatten()
+        # 2023
+        bisonReintro_2023[0] =  np.random.uniform(low=0.9,high=1.1)
+        bisonReintro_2023[1] =  np.random.uniform(low=0.61,high=0.7)
+        bisonReintro_2023[2] =  np.random.uniform(low=5.3,high=6.5)
+        bisonReintro_2023[4] =  np.random.uniform(low=1.38,high=1.7)
+        bisonReintro_2023[6] =  np.random.uniform(low=2.42,high=3.0)
+        bisonReintro_2023[8] =  np.random.uniform(low=0.86,high=1.0)
+        t_2 = np.linspace(18, 18.95, 2)
+        euroBison_ABC_2023 = solve_ivp(ecoNetwork, (18,18.95), bisonReintro_2023,  t_eval = t_2, args=(A_5, r_5), method = 'RK23')
+        bisonReintro_2024 = euroBison_ABC_2023.y[0:11, 1:2].flatten()
+        # 2024
+        bisonReintro_2024[0] =  np.random.uniform(low=0.9,high=1.1)
+        bisonReintro_2024[1] =  np.random.uniform(low=0.61,high=0.7)
+        bisonReintro_2024[2] =  np.random.uniform(low=5.3,high=6.5)
+        bisonReintro_2024[4] =  np.random.uniform(low=1.38,high=1.7)
+        bisonReintro_2024[6] =  np.random.uniform(low=2.42,high=3.0)
+        bisonReintro_2024[8] =  np.random.uniform(low=0.86,high=1.0)
+        t_3 = np.linspace(19, 19.95, 2)
+        euroBison_ABC_2024 = solve_ivp(ecoNetwork, (19,19.95), bisonReintro_2024,  t_eval = t_3, args=(A_5, r_5), method = 'RK23')
+        bisonReintro_2025 = euroBison_ABC_2024.y[0:11, 1:2].flatten()
+        # 2025
+        bisonReintro_2025[0] =  np.random.uniform(low=0.9,high=1.1)
+        bisonReintro_2025[1] =  np.random.uniform(low=0.61,high=0.7)
+        bisonReintro_2025[2] =  np.random.uniform(low=5.3,high=6.5)
+        bisonReintro_2025[4] =  np.random.uniform(low=1.38,high=1.7)
+        bisonReintro_2025[6] =  np.random.uniform(low=2.42,high=3.0)
+        bisonReintro_2025[8] =  np.random.uniform(low=0.86,high=1.0)
+        t_4 = np.linspace(20, 20.95, 2)
+        euroBison_ABC_2025 = solve_ivp(ecoNetwork, (20,20.95), bisonReintro_2025,  t_eval = t_4, args=(A_5, r_5), method = 'RK23')
+        bisonReintro_2026 = euroBison_ABC_2025.y[0:11, 1:2].flatten()
+        # 2026
+        bisonReintro_2026[0] =  np.random.uniform(low=0.9,high=1.1)
+        bisonReintro_2026[1] =  np.random.uniform(low=0.61,high=0.7)
+        bisonReintro_2026[2] =  np.random.uniform(low=5.3,high=6.5)
+        bisonReintro_2026[4] =  np.random.uniform(low=1.38,high=1.7)
+        bisonReintro_2026[6] =  np.random.uniform(low=2.42,high=3.0)
+        bisonReintro_2026[8] =  np.random.uniform(low=0.86,high=1.0)
+        t_5 = np.linspace(21, 21.95, 2)
+        euroBison_ABC_2026 = solve_ivp(ecoNetwork, (21,21.95), bisonReintro_2026,  t_eval = t_5, args=(A_5, r_5), method = 'RK23')
+        bisonReintro_2027 = euroBison_ABC_2026.y[0:11, 1:2].flatten()
+        # 2027
+        bisonReintro_2027[0] =  np.random.uniform(low=0.9,high=1.1)
+        bisonReintro_2027[1] =  np.random.uniform(low=0.61,high=0.7)
+        bisonReintro_2027[2] =  np.random.uniform(low=5.3,high=6.5)
+        bisonReintro_2027[4] =  np.random.uniform(low=1.38,high=1.7)
+        bisonReintro_2027[6] =  np.random.uniform(low=2.42,high=3.0)
+        bisonReintro_2027[8] =  np.random.uniform(low=0.86,high=1.0)
+        t_6 = np.linspace(22, 22.95, 2)
+        euroBison_ABC_2027 = solve_ivp(ecoNetwork, (22,22.95), bisonReintro_2027,  t_eval = t_6, args=(A_5, r_5), method = 'RK23')
+        bisonReintro_2028 = euroBison_ABC_2027.y[0:11, 1:2].flatten()
+        # 2028
+        bisonReintro_2028[0] =  np.random.uniform(low=0.9,high=1.1)
+        bisonReintro_2028[1] =  np.random.uniform(low=0.61,high=0.7)
+        bisonReintro_2028[2] =  np.random.uniform(low=5.3,high=6.5)
+        bisonReintro_2028[4] =  np.random.uniform(low=1.38,high=1.7)
+        bisonReintro_2028[6] =  np.random.uniform(low=2.42,high=3.0)
+        bisonReintro_2028[8] =  np.random.uniform(low=0.86,high=1.0)
+        t_7 = np.linspace(23, 23.95, 2)
+        euroBison_ABC_2028 = solve_ivp(ecoNetwork, (23,23.95), bisonReintro_2028,  t_eval = t_7, args=(A_5, r_5), method = 'RK23')
+        bisonReintro_2029 = euroBison_ABC_2028.y[0:11, 1:2].flatten()
+        # 2029
+        bisonReintro_2029[0] =  np.random.uniform(low=0.9,high=1.1)
+        bisonReintro_2029[1] =  np.random.uniform(low=0.61,high=0.7)
+        bisonReintro_2029[2] =  np.random.uniform(low=5.3,high=6.5)
+        bisonReintro_2029[4] =  np.random.uniform(low=1.38,high=1.7)
+        bisonReintro_2029[6] =  np.random.uniform(low=2.42,high=3.0)
+        bisonReintro_2029[8] =  np.random.uniform(low=0.86,high=1.0)
+        t_8 = np.linspace(24, 24.95, 2)
+        euroBison_ABC_2029 = solve_ivp(ecoNetwork, (24,24.95), bisonReintro_2029,  t_eval = t_8, args=(A_5, r_5), method = 'RK23')
+        bisonReintro_2030 = euroBison_ABC_2029.y[0:11,1:2].flatten()
+        # 2030
+        bisonReintro_2030[0] =  np.random.uniform(low=0.9,high=1.1)
+        bisonReintro_2030[1] =  np.random.uniform(low=0.61,high=0.7)
+        bisonReintro_2030[2] =  np.random.uniform(low=5.3,high=6.5)
+        bisonReintro_2030[4] =  np.random.uniform(low=1.38,high=1.7)
+        bisonReintro_2030[6] =  np.random.uniform(low=2.42,high=3.0)
+        bisonReintro_2030[8] =  np.random.uniform(low=0.86,high=1.0)
+        t_9 = np.linspace(25, 26, 2)
+        euroBison_ABC_2030 = solve_ivp(ecoNetwork, (25, 26), bisonReintro_2030,  t_eval = t_9, args=(A_5, r_5), method = 'RK23')
+        # append the runs
+        combined_runs_euroBison = np.hstack((euroBison_ABC_2021.y, euroBison_ABC_2022.y, euroBison_ABC_2023.y, euroBison_ABC_2024.y, euroBison_ABC_2025.y, euroBison_ABC_2026.y, euroBison_ABC_2027.y, euroBison_ABC_2028.y, euroBison_ABC_2029.y, euroBison_ABC_2030.y))
+        combined_times_euroBison = np.hstack((euroBison_ABC_2021.t, euroBison_ABC_2022.t, euroBison_ABC_2023.t, euroBison_ABC_2024.t, euroBison_ABC_2025.t, euroBison_ABC_2026.t, euroBison_ABC_2027.t, euroBison_ABC_2028.t, euroBison_ABC_2029.t, euroBison_ABC_2030.t))
+        all_runs_euroBison = np.append(all_runs_euroBison, combined_runs_euroBison)
+        all_times_euroBison = np.append(all_times_euroBison, combined_times_euroBison)
+    euroBison = (np.vstack(np.hsplit(all_runs_euroBison.reshape(len(species)*len(accepted_simulations_2020), 20).transpose(),len(accepted_simulations_2020))))
+    euroBison = pd.DataFrame(data=euroBison, columns=species)
+    IDs_4 = np.arange(1,1 + len(accepted_simulations_2020))
+    euroBison['ID'] = np.repeat(IDs_4, 20)
+    euroBison['time'] = all_times_euroBison
+    # concantenate this will the accepted runs from years 1-5
+    filtered_FinalRuns_2 = final_runs_2.loc[(final_runs_2['accepted?'] == "Accepted") ]
+    euroBison = pd.concat([filtered_FinalRuns_2, euroBison])
+    euroBison['accepted?'] = "euroBison"
+
+
     # reality checks
     all_runs_realityCheck = []
     all_times_realityCheck = []
     t_realityCheck = np.linspace(0, 40, 20)
     # change X0 depending on what's needed for the reality check
-    X0_5 = [1, 1, 0, 1, 1, 1, 1, 1, 0, 0]
+    X0_5 = [1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1]
     for r_5, A_5 in zip(r_thirdRun, np.array_split(A_thirdRun,len(accepted_simulations_2020))):
-        # run the model for one year 2009-2010 (to account for herbivore numbers being manually controlled every year)
         # A_5 = pd.DataFrame(data = A_5, index = species, columns = species)
-        # # A_5['fallowDeer']['fallowDeer'] = -0.01
-        # # A_5['exmoorPony']['exmoorPony'] = -0.01
-        # # A_5['longhornCattle']['longhornCattle'] = -0.01
-        # # A_5['redDeer']['redDeer'] = -0.01
-        # # A_5['tamworthPig']['tamworthPig'] = -0.01
-        # # A_5['roeDeer']['roeDeer'] = -0.01
+        # A_5['europeanBison']['europeanBison'] = -0.1
+        # A_5['fallowDeer']['fallowDeer'] = -0.1
+        # A_5['exmoorPony']['exmoorPony'] = -0.1
+        # A_5['longhornCattle']['longhornCattle'] = -0.1
+        # A_5['redDeer']['redDeer'] = -0.1
+        # A_5['tamworthPig']['tamworthPig'] = -0.1
+        # A_5['roeDeer']['roeDeer'] = -0.1
         # A_5 = A_5.to_numpy()
         realityCheck_ABC = solve_ivp(ecoNetwork, (0, 40), X0_5,  t_eval = t_realityCheck, args=(A_5, r_5), method = 'RK23') 
         all_runs_realityCheck = np.append(all_runs_realityCheck, realityCheck_ABC.y)
@@ -1226,7 +1394,7 @@ def runODE_3():
         ax.fill_between(ax.lines[1].get_xdata(),ax.lines[1].get_ydata(), ax.lines[2].get_ydata(), color = '#6788ee', alpha =0.2)
     plt.tight_layout()
     plt.show()
-    return final_runs_3, accepted_simulations_2020, final_runs_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, no_reintro, stockingValues_double, stockingValues_half, no_Cull
+    return final_runs_3, accepted_simulations_2020, final_runs_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, no_reintro, stockingValues_double, stockingValues_half, no_Cull, euroBison
 
 
 
@@ -1234,7 +1402,7 @@ def runODE_3():
 # # # # # ----------------------------- PLOTTING POPULATIONS (2000-2010) ----------------------------- 
 
 def plotting():
-    final_runs_3, accepted_simulations_2020, final_runs_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, no_reintro, stockingValues_double, stockingValues_half, no_Cull = runODE_3()
+    final_runs_3, accepted_simulations_2020, final_runs_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, no_reintro, stockingValues_double, stockingValues_half, no_Cull, euroBison = runODE_3()
     # extract accepted nodes from all dataframes
     accepted_shape1 = np.repeat(final_runs['accepted?'], len(species))
     accepted_shape2 = np.repeat(final_runs_2['accepted?'], len(species))
@@ -1243,8 +1411,9 @@ def plotting():
     accepted_shape5 = np.repeat(stockingValues_double['accepted?'], len(species))
     accepted_shape6 = np.repeat(stockingValues_half['accepted?'], len(species))
     accepted_shape7 = np.repeat(no_Cull['accepted?'], len(species))
+    accepted_shape8 = np.repeat(euroBison['accepted?'], len(species))
     # concatenate them
-    accepted_shape = pd.concat([accepted_shape1, accepted_shape2, accepted_shape3, accepted_shape4, accepted_shape5, accepted_shape6, accepted_shape7], axis=0)
+    accepted_shape = pd.concat([accepted_shape1, accepted_shape2, accepted_shape3, accepted_shape4, accepted_shape5, accepted_shape6, accepted_shape7, accepted_shape8], axis=0)
     # add a grouping variable to graph each run separately
     grouping1 = np.repeat(final_runs['ID'], len(species))
     grouping2 = np.repeat(final_runs_2['ID'], len(species))
@@ -1253,9 +1422,10 @@ def plotting():
     grouping5 = np.repeat(stockingValues_double['ID'], len(species))
     grouping6 = np.repeat(stockingValues_half['ID'], len(species))
     grouping7 = np.repeat(no_Cull['ID'], len(species))
+    grouping8 = np.repeat(euroBison['ID'], len(species))
     # concantenate them 
-    grouping_variable = np.concatenate((grouping1, grouping2, grouping3, grouping4, grouping5, grouping6, grouping7), axis=0)
-    # # extract the node values from all dataframes
+    grouping_variable = np.concatenate((grouping1, grouping2, grouping3, grouping4, grouping5, grouping6, grouping7, grouping8), axis=0)
+    # extract the node values from all dataframes
     final_runs1 = final_runs.drop(['ID','accepted?', 'time'], axis=1).values.flatten()
     final_runs2 = final_runs_2.drop(['ID','accepted?', 'time'], axis=1).values.flatten()
     final_runs3 = final_runs_3.drop(['ID','accepted?', 'time'], axis=1).values.flatten()
@@ -1263,8 +1433,9 @@ def plotting():
     y_stocking_double = stockingValues_double.drop(['ID', 'accepted?','time'], axis=1).values.flatten()
     y_stocking_half = stockingValues_half.drop(['ID', 'accepted?','time'], axis=1).values.flatten()
     y_noCull = no_Cull.drop(['ID', 'accepted?','time'], axis=1).values.flatten()
+    y_euroBison = euroBison.drop(['ID', 'accepted?','time'], axis=1).values.flatten()
     # concatenate them
-    y_values = np.concatenate((final_runs1, final_runs2, final_runs3, y_noReintro, y_stocking_double, y_stocking_half, y_noCull), axis=0)
+    y_values = np.concatenate((final_runs1, final_runs2, final_runs3, y_noReintro, y_stocking_double, y_stocking_half, y_noCull, y_euroBison), axis=0)   
     # we want species column to be spec1,spec2,spec3,spec4, etc.
     species_firstRun = np.tile(species, 8*NUMBER_OF_SIMULATIONS)
     species_secondRun = np.tile(species, 24*len(accepted_simulations))
@@ -1273,7 +1444,8 @@ def plotting():
     species_stocking_double = np.tile(species, (44*len(accepted_simulations_2020)) + (8*len(accepted_simulations)))
     species_stocking_half = np.tile(species, (44*len(accepted_simulations_2020)) + (8*len(accepted_simulations)))
     species_noCull = np.tile(species, (30*len(accepted_simulations_2020)) + (8*len(accepted_simulations)))
-    species_list = np.concatenate((species_firstRun, species_secondRun, species_thirdRun, species_noReintro, species_stocking_double, species_stocking_half, species_noCull), axis=0)
+    species_euroBison = np.tile(species, (20*len(accepted_simulations_2020)) + (24*len(accepted_simulations_2020)))
+    species_list = np.concatenate((species_firstRun, species_secondRun, species_thirdRun, species_noReintro, species_stocking_double, species_stocking_half, species_noCull, species_euroBison), axis=0)
     # time 
     firstODEyears = np.repeat(final_runs['time'],len(species))
     secondODEyears = np.repeat(final_runs_2['time'],len(species))
@@ -1282,7 +1454,8 @@ def plotting():
     indices_stocking_double = np.repeat(stockingValues_double['time'],len(species))
     indices_stocking_half = np.repeat(stockingValues_half['time'],len(species))
     indices_noCull = np.repeat(no_Cull['time'],len(species))
-    indices = pd.concat([firstODEyears, secondODEyears, thirdODEyears, indices_noReintro, indices_stocking_double, indices_stocking_half, indices_noCull], axis=0)
+    indices_euroBison = np.repeat(euroBison['time'],len(species))
+    indices = pd.concat([firstODEyears, secondODEyears, thirdODEyears, indices_noReintro, indices_stocking_double, indices_stocking_half, indices_noCull, indices_euroBison], axis=0)
     # put it in a dataframe
     final_df = pd.DataFrame(
         {'Abundance %': y_values, 'runNumber': grouping_variable, 'Ecosystem Element': species_list, 'Time': indices, 'runType': accepted_shape})
@@ -1298,46 +1471,50 @@ def plotting():
     perc2.name = "fivePerc"
     final_df = final_df.join(perc2, on=['Time','runType', 'Ecosystem Element'])
     # filter the accepted runs to graph: 1) reintro vs. no reintro; 2) accepted vs rejected runs; 3) current vs double vs half stocking rates - are there phase shifts?
-    filtered_df = final_df.loc[(final_df['runType'] == "Accepted") | (final_df['runType'] == "noReintro") ]
+    filtered_df = final_df.loc[(final_df['runType'] == "Accepted") | (final_df['runType'] == "noReintro") | (final_df['runType'] == "euroBison")]
     filtered_rejectedAccepted = final_df.loc[(final_df['runType'] == "Accepted") | (final_df['runType'] == "Rejected") ]
     filtered_stockingDensity = final_df.loc[(final_df['runType'] == "Accepted") | (final_df['runType'] == "stockingDensity_double") | (final_df['runType'] == "stockingDensity_half") | (final_df['runType'] == "noCulls")]
 
-    # Accepted vs. Counterfactual graph (no reintroductions vs. reintroductions)
-    colors = ["#6788ee", "#e26952"]
-    g = sns.FacetGrid(filtered_df, col="Ecosystem Element", hue = "runType", palette = colors, col_wrap=5, sharey = False)
+
+    # Accepted vs. Counterfactual graph (no reintroductions vs. reintroductions) vs. Euro Bison reintro
+    colors = ["#6788ee", "#e26952", "#3F9E4D"]
+    g = sns.FacetGrid(filtered_df, col="Ecosystem Element", hue = "runType", palette = colors, col_wrap=4, sharey = False)
     g.map(sns.lineplot, 'Time', 'Median')
     g.map(sns.lineplot, 'Time', 'fivePerc')
     g.map(sns.lineplot, 'Time', 'ninetyfivePerc')
     for ax in g.axes.flat:
-        ax.fill_between(ax.lines[2].get_xdata(),ax.lines[2].get_ydata(), ax.lines[4].get_ydata(), color = '#6788ee', alpha =0.2)
-        ax.fill_between(ax.lines[3].get_xdata(),ax.lines[3].get_ydata(), ax.lines[5].get_ydata(), color = '#e26952', alpha=0.2)
+        ax.fill_between(ax.lines[3].get_xdata(),ax.lines[3].get_ydata(), ax.lines[6].get_ydata(), color = '#6788ee', alpha =0.2)
+        ax.fill_between(ax.lines[4].get_xdata(),ax.lines[4].get_ydata(), ax.lines[7].get_ydata(), color = '#e26952', alpha=0.2)
+        ax.fill_between(ax.lines[5].get_xdata(),ax.lines[5].get_ydata(), ax.lines[8].get_ydata(), color = "#3F9E4D", alpha=0.2)
         ax.set_ylabel('Abundance')
     g.set(xticks=[0, 4, 16, 26])
     # add subplot titles
     axes = g.axes.flatten()
     # fill between the quantiles
-    axes[0].set_title("Exmoor ponies")
-    axes[1].set_title("Fallow deer")
-    axes[2].set_title("Grassland & parkland")
-    axes[3].set_title("Longhorn cattle")
-    axes[4].set_title("Organic carbon")
-    axes[5].set_title("Red deer")
-    axes[6].set_title("Roe deer")
-    axes[7].set_title("Tamworth pigs")
-    axes[8].set_title("Thorny scrubland")
-    axes[9].set_title("Woodland")
+    axes[0].set_title("European bison")
+    axes[1].set_title("Exmoor ponies")
+    axes[2].set_title("Fallow deer")
+    axes[3].set_title("Grassland & parkland")
+    axes[4].set_title("Longhorn cattle")
+    axes[5].set_title("Organic carbon")
+    axes[6].set_title("Red deer")
+    axes[7].set_title("Roe deer")
+    axes[8].set_title("Tamworth pigs")
+    axes[9].set_title("Thorny scrubland")
+    axes[10].set_title("Woodland")
+
     # add filter lines
-    g.axes[2].vlines(x=4,ymin=0.74,ymax=1, color='r')
-    g.axes[4].vlines(x=4,ymin=0.95,ymax=1.9, color='r')
-    g.axes[6].vlines(x=4,ymin=1,ymax=3.3, color='r')
-    g.axes[8].vlines(x=4,ymin=1,ymax=19, color='r')
-    g.axes[9].vlines(x=4,ymin=0.85,ymax=1.56, color='r')
+    g.axes[3].vlines(x=4,ymin=0.74,ymax=1, color='r')
+    g.axes[5].vlines(x=4,ymin=0.95,ymax=1.9, color='r')
+    g.axes[7].vlines(x=4,ymin=1,ymax=3.3, color='r')
+    g.axes[9].vlines(x=4,ymin=1,ymax=19, color='r')
+    g.axes[10].vlines(x=4,ymin=0.85,ymax=1.56, color='r')
     # plot next set of filter lines
-    g.axes[2].vlines(x=16,ymin=0.67,ymax=0.79, color='r')
-    g.axes[4].vlines(x=16,ymin=1.7,ymax=2.2, color='r')
-    g.axes[6].vlines(x=16,ymin=1.7,ymax=6.7, color='r')
-    g.axes[8].vlines(x=16,ymin=22.5,ymax=35.1, color='r')
-    g.axes[9].vlines(x=16,ymin=0.98,ymax=1.7, color='r')
+    g.axes[3].vlines(x=16,ymin=0.67,ymax=0.79, color='r')
+    g.axes[5].vlines(x=16,ymin=1.7,ymax=2.2, color='r')
+    g.axes[7].vlines(x=16,ymin=1.7,ymax=6.7, color='r')
+    g.axes[9].vlines(x=16,ymin=22.5,ymax=35.1, color='r')
+    g.axes[10].vlines(x=16,ymin=0.98,ymax=1.7, color='r')
     # make sure they all start from 0
     g.axes[4].set(ylim =(0,None))
     g.axes[6].set(ylim =(0,None))
@@ -1345,8 +1522,8 @@ def plotting():
 
     # stop the plots from overlapping
     plt.tight_layout()
-    plt.legend(labels=['Reintroductions', 'No reintroductions'],bbox_to_anchor=(2, 0), loc='lower right', fontsize=12)
-    plt.savefig('reintroNoReintro_1mil_practice.png')
+    plt.legend(labels=['Reintroductions', 'No reintroductions', 'European bison reintroduction'],bbox_to_anchor=(2.5, 0),loc='lower right', fontsize=12)
+    # plt.savefig('reintroNoReintro_1mil_practice.png')
     plt.show()
 
 
@@ -1363,32 +1540,33 @@ def plotting():
     # add subplot titles
     axes = r.axes.flatten()
     # fill between the quantiles
-    axes[0].set_title("Exmoor ponies")
-    axes[1].set_title("Fallow deer")
-    axes[2].set_title("Grassland & parkland")
-    axes[3].set_title("Longhorn cattle")
-    axes[4].set_title("Organic carbon")
-    axes[5].set_title("Red deer")
-    axes[6].set_title("Roe deer")
-    axes[7].set_title("Tamworth pigs")
-    axes[8].set_title("Thorny scrubland")
-    axes[9].set_title("Woodland")
+    axes[0].set_title("European bison")
+    axes[1].set_title("Exmoor ponies")
+    axes[2].set_title("Fallow deer")
+    axes[3].set_title("Grassland & parkland")
+    axes[4].set_title("Longhorn cattle")
+    axes[5].set_title("Organic carbon")
+    axes[6].set_title("Red deer")
+    axes[7].set_title("Roe deer")
+    axes[8].set_title("Tamworth pigs")
+    axes[9].set_title("Thorny scrubland")
+    axes[10].set_title("Woodland")
     # add filter lines
-    r.axes[2].vlines(x=4,ymin=0.74,ymax=1, color='r')
-    r.axes[4].vlines(x=4,ymin=0.95,ymax=1.9, color='r')
-    r.axes[6].vlines(x=4,ymin=1,ymax=3.3, color='r')
-    r.axes[8].vlines(x=4,ymin=1,ymax=19, color='r')
-    r.axes[9].vlines(x=4,ymin=0.85,ymax=1.56, color='r')
+    r.axes[3].vlines(x=4,ymin=0.74,ymax=1, color='r')
+    r.axes[5].vlines(x=4,ymin=0.95,ymax=1.9, color='r')
+    r.axes[7].vlines(x=4,ymin=1,ymax=3.3, color='r')
+    r.axes[9].vlines(x=4,ymin=1,ymax=19, color='r')
+    r.axes[10].vlines(x=4,ymin=0.85,ymax=1.56, color='r')
     # plot next set of filter lines
-    r.axes[2].vlines(x=16,ymin=0.67,ymax=0.79, color='r')
-    r.axes[4].vlines(x=16,ymin=1.7,ymax=2.2, color='r')
-    r.axes[6].vlines(x=16,ymin=1.7,ymax=6.7, color='r')
-    r.axes[8].vlines(x=16,ymin=22.5,ymax=35.1, color='r')
-    r.axes[9].vlines(x=16,ymin=0.98,ymax=1.7, color='r')
+    r.axes[3].vlines(x=16,ymin=0.67,ymax=0.79, color='r')
+    r.axes[5].vlines(x=16,ymin=1.7,ymax=2.2, color='r')
+    r.axes[7].vlines(x=16,ymin=1.7,ymax=6.7, color='r')
+    r.axes[9].vlines(x=16,ymin=22.5,ymax=35.1, color='r')
+    r.axes[10].vlines(x=16,ymin=0.98,ymax=1.7, color='r')
     # make sure they all start from 0 
-    r.axes[4].set(ylim =(0,None))
-    r.axes[6].set(ylim =(0,None))
-    r.axes[9].set(ylim =(0,None))
+    r.axes[5].set(ylim =(0,None))
+    r.axes[7].set(ylim =(0,None))
+    r.axes[10].set(ylim =(0,None))
     # stop the plots from overlapping
     plt.tight_layout()
     plt.legend(labels=['Rejected Runs', 'Accepted Runs'],bbox_to_anchor=(2, 0), loc='lower right', fontsize=12)
@@ -1416,32 +1594,33 @@ def plotting():
     # add subplot titles
     axes = n.axes.flatten()
     # fill between the quantiles
-    axes[0].set_title("Exmoor ponies")
-    axes[1].set_title("Fallow deer")
-    axes[2].set_title("Grassland & parkland")
-    axes[3].set_title("Longhorn cattle")
-    axes[4].set_title("Organic carbon")
-    axes[5].set_title("Red deer")
-    axes[6].set_title("Roe deer")
-    axes[7].set_title("Tamworth pigs")
-    axes[8].set_title("Thorny scrubland")
-    axes[9].set_title("Woodland")
+    axes[0].set_title("European bison")
+    axes[1].set_title("Exmoor ponies")
+    axes[2].set_title("Fallow deer")
+    axes[3].set_title("Grassland & parkland")
+    axes[4].set_title("Longhorn cattle")
+    axes[5].set_title("Organic carbon")
+    axes[6].set_title("Red deer")
+    axes[7].set_title("Roe deer")
+    axes[8].set_title("Tamworth pigs")
+    axes[9].set_title("Thorny scrubland")
+    axes[10].set_title("Woodland")
     # add filter lines
-    n.axes[2].vlines(x=4,ymin=0.74,ymax=1, color='r')
-    n.axes[4].vlines(x=4,ymin=0.95,ymax=1.9, color='r')
-    n.axes[6].vlines(x=4,ymin=1,ymax=3.3, color='r')
-    n.axes[8].vlines(x=4,ymin=1,ymax=19, color='r')
-    n.axes[9].vlines(x=4,ymin=0.85,ymax=1.56, color='r')
+    n.axes[3].vlines(x=4,ymin=0.74,ymax=1, color='r')
+    n.axes[5].vlines(x=4,ymin=0.95,ymax=1.9, color='r')
+    n.axes[7].vlines(x=4,ymin=1,ymax=3.3, color='r')
+    n.axes[9].vlines(x=4,ymin=1,ymax=19, color='r')
+    n.axes[10].vlines(x=4,ymin=0.85,ymax=1.56, color='r')
     # plot next set of filter lines
-    n.axes[2].vlines(x=16,ymin=0.67,ymax=0.79, color='r')
-    n.axes[4].vlines(x=16,ymin=1.7,ymax=2.2, color='r')
-    n.axes[6].vlines(x=16,ymin=1.7,ymax=6.7, color='r')
-    n.axes[8].vlines(x=16,ymin=22.5,ymax=35.1, color='r')
-    n.axes[9].vlines(x=16,ymin=0.98,ymax=1.7, color='r')
+    n.axes[3].vlines(x=16,ymin=0.67,ymax=0.79, color='r')
+    n.axes[5].vlines(x=16,ymin=1.7,ymax=2.2, color='r')
+    n.axes[7].vlines(x=16,ymin=1.7,ymax=6.7, color='r')
+    n.axes[9].vlines(x=16,ymin=22.5,ymax=35.1, color='r')
+    n.axes[10].vlines(x=16,ymin=0.98,ymax=1.7, color='r')
     # make sure they all start from 0 
-    n.axes[4].set(ylim =(0,None))
-    n.axes[6].set(ylim =(0,None))
-    n.axes[9].set(ylim =(0,None))
+    n.axes[5].set(ylim =(0,None))
+    n.axes[7].set(ylim =(0,None))
+    n.axes[10].set(ylim =(0,None))
     # stop the plots from overlapping
     plt.tight_layout()
     plt.legend(labels=['Normal stocking density', 'Stocking density 25% higher', 'Half stocking density', 'No culling'],bbox_to_anchor=(2, 0), loc='lower right', fontsize=12)
