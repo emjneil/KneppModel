@@ -1,11 +1,12 @@
-﻿,exmoorPony,fallowDeer,grasslandParkland,longhornCattle,organicCarbon,redDeer,roeDeer,tamworthPig,thornyScrub,woodland
-exmoorPony,-1,0,0,0,0,0,0,0,0,0
-fallowDeer,0,-1,1,0,0,0,0,0,1,1
-grasslandParkland,-1,-1,-1,-1,0,-1,-1,-1,-1,-1
-longhornCattle,0,0,1,-1,0,0,0,0,1,1
-organicCarbon,1,1,1,1,-1,1,1,1,1,1
-redDeer,0,0,1,0,0,-1,0,0,1,1
-roeDeer,0,0,1,0,0,0,-1,0,1,1
-tamworthPig,0,0,1,0,0,0,0,-1,1,1
-thornyScrub,-1,-1,0,-1,0,-1,-1,-1,-1,-1
-woodland,-1,-1,0,-1,0,-1,-1,-1,1,-1
+﻿,European bison,Exmoor pony,Fallow deer,Grassland parkland,Longhorn cattle,Organic carbon,Red deer,Roe deer,Tamworth pig,Thorny scrub,Woodland
+European bison,-1,0,0,1,0,0,0,0,0,1,1
+Exmoor pony,0,-1,0,0,0,0,0,0,0,0,0
+Fallow deer,0,0,-1,1,0,0,0,0,0,1,1
+Grassland parkland,-1,-1,-1,-1,-1,0,-1,-1,-1,-1,-1
+Longhorn cattle,0,0,0,1,-1,0,0,0,0,1,1
+Organic carbon,0,1,1,1,1,-1,1,1,1,1,1
+Red deer,0,0,0,1,0,0,-1,0,0,1,1
+Roe deer,0,0,0,1,0,0,0,-1,0,1,1
+Tamworth pig,0,0,0,1,0,0,0,0,-1,1,1
+Thorny scrub,-1,-1,-1,0,-1,0,-1,-1,-1,-1,-1
+Woodland,-1,-1,-1,0,-1,0,-1,-1,-1,1,-1
