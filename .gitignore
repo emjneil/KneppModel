@@ -1,0 +1,8 @@
+/old_outputs/
+/new_outputs/
+/raw_data/
+/__pycache__/
+/.history/
+.DS_Store
+/.vscode/
+/.pytest_cache/

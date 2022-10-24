@@ -1,8 +1,11 @@
 # ---- Approximate Bayesian Computation Model of the Knepp Estate (2000-2019) ------
 
 # things to change depending on the parameter set:
-# 1. filtering conditions
-# 2. min/max euro bison negative interactions
+# 1. parameter set
+# 2. filtering conditions
+# 3. min/max euro bison negative interactions
+# 4. experiment 2 parameters and 10%
+# 5. name of graphs / txt files
 
 # download packages
 from scipy.integrate import solve_ivp
@@ -21,7 +24,7 @@ import csv
 start = timeit.default_timer()
 
 # define the number of simulations to try
-totalSimulations = 1000000
+totalSimulations = 25000
 
 # store species in a list
 species = ['europeanBison','exmoorPony','fallowDeer','grasslandParkland','longhornCattle','organicCarbon','redDeer','roeDeer','tamworthPig','thornyScrub','woodland']
@@ -36,59 +39,40 @@ def ecoNetwork(t, X, A, r):
 def generateInteractionMatrix():
     # define the array
 
-    # PARAMETER SET 1: leaning on the data (some consumers have incorrect negative diagonals)
     interaction_matrix = [
                 # european bison - pos interactions through optimizer; neg interactions random higher than others 
-                [-14.1, 0, 0, 13.7, 0, 0, 0, 0, 0, 0.29, 4.1],
+                [-14.1, 0, 0, 13.7, 0, 0, 0, 0, 0, 0.29, 4.1], #parameter set 1
                 # exmoor pony - special case, no growth
                 [0, -0.001, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                 # fallow deer 
                 [0, 0, -0.07, 0.57, 0, 0, 0, 0, 0, 0.0026, 0.2],
+                # [0, 0, -15.9, 85.5, 0, 0, 0, 0, 0, 0.48, 41.3], #parameter set 2
                 # grassland parkland
                 [0, -0.00041, -0.00039, -0.78, -0.00065, -0.00056, 0, -0.00014, -0.0036, -0.01, -0.15],
+                # [0, -0.00069, -0.0004, -0.78, -0.0008, -0.00049, 0, -0.00029, -0.0034, -0.01, -0.14], #parameter set 2
                 # longhorn cattle  
                 [0, 0, 0, 0.34, -0.31, 0, 0, 0, 0, 0.0067, 0.37],
+                # [0, 0, 0, 19.4, -15.0, 0, 0, 0, 0, 0.15, 12.4], #parameter set 2
                 # organic carbon
                 [0, 0.0074, 0.0046, 0.05, 0.0069, -0.082, 0.0053, 0.004, 0.0055, 0.0012, 0.048],  
+                # [0, 0.0075, 0.0048, 0.044, 0.0065, -0.083, 0.0053, 0.0041, 0.005, 0.0011, 0.044],  
                 # red deer  
                 [0, 0, 0, 0.34, 0, 0, -0.3, 0, 0, 0.016, 0.35],
+                # [0, 0, 0, 15.6, 0, 0, -15.1, 0, 0, 0.82, 13.4],
                 # roe deer 
                 [0, 0, 0, 11.9, 0, 0, 0, -14.5, 0, 0.57, 11.25],
                 # tamworth pig 
                 [0, 0, 0, 4, 0, 0, 0, 0, -14.4, 0.34, 3.1],  
                 # thorny scrub
                 [0, -0.034, -0.031, 0, -0.044, 0, -0.031, -0.011, -0.028, -0.0072, -0.13],
+                # [0, -0.038, -0.02, 0, -0.042, 0, -0.031, -0.012, -0.013, -0.0072, -0.13],
                 # woodland
                 [0, -0.0057, -0.0054, 0, -0.0084, 0, -0.0062, -0.0013, -0.0026, 0.00035, -0.009]
+                # [0, -0.0046, -0.0021, 0, -0.0058, 0, -0.0051, -0.0014, -0.0019, 0.00035, -0.009]
     ]
 
-        # # PARAMETER SET 2: leaning on the methods (some consumers have incorrect yearly data)
-        #         # european bison - pos interactions through optimizer; neg interactions random higher than others 
-        #         [-7.81, 0, 0, 6.17, 0, 0, 0, 0, 0, 0.043, 4.95],
-        #         # exmoor pony - special case, no growth
-        #         [0, -0.001, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        #         # fallow deer 
-        #         [0, 0, -7.57, 21.87, 0, 0, 0, 0, 0, 0.67, 19.77],
-        #         # grassland parkland
-        #         [0, -0.00058, -0.00025, -0.87, -0.00064, -0.00024, 0, -0.00051, -0.00082, -0.011, -0.017],
-        #         # longhorn cattle  
-        #         [0, 0, 0, 9.02, -6.28, 0, 0, 0, 0, 0.021, 5.17],
-        #         # organic carbon
-        #         [0, 0.0046, 0.0027, 0.071, 0.0017, -0.097, 0.0027, 0.0046, 0.0014, 0.0015, 0.059],  
-        #         # red deer  
-        #         [0, 0, 0, 3.34, 0, 0, -5.39, 0, 0, 0.46, 2.83],
-        #         # roe deer 
-        #         [0, 0, 0, 3.80, 0, 0, 0, -6.34, 0, 0.8, 2.89],
-        #         # tamworth pig 
-        #         [0, 0, 0, 3.04, 0, 0, 0, 0, -7.18, 0.12, 2.12],  
-        #         # thorny scrub
-        #         [0, -0.098, -0.019, 0, -0.051, 0, -0.024, -0.04, -0.056, -0.0011, -0.023],
-        #         # woodland
-        #         [0, -0.0043, -0.0018, 0, -0.0032, 0, -0.0053, -0.0018, -0.0014, 0.00027, -0.0078]
-        #         ]
-
     # generate random uniform numbers
-    variation = np.random.uniform(low = 0.95, high=1.05, size = (len(species),len((species))))
+    variation = np.random.uniform(low = 0.97, high=1.03, size = (len(species),len((species))))
     interaction_matrix = interaction_matrix * variation
     # return array
     return interaction_matrix
@@ -98,10 +82,10 @@ def generateGrowth():
     # PARAMETER SET 1: leaning on the data (some consumers have incorrect negative diagonals)
     growthRates = [0, 0, 0, 0.98, 0, 0, 0, 0, 0, 0.78, 0.066] 
     # PARAMETER SET 2: leaning on the methods (some consumers have incorrect yearly data)
-    # growthRates = [0, 0, 0, 0.9, 0, 0, 0, 0, 0, 0.67, 0.054] 
+    # growthRates = [0, 0, 0, 0.97, 0, 0, 0, 0, 0, 0.77, 0.061]
 
     # multiply by a range
-    variation = np.random.uniform(low = 0.95, high=1.05, size = (len(species),))
+    variation = np.random.uniform(low = 0.97, high=1.03, size = (len(species),))
     growth = growthRates * variation
     return growth
     
@@ -210,6 +194,10 @@ def runODE_1():
     print("number of stable simulations", NUMBER_STABLE)
     print("number of stable & ecologically sound simulations", NUMBER_OF_SIMULATIONS)
     
+    with open("ps1_stable_numberStable.txt", "w") as text_file:
+        print("number of stable simulations: {}".format(NUMBER_STABLE), file=text_file)
+        print("number of stable & ecologically sound simulations: {}".format(NUMBER_OF_SIMULATIONS), file=text_file)
+
     # combine the final runs into one dataframe
     final_runs = (np.vstack(np.hsplit(all_runs.reshape(len(species)*NUMBER_OF_SIMULATIONS, 8).transpose(),NUMBER_OF_SIMULATIONS)))
     final_runs = pd.DataFrame(data=final_runs, columns=species)
@@ -425,9 +413,9 @@ def filterRuns_2():
     accepted_simulations_2015 = final_runs_2[(final_runs_2['time'] == 2015.95) & 
     (final_runs_2['exmoorPony'] <= 0.48) & (final_runs_2['exmoorPony'] >= 0.39) & 
     (final_runs_2['fallowDeer'] <= 4.81) & (final_runs_2['fallowDeer'] >= 3.6) &  # leaning on data
-    # (final_runs_2['fallowDeer'] <= 7.62) & (final_runs_2['fallowDeer'] >= 3.6) &  # leaning on methods
+    # (final_runs_2['fallowDeer'] <= 8.02) & (final_runs_2['fallowDeer'] >= 3.6) &  # leaning on methods
     (final_runs_2['longhornCattle'] <= 2.7) & (final_runs_2['longhornCattle'] >= 2.37) & # leaning on data
-    # (final_runs_2['longhornCattle'] <= 2.66) & (final_runs_2['longhornCattle'] >= 2.22) & # leaning on methods
+    # (final_runs_2['longhornCattle'] <= 2.7) & (final_runs_2['longhornCattle'] >= 2.21) & # leaning on methods
     (final_runs_2['tamworthPig'] <= 1.45) & (final_runs_2['tamworthPig'] >= 0.85)]
     filtered_2015 = final_runs_2[final_runs_2['ID'].isin(accepted_simulations_2015['ID'])]
     print("number passed 2015 filters:", filtered_2015.shape[0]/24)
@@ -436,7 +424,7 @@ def filterRuns_2():
     accepted_simulations_2016 = filtered_2015[(filtered_2015['time'] == 2016.95) & 
     (filtered_2015['exmoorPony'] <= 0.52) & (filtered_2015['exmoorPony'] >= 0.43) & 
     (filtered_2015['fallowDeer'] <= 5.12) & (filtered_2015['fallowDeer'] >= 3.93) & # leaning on data
-    # (filtered_2015['fallowDeer'] <= 7.62) & (filtered_2015['fallowDeer'] >= 3.93) & # leaning on methods
+    # (filtered_2015['fallowDeer'] <= 8) & (filtered_2015['fallowDeer'] >= 3.93) & # leaning on methods
     (filtered_2015['longhornCattle'] <= 2.34) & (filtered_2015['longhornCattle'] >= 2.04) & 
     (filtered_2015['tamworthPig'] <= 1.25) & (filtered_2015['tamworthPig'] >= 0.65)]
     filtered_2016 = filtered_2015[filtered_2015['ID'].isin(accepted_simulations_2016['ID'])]
@@ -444,11 +432,11 @@ def filterRuns_2():
     # filter 2017 values : ponies = the same; fallow = 7.34 + 1.36 culled (this was maybe supplemented so no filter), same with red; cows got to max 2.06; red deer got to 1.85 + 2 culled; pig got to 1.1
     accepted_simulations_2017 = filtered_2016[(filtered_2016['time'] == 2017.95) & 
     (filtered_2016['exmoorPony'] <= 0.48) & (filtered_2016['exmoorPony'] >= 0.39) & 
-    (filtered_2016['longhornCattle'] <= 2.23) & (filtered_2016['longhornCattle'] >= 1.96) & 
-    # (filtered_2016['fallowDeer'] <= 8.86) & (filtered_2016['fallowDeer'] >= 7.25) & 
-    (filtered_2016['redDeer'] <= 2.31) & (filtered_2016['redDeer'] >= 1.69) & # leaning on data
-    # (filtered_2016['redDeer'] <= 3.23) & (filtered_2016['redDeer'] >= 1.62) & # leaning on data
+    (filtered_2016['longhornCattle'] <= 2.3) & (filtered_2016['longhornCattle'] >= 1.96) & 
+    (filtered_2016['redDeer'] <= 2.31) & (filtered_2016['redDeer'] >= 1.8) & # leaning on data
+    # (filtered_2016['redDeer'] <= 3.31) & (filtered_2016['redDeer'] >= 1.8) & # leaning on data
     (filtered_2016['tamworthPig'] <= 1.75) & (filtered_2016['tamworthPig'] >= 1.15)]
+    # (filtered_2016['tamworthPig'] <= 1.75) & (filtered_2016['tamworthPig'] >= 1)]
     filtered_2017 = filtered_2016[filtered_2016['ID'].isin(accepted_simulations_2017['ID'])]
     print("number passed 2017 filters:", filtered_2017.shape[0]/24)
     # filter 2018 values : p ponies = same, fallow = 6.62 + 57 culled; cows got to max 2.21; reds got to 2.85 + 3 culled; pigs got to max 1.15
@@ -480,6 +468,18 @@ def filterRuns_2():
     (filtered_2020['organicCarbon'] <= 2.2) & (filtered_2020['organicCarbon'] >= 1.7)
     ]
     print("number passed 2020 filters:", accepted_simulations_2020.shape)
+
+
+    with open("ps1_stable_numberAcceptedSims.txt", "w") as text_file:
+        print("number accepted, first ODE: {}".format(accepted_simulations.shape), file=text_file)
+        print("number passed 2015 filters: {}".format(filtered_2015.shape[0]/24), file=text_file)
+        print("number passed 2016 filters: {}".format(filtered_2016.shape[0]/24), file=text_file)
+        print("number passed 2017 filters: {}".format(filtered_2017.shape[0]/24), file=text_file)
+        print("number passed 2018 filters: {}".format(filtered_2018.shape[0]/24), file=text_file)
+        print("number passed 2019 filters: {}".format(filtered_2019.shape[0]/24), file=text_file)
+        print("number passed 2020 filters: {}".format(accepted_simulations_2020.shape), file=text_file)
+
+  
 
     # match ID number in accepted_simulations to its parameters in all_parameters
     accepted_parameters_2020 = all_parameters_2[all_parameters_2['ID'].isin(accepted_simulations_2020['ID'])]
@@ -515,6 +515,7 @@ def generateParameters3():
     fig, axes = plt.subplots(len(growth_filtered.columns)//3,3, figsize=(25, 10))
     for col, axis in zip(growth_filtered.columns, axes):
         growth_filtered.hist(column = col, ax = axis, bins = 25)
+    plt.savefig('hist_ps1_stableOnly.png')
 
     # CORRELATION MATRIX
     growthRates_3.columns = ['euroBison_growth','exmoorPony_growth', 'fallowDeer_growth', 'grasslandParkland_growth', 'longhornCattle_growth','organicCarbon_growth', 'redDeer_growth', 'roeDeer_growth', 'tamworthPig_growth', 'thornyScrub_growth', 'woodland_growth']
@@ -622,7 +623,8 @@ def generateParameters3():
     ax.set_yticklabels(
         ax.get_yticklabels(), 
         fontsize = 5)
-    plt.show()
+    plt.savefig('corrMatrix_ps1_stableOnly.png')
+    # plt.show()
     return r_thirdRun, X0_3, A_thirdRun, accepted_simulations_2020, final_runs_2, accepted_simulations, final_runs, NUMBER_OF_SIMULATIONS, X0_secondRun
 
 
@@ -894,7 +896,7 @@ def runODE_3():
 
 
    # REALITY CHECK 1: What if there was no culling? Go one large herbivore at a time for: fallow deer, longhorn cattle, red deer, tamworth pig
-   # no exmoor pony bc they're a special case (no growth/no pos interactions)
+    # no exmoor pony bc they're a special case (no growth/no pos interactions)
     # all_runs_noCulls = []
     # all_times_noCulls = []
     # X0_noCull = X0_secondRun.copy()
@@ -1062,7 +1064,7 @@ def runODE_3():
     # all_times_realityCheck = []
     # t_realityCheck = np.linspace(2009, 2100, 20)
     # # change X0 depending on what's needed for the reality check
-    # X0_5 = [1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0]
+    # X0_5 = [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
     # for r_realityCheck2, A_realityCheck2 in zip(r_thirdRun, np.array_split(A_thirdRun,len(accepted_simulations_2020))):
     #     # A_realityCheck2 = pd.DataFrame(data = A_realityCheck2, index = species, columns = species)
     #     # A_realityCheck2['europeanBison']['europeanBison'] = -0.001
@@ -1156,12 +1158,20 @@ def runODE_3():
 
     # loop through each row of accepted parameters
     for X0_exp2, r_9, A_9 in zip(X0_experiment2,r_thirdRun, np.array_split(A_thirdRun,len(accepted_simulations_2020))):
-        # take 10% above and below the optimizer outputs
+        # take 10% above and below the optimizer outputs - parameter 1
         stocking_exmoorPony =  np.random.uniform(low=0.068, high=0.084)
         stocking_fallowDeer = np.random.uniform(low=0.014, high=0.017)
         stocking_longhornCattle = np.random.uniform(low=0.1, high=0.12)
         stocking_redDeer = np.random.uniform(low=0.015, high=0.019)
         stocking_tamworthPig = np.random.uniform(low=0.86, high=1.1)
+
+        # parameter 2
+        # stocking_exmoorPony =  0
+        # stocking_fallowDeer = np.random.uniform(low=0.13, high=0.15)
+        # stocking_longhornCattle = 0
+        # stocking_redDeer = 0
+        # stocking_tamworthPig = np.random.uniform(low=0.83, high=1)
+
         # 2021 - future projections
         X0_exp2[1] =  0.65 * stocking_exmoorPony
         X0_exp2[2] =  5.88*stocking_fallowDeer
@@ -1411,56 +1421,15 @@ def runODE_3():
     experiment2['stocking_tamworthPig'] =  np.repeat(combined_stockingDensity_pigs,50)
     # select only the last year 
     accepted_year_exp2 = experiment2.loc[experiment2['time'] == 2046]
-    # select the runs where grassland declines by >= 90% 
+    # select the runs where grassland declines by >= 90% (0.13) or 0.36 if parameter set 2
     accepted_simulations_exp2 = accepted_year_exp2[(accepted_year_exp2['grasslandParkland'] <= 0.13)]
     print("number accepted, experiment 2:", accepted_simulations_exp2.shape)
+
+    with open("ps1_stable_numberAcceptedExp2.txt", "w") as text_file:
+        print("number accepted, experiment 2: {}".format(accepted_simulations_exp2.shape), file=text_file)
+
     # match the IDs
     accepted_simulations_exp2 = experiment2[experiment2['ID'].isin(accepted_simulations_exp2['ID'])]
-
- 
-
-    # corr matrix between stocking densities and grassland
-    # filtered_exp2 =  accepted_simulations_exp2[['grasslandParkland', 'stocking_exmoorPony', 'stocking_fallowDeer','stocking_longhornCattle', 'stocking_redDeer', 'stocking_tamworthPig']]
-    # corr_df = filtered_exp2.corr()
-    
-    # # calculate p values and remove non-significant ones
-    # p_matrix_2 = np.zeros(shape=(corr_df.shape[1],corr_df.shape[1]))
-    # for col in corr_df.columns:
-    #         for col2 in corr_df.drop(col,axis=1).columns:
-    #             _ , p = stats.pearsonr(corr_df[col],corr_df[col2])
-    #             p_matrix_2[corr_df.columns.to_list().index(col),corr_df.columns.to_list().index(col2)] = p
-    # p_matrix_2 = pd.DataFrame(data=p_matrix_2, index=corr_df.index, columns=corr_df.index)
-    # # select only the significant ones, show their corr
-    # signif_Matrix_2 = corr_df.where(p_matrix_2.values < 0.05)
-    # # generate mask for upper triangle
-    # mask_2 = np.triu(np.ones_like(signif_Matrix_2, dtype=bool))
-    # # plot it
-    # plt.subplots(figsize=(6,6))
-    # ax = sns.heatmap(
-    # signif_Matrix_2, 
-    # vmin=-1, vmax=1, center=0,
-    # mask = mask_2,
-    # cmap=sns.diverging_palette(20, 220, n=200),
-    # square=True,
-    # # annot = True,
-    # linewidths=.5
-    #         )
-    # ax.set_xticklabels(
-    #     ax.get_xticklabels(),
-    #     rotation=90,
-    #     horizontalalignment='right',
-    #     fontsize = 12)
-    # ax.set_yticklabels(
-    #     ax.get_yticklabels(), 
-    #     fontsize = 12)
-    # # histograms of stocking densities 
-    # stockingDensities = accepted_simulations_exp2[['stocking_exmoorPony', 'stocking_fallowDeer','stocking_longhornCattle', 'stocking_redDeer', 'stocking_tamworthPig']]
-    # fig, axes = plt.subplots(len(stockingDensities.columns)//5,5)
-    # for col, axis in zip(stockingDensities.columns, axes):
-    #     stockingDensities.hist(column = col, ax = axis, bins = 10)
-    # plt.show()
-    # # concantenate the accepted runs (if we want to graph again later)
-
     filtered_FinalRuns_2 = final_runs_2.loc[(final_runs_2['accepted?'] == "Accepted")]
     finalResults_experiment2 = pd.concat([filtered_FinalRuns, filtered_FinalRuns_2, accepted_simulations_exp2])
     finalResults_experiment2['accepted?'] = "noGrass"
@@ -1473,12 +1442,20 @@ def runODE_3():
 
     # loop through each row of accepted parameters
     for X0_exp25, r_9, A_9 in zip(X0_experiment2,r_thirdRun, np.array_split(A_thirdRun,len(accepted_simulations_2020))):
-        # take 10% above and below the optimizer outputs
+        # take 10% above and below the optimizer outputs; parameter set 1
         stocking_exmoorPony_25 =  np.random.uniform(low=1.66, high=2)
         stocking_fallowDeer_25 = np.random.uniform(low=1.67, high=2)
         stocking_longhornCattle_25 = np.random.uniform(low=1.65, high=2)
         stocking_redDeer_25 = np.random.uniform(low=4.1, high=5)
         stocking_tamworthPig_25 = np.random.uniform(low=1.89, high=2.3)
+
+        # # parameter set 2
+        # stocking_exmoorPony_25 =  np.random.uniform(low=17.2, high=21.1)
+        # stocking_fallowDeer_25 = np.random.uniform(low=20.7, high=25.3)
+        # stocking_longhornCattle_25 = np.random.uniform(low=12.4, high=15.2)
+        # stocking_redDeer_25 = np.random.uniform(low=14.3, high=17.5)
+        # stocking_tamworthPig_25 = np.random.uniform(low=1.4, high=1.7)
+
         # 2021 - future projections
         X0_exp25[1] =  0.65*stocking_exmoorPony_25
         X0_exp25[2] =  5.88*stocking_fallowDeer_25
@@ -1694,11 +1671,17 @@ def runODE_3():
     # select the runs where grassland declines by >= 90% 
     accepted_simulations_exp25 = accepted_year_exp25[(accepted_year_exp25['grasslandParkland'] >= 1.13)]
     print("number accepted, experiment 2.5:", accepted_simulations_exp25.shape)
+
+    with open("ps1_stable_numberAcceptedExp25.txt", "w") as text_file:
+        print("number accepted, experiment 2.5: {}".format(accepted_simulations_exp25.shape), file=text_file)
+
+
     # match the IDs
     accepted_simulations_exp25 = experiment25[experiment25['ID'].isin(accepted_simulations_exp25['ID'])]
     # corr matrix between stocking densities and grassland
     finalResults_experiment25 = pd.concat([filtered_FinalRuns, filtered_FinalRuns_2, accepted_simulations_exp25])
     finalResults_experiment25['accepted?'] = "allGrass"
+
 
 
   
@@ -1717,11 +1700,17 @@ def runODE_3():
         XO_bisonReintro[8] =  0.95
         # add bison
         XO_bisonReintro[0] = 1
-        # and their interactions (primary producers & carbon)
+        # and their interactions (primary producers & carbon) - parameter set 1
         A_5[3][0] = np.random.uniform(low=-0.001, high=-0.00065)
         A_5[5][0] = np.random.uniform(low=0.0074, high=0.01)
         A_5[9][0] = np.random.uniform(low=-0.1, high=-0.044)
         A_5[10][0] = np.random.uniform(low=-0.01, high=-0.0084)
+
+        # and their interactions (primary producers & carbon) - parameter set 2
+        # A_5[3][0] = np.random.uniform(low=-0.001, high=-0.0008)
+        # A_5[5][0] = np.random.uniform(low=0.0075, high=0.01)
+        # A_5[9][0] = np.random.uniform(low=-0.1, high=-0.042)
+        # A_5[10][0] = np.random.uniform(low=-0.01, high=-0.0058)
  
         # 2021 - future projections
         euroBison_ABC_2021 = solve_ivp(ecoNetwork, (2021,2021.95), XO_bisonReintro,  t_eval = t_bison, args=(A_5, r_5), method = 'RK23')
@@ -2058,7 +2047,7 @@ def plotting():
 
     # Accepted vs. Counterfactual graph (no reintroductions vs. reintroductions) vs. Euro Bison reintro
     colors = ["#6788ee", "#e26952", "#3F9E4D"]
-    g = sns.FacetGrid(filtered_df, col="Ecosystem Element", hue = "runType", palette = colors, col_wrap=3, sharey = False)
+    g = sns.FacetGrid(filtered_df, col="Ecosystem Element", hue = "runType", palette = colors, col_wrap=4, sharey = False)
     g.map(sns.lineplot, 'Time', 'Median')
     g.map(sns.lineplot, 'Time', 'fivePerc')
     g.map(sns.lineplot, 'Time', 'ninetyfivePerc')
@@ -2100,13 +2089,13 @@ def plotting():
     g.axes[9].set(ylim =(0,None))
     # stop the plots from overlapping
     plt.tight_layout()
-    plt.legend(labels=['Reintroductions', 'No reintroductions', 'European bison reintroduction'],bbox_to_anchor=(2.5, 0),loc='lower right', fontsize=12)
-    # plt.savefig('reintroNoReintro_1mil_practice.png')
-    plt.show()
+    plt.legend(labels=['Reintroductions', 'No reintroductions', 'European bison \n reintroduction'],bbox_to_anchor=(2.2, 0),loc='lower right', fontsize=12)
+    plt.savefig('reintroNoReintro_ps1_stableOnly.png')
+    # plt.show()
 
 
     # Accepted vs. rejected runs graph
-    r = sns.FacetGrid(filtered_rejectedAccepted, col="Ecosystem Element", hue = "runType", palette = colors, col_wrap=3, sharey = False)
+    r = sns.FacetGrid(filtered_rejectedAccepted, col="Ecosystem Element", hue = "runType", palette = colors, col_wrap=4, sharey = False)
     r.map(sns.lineplot, 'Time', 'Median')
     r.map(sns.lineplot, 'Time', 'fivePerc')
     r.map(sns.lineplot, 'Time', 'ninetyfivePerc')
@@ -2143,13 +2132,14 @@ def plotting():
     r.axes[10].vlines(x=2021,ymin=1,ymax=1.7, color='r')
     # stop the plots from overlapping
     plt.tight_layout()
-    plt.legend(labels=['Rejected Runs', 'Accepted Runs'],bbox_to_anchor=(2.5, 0), loc='lower right', fontsize=12)
-    plt.show()
+    plt.legend(labels=['Rejected Runs', 'Accepted Runs'],bbox_to_anchor=(2.2, 0), loc='lower right', fontsize=12)
+    plt.savefig('acceptedRejected_ps1_stableOnly.png')
+    # plt.show()
 
 
     # Pushing grassland to zero
     colors_2 = ["#6788ee"]
-    n = sns.FacetGrid(filtered_noGrass, col="Ecosystem Element", hue = "runType", palette = colors_2, col_wrap=3, sharey = False)
+    n = sns.FacetGrid(filtered_noGrass, col="Ecosystem Element", hue = "runType", palette = colors_2, col_wrap=4, sharey = False)
     n.map(sns.lineplot, 'Time', 'Median')
     n.map(sns.lineplot, 'Time', 'fivePerc')
     n.map(sns.lineplot, 'Time', 'ninetyfivePerc')
@@ -2188,13 +2178,15 @@ def plotting():
     n.axes[9].vlines(x=2021,ymin=19,ymax=31.9, color='r')
     n.axes[10].vlines(x=2021,ymin=1,ymax=1.7, color='r')
     # stop the plots from overlapping
+    n.fig.suptitle('Scenarios in which grassland collapses (< 10%)', fontsize = 14) 
     plt.tight_layout()
-    plt.show()
+    plt.savefig('zeroGrass_ps1_stableOnly.png')
+    # plt.show()
 
 
     # Phase shift to grassland
     colors_2 = ["#6788ee"]
-    e = sns.FacetGrid(filtered_allGrass, col="Ecosystem Element", hue = "runType", palette = colors_2, col_wrap=3, sharey = False)
+    e = sns.FacetGrid(filtered_allGrass, col="Ecosystem Element", hue = "runType", palette = colors_2, col_wrap=4, sharey = False)
     e.map(sns.lineplot, 'Time', 'Median')
     e.map(sns.lineplot, 'Time', 'fivePerc')
     e.map(sns.lineplot, 'Time', 'ninetyfivePerc')
@@ -2229,8 +2221,10 @@ def plotting():
     e.axes[9].vlines(x=2021,ymin=19,ymax=31.9, color='r')
     e.axes[10].vlines(x=2021,ymin=1,ymax=1.7, color='r')
     # stop the plots from overlapping
+    e.fig.suptitle('Scenarios in which grassland takes over (> 90%)', fontsize = 14) 
     plt.tight_layout()
-    plt.show()
+    plt.savefig('allGrass_ps1_stableOnly.png')
+    # plt.show()
 
 plotting()
 
