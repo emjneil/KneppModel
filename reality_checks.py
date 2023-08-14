@@ -13,7 +13,8 @@ from scipy import stats
 import csv
 
 # define the number of simulations to try
-totalSimulations = 300_000
+# totalSimulations = 100_000
+totalSimulations = 10_000
 
 # store species in a list
 species = ['exmoorPony','fallowDeer','grasslandParkland','longhornCattle','redDeer','roeDeer','tamworthPig','thornyScrub','woodland']
@@ -23,64 +24,48 @@ def ecoNetwork(t, X, A, r):
     return X * (r + np.matmul(A, X))
 
 
+def ecoNetwork_nor(t, X, A, r):
+    # put things to zero if they go below a certain threshold
+    X[X<1e-8] = 0
+    return X * (r + np.matmul(A, X))
+
+
 # # # -------- GENERATE PARAMETERS ------ 
 
 def generateInteractionMatrix():
 
     interaction_matrix = [
-    # exmoor pony - special case, no growth
-    [-0.038, 0, 0, 0, 0, 0, 0, 0, 0],
-    # fallow deer 
-    [0, -0.14, 0.19, 0, 0, 0, 0, 0.075, 0.11],
-    # grassland parkland
-    [-0.022, -0.0087, -0.76, -0.016, -0.0011, -0.021, -0.013, -0.020, -0.025],
-    # longhorn cattle  
-    [0, 0, 0.79, -0.59, 0, 0, 0, 0.074, 0.14],
-    # red deer  
-    [0, 0, 0.42, 0, -0.36, 0, 0, 0.049, 0.080],
-    # roe deer 
-    [0, 0, 0.36, 0, 0, -0.76, 0, 0.26, 0.27],
-    # tamworth pig 
-    [0, 0, 0.35, 0, 0,0, -0.74, 0.063, 0.17],  
-    # thorny scrub
-    [-0.071, -0.0013, 0, -0.013, -0.02, -0.0071, -0.022, -0.0023, -0.073],
-    # woodland
-    [-0.015, -0.026, 0, -0.27, -0.11, -0.13, -0.091, 0.19, -0.20]
-]
-
-
-    # interaction_matrix = [
-    # # exmoor pony - special case, no growth
-    # [-17.0, 0, 0, 0, 0, 0, 0, 0, 0],
-    # # fallow deer 
-    # [0, -27.5, 14.1, 0, 0, 0, 0, 12.0, 24.8],
-    # # grassland parkland
-    # [-0.0028, -0.0026, -0.99, -0.0029, -0.0008, -0.0032, -0.0033, -0.04, -0.065],
-    # # longhorn cattle  
-    # [0, 0, 63.6, -54, 0, 0, 0, 7.4, 9.6],
-    # # red deer  
-    # [0, 0, 31.8, 0, -38.4, 0, 0, 5.8, 15],
-    # # roe deer 
-    # [0, 0,31.2, 0, 0, -44.6, 0, 14.4, 21.4],
-    # # tamworth pig 
-    # [0, 0, 35.1, 0, 0,0, -64.2, 2.6, 9.9],  
-    # # thorny scrub
-    # [-0.0005, -0.0002, 0, -0.001, -0.003, -0.006, -0.005, -0.025, -0.04],
-    # # woodland
-    # [-0.00008, -0.00075, 0, -0.00077, -0.00076, -0.00073, -0.0004, 0.0045, -0.0065]
-    # ]
+        # exmoor pony - special case, no growth
+        [0, 0, 2.7, 0, 0, 0, 0, 0.17, 0.4],
+        # fallow deer 
+        [0, 0, 3.81, 0, 0, 0, 0, 0.37, 0.49],
+        # grassland parkland
+        [-0.0024, -0.0032, -0.83, -0.015, -0.003, -0.00092, -0.0082, -0.046, -0.049],
+        # longhorn cattle  
+        [0, 0, 4.99, 0, 0, 0, 0, 0.21, 0.4],
+        # red deer  
+        [0, 0, 2.8, 0, 0, 0, 0, 0.29, 0.42],
+        # roe deer 
+        [0, 0, 4.9, 0, 0, 0, 0, 0.25, 0.38],
+        # tamworth pig 
+        [0, 0, 3.7, 0, 0,0, 0, 0.23, 0.41],  
+        # thorny scrub
+        [-0.0014, -0.005, 0, -0.0051, -0.0039, -0.0023, -0.0018, -0.015, -0.022],
+        # woodland
+        [-0.0041, -0.0058, 0, -0.0083, -0.004, -0.0032, -0.0037, 0.0079, -0.0062]
+        ]
 
     # generate random uniform numbersF
-    variation = np.random.uniform(low = 0.75, high=1.25, size = (len(species),len((species))))
+    variation = np.random.uniform(low = 0.9, high=1.1, size = (len(species),len((species))))
     interaction_matrix = interaction_matrix * variation
     # return array
     return interaction_matrix
 
+
 def generateGrowth():
-    growthRates = [0, 0, 0.66, 0, 0, 0, 0, 0.45, 0.28] # ps1
-    # growthRates = [0, 0, 0.81, 0, 0, 0, 0, 0.47, 0.09]  # ps2
+    growthRates = [-4.61, -4.61, 0.91, -4.61, -4.61, -4.61, -4.61, 0.35, 0.11]
     # multiply by a range
-    variation = np.random.uniform(low = 0.75, high=1.25, size = (len(species),))
+    variation = np.random.uniform(low = 0.9, high=1.1, size = (len(species),))
     growth = growthRates * variation
     return growth
     
@@ -91,28 +76,10 @@ def generateX0():
     return X0
 
 
+
+
+
 # # # # --------- SOLVE ODE #1: Pre-reintroductions (2000-2009) -------
-
-# check for stability
-def calcJacobian(A, r, n):
-    # make an empty array to fill (with diagonals = 1, zeros elsewhere since we want eigenalue)
-    i_matrix = np.eye(len(n))
-    # put n into an array to multiply by A
-    n_array = np.matlib.repmat(n, 1, len(n))
-    n_array = np.reshape (n_array, (9,9))
-    # calculate
-    J = i_matrix * r + A * n_array + i_matrix * np.matmul(A, n)
-    return J
-
-
-def calcStability(A, r, n):
-    J = calcJacobian(A, r, n)
-    ev = np.real(np.linalg.eig(J)[0])
-    max_eig = np.max(ev)
-    if max_eig < 0:
-        return True
-    else:
-        return False
 
 
 def runODE_1():
@@ -124,37 +91,26 @@ def runODE_1():
     all_parameters = []
     NUMBER_OF_SIMULATIONS = 0
     run_number = 0
+
     for _ in range(totalSimulations):
         run_number += 1
         print(run_number)
         A = generateInteractionMatrix()
         r = generateGrowth()
         X0 = generateX0()
-        # check viability of the parameter set (is it stable?); pinv used bc inv had singular matrix errors
-        ia = np.linalg.pinv(A)
-        # n is the equilibrium state; calc as inverse of -A*r
-        n = -np.matmul(ia, r)
-        isStable = calcStability(A, r, n)
 
-        # if all the values of n are above zero at equilibrium, & if the parameter set is viable (stable & all n > 0 at equilibrium); do the calculation
-        if np.all(n > 0) &  isStable == True:
-
-            # remember the parameters used
-            X0_growth = pd.concat([pd.DataFrame(X0), pd.DataFrame(r)], axis = 1)
-            X0_growth.columns = ['X0','growth']
-            parameters_used = pd.concat([X0_growth, pd.DataFrame(A, index = species, columns = species)])
-            all_parameters.append(parameters_used)
-            # run the ODE
-            first_ABC = solve_ivp(ecoNetwork, (2005, 2008.75), X0,  t_eval = t, args=(A, r), method = 'RK23')
-            # append all the runs
-            all_runs = np.append(all_runs, first_ABC.y)
-            all_times = np.append(all_times, first_ABC.t)
-            # add one to the counter (so we know how many simulations were run in the end)
-            NUMBER_OF_SIMULATIONS += 1
-
-    print("number of simulations:", NUMBER_OF_SIMULATIONS)
-    with open("10_ps1_stable_numberStable.txt", "w") as text_file:
-        print("number of simulations: {}".format(NUMBER_OF_SIMULATIONS), file=text_file)
+        # remember the parameters used
+        X0_growth = pd.concat([pd.DataFrame(X0), pd.DataFrame(r)], axis = 1)
+        X0_growth.columns = ['X0','growth']
+        parameters_used = pd.concat([X0_growth, pd.DataFrame(A, index = species, columns = species)])
+        all_parameters.append(parameters_used)
+        # run the ODE
+        first_ABC = solve_ivp(ecoNetwork, (2005, 2008.75), X0,  t_eval = t, args=(A, r), method = 'RK23')
+        # append all the runs
+        all_runs = np.append(all_runs, first_ABC.y)
+        all_times = np.append(all_times, first_ABC.t)
+        # add one to the counter (so we know how many simulations were run in the end)
+        NUMBER_OF_SIMULATIONS += 1
 
     # combine the final runs into one dataframe
     final_runs = (np.vstack(np.hsplit(all_runs.reshape(len(species)*NUMBER_OF_SIMULATIONS, 8).transpose(),NUMBER_OF_SIMULATIONS)))
@@ -175,6 +131,7 @@ def filterRuns_1():
     final_runs['ID'] = np.repeat(IDs,8)
     # select only the last year
     accepted_year = final_runs.loc[final_runs['time'] == 2008.75]
+
     # filter the runs through conditions
     accepted_simulations = accepted_year[
     (accepted_year['roeDeer'] <= 3.3) & (accepted_year['roeDeer'] >= 1) &
@@ -184,7 +141,7 @@ def filterRuns_1():
     ]
     print("number accepted, first ODE:", accepted_simulations.shape)
 
-    with open("10_passed_2009_filters_ps1_stable.txt", "w") as text_file:
+    with open("10_passed_2009_filters_ps2_unstable.txt", "w") as text_file:
         print("number of simulations: {}".format(accepted_simulations.shape), file=text_file)
 
     # match ID number in accepted_simulations to its parameters in all_parameters
@@ -408,7 +365,7 @@ def filterRuns():
     final_results['passed_filters'] = np.where(final_results['ID'].isin(accepted_runs_grass),final_results['passed_filters']+1,final_results['passed_filters']) 
     # woodland
     for index, row in my_time.iterrows():
-        if (row['woodland'] <= 3.7) & (row['woodland'] >= 3.3):
+        if (row['woodland'] <= 4.6) & (row['woodland'] >= 2.8):
             accepted_runs_wood.append(row["ID"])
             difficult_filters.loc[3,'times_passed'] += 1
     final_results['passed_filters'] = np.where(final_results['ID'].isin(accepted_runs_wood),final_results['passed_filters']+1,final_results['passed_filters']) 
@@ -600,9 +557,9 @@ def filterRuns():
 
     # combine these with the 2005-2009 runs
     final_results = pd.concat([final_runs, final_results])
-    difficult_filters.to_csv("10_difficult_filters_ps1_stable.csv")
-    final_results.to_csv("10_runs_ps1_stable.csv")
-    all_parameters.to_csv("10_parameters_ps1_stable.csv")
+    difficult_filters.to_csv("10_difficult_filters.csv")
+    final_results.to_csv("10_runs.csv")
+    all_parameters.to_csv("10_parameters.csv")
 
 
 # filterRuns()
@@ -615,51 +572,55 @@ def filterRuns():
 
 def top_one_perc():
 
-    # open the final result csvs - change IDs
-    final_results_1 = pd.read_csv('1_runs_ps1_stable.csv')
-    final_results_2 = pd.read_csv('2_runs_ps1_stable.csv')
-    final_results_2['ID'] = final_results_2['ID'] + 300_000
-    final_results_3 = pd.read_csv('3_runs_ps1_stable.csv')
-    final_results_3['ID'] = final_results_3['ID'] + 600_000
-    final_results_4 = pd.read_csv('4_runs_ps1_stable.csv')
-    final_results_4['ID'] = final_results_4['ID'] + 900_000
-    final_results_5 = pd.read_csv('5_runs_ps1_stable.csv')
-    final_results_5['ID'] = final_results_5['ID'] + 1_200_000
-    final_results_6 = pd.read_csv('6_runs_ps1_stable.csv')
-    final_results_6['ID'] = final_results_6['ID'] + 1_500_000
-    final_results_7 = pd.read_csv('7_runs_ps1_stable.csv')
-    final_results_7['ID'] = final_results_7['ID'] + 1_800_000
-    final_results_8 = pd.read_csv('8_runs_ps1_stable.csv')
-    final_results_8['ID'] = final_results_8['ID'] + 2_100_000
-    final_results_9 = pd.read_csv('9_runs_ps1_stable.csv')
-    final_results_9['ID'] = final_results_9['ID'] + 2_400_000
-    final_results_10 = pd.read_csv('10_runs_ps1_stable.csv')
-    final_results_10['ID'] = final_results_10['ID'] + 2_700_000
+    # # open the final result csvs - change IDs
+    # final_results_1 = pd.read_csv('1_runs_ps2_unstable.csv')
+    # final_results_2 = pd.read_csv('2_runs_ps2_unstable.csv')
+    # final_results_2['ID'] = final_results_2['ID'] + 100_000
+    # final_results_3 = pd.read_csv('3_runs_ps2_unstable.csv')
+    # final_results_3['ID'] = final_results_3['ID'] + 200_000
+    # final_results_4 = pd.read_csv('4_runs_ps2_unstable.csv')
+    # final_results_4['ID'] = final_results_4['ID'] + 300_000
+    # final_results_5 = pd.read_csv('5_runs_ps2_unstable.csv')
+    # final_results_5['ID'] = final_results_5['ID'] + 400_000
+    # final_results_6 = pd.read_csv('6_runs_ps2_unstable.csv')
+    # final_results_6['ID'] = final_results_6['ID'] + 500_000
+    # final_results_7 = pd.read_csv('7_runs_ps2_unstable.csv')
+    # final_results_7['ID'] = final_results_7['ID'] + 600_000
+    # final_results_8 = pd.read_csv('8_runs_ps2_unstable.csv')
+    # final_results_8['ID'] = final_results_8['ID'] + 700_000
+    # final_results_9 = pd.read_csv('9_runs_ps2_unstable.csv')
+    # final_results_9['ID'] = final_results_9['ID'] + 800_000
+    # final_results_10 = pd.read_csv('10_runs_ps2_unstable.csv')
+    # final_results_10['ID'] = final_results_10['ID'] + 900_000
 
-    # and parameters
-    all_parameters_1 = pd.read_csv('1_parameters_ps1_stable.csv')
-    all_parameters_2 = pd.read_csv('2_parameters_ps1_stable.csv')
-    all_parameters_2['ID'] = all_parameters_2['ID'] + 300_000
-    all_parameters_3 = pd.read_csv('3_parameters_ps1_stable.csv')
-    all_parameters_3['ID'] = all_parameters_3['ID'] + 600_000
-    all_parameters_4 = pd.read_csv('4_parameters_ps1_stable.csv')
-    all_parameters_4['ID'] = all_parameters_4['ID'] + 900_000
-    all_parameters_5 = pd.read_csv('5_parameters_ps1_stable.csv')
-    all_parameters_5['ID'] = all_parameters_5['ID'] + 1_200_000
-    all_parameters_6 = pd.read_csv('6_parameters_ps1_stable.csv')
-    all_parameters_6['ID'] = all_parameters_6['ID'] + 1_500_000
-    all_parameters_7 = pd.read_csv('7_parameters_ps1_stable.csv')
-    all_parameters_7['ID'] = all_parameters_7['ID'] + 1_800_000
-    all_parameters_8 = pd.read_csv('8_parameters_ps1_stable.csv')
-    all_parameters_8['ID'] = all_parameters_8['ID'] + 2_100_000
-    all_parameters_9 = pd.read_csv('9_parameters_ps1_stable.csv')
-    all_parameters_9['ID'] = all_parameters_9['ID'] + 2_400_000
-    all_parameters_10 = pd.read_csv('10_parameters_ps1_stable.csv')
-    all_parameters_10['ID'] = all_parameters_10['ID'] + 2_700_000
+    final_results = pd.read_csv('10_runs.csv')
+
+    # # and parameters
+    # all_parameters_1 = pd.read_csv('1_parameters_ps2_unstable.csv')
+    # all_parameters_2 = pd.read_csv('2_parameters_ps2_unstable.csv')
+    # all_parameters_2['ID'] = all_parameters_2['ID'] + 100_000
+    # all_parameters_3 = pd.read_csv('3_parameters_ps2_unstable.csv')
+    # all_parameters_3['ID'] = all_parameters_3['ID'] + 200_000
+    # all_parameters_4 = pd.read_csv('4_parameters_ps2_unstable.csv')
+    # all_parameters_4['ID'] = all_parameters_4['ID'] + 300_000
+    # all_parameters_5 = pd.read_csv('5_parameters_ps2_unstable.csv')
+    # all_parameters_5['ID'] = all_parameters_5['ID'] + 400_000
+    # all_parameters_6 = pd.read_csv('6_parameters_ps2_unstable.csv')
+    # all_parameters_6['ID'] = all_parameters_6['ID'] + 500_000
+    # all_parameters_7 = pd.read_csv('7_parameters_ps2_unstable.csv')
+    # all_parameters_7['ID'] = all_parameters_7['ID'] + 600_000
+    # all_parameters_8 = pd.read_csv('8_parameters_ps2_unstable.csv')
+    # all_parameters_8['ID'] = all_parameters_8['ID'] + 700_000
+    # all_parameters_9 = pd.read_csv('9_parameters_ps2_unstable.csv')
+    # all_parameters_9['ID'] = all_parameters_9['ID'] + 800_000
+    # all_parameters_10 = pd.read_csv('10_parameters_ps2_unstable.csv')
+    # all_parameters_10['ID'] = all_parameters_10['ID'] + 900_000
+
+    all_parameters = pd.read_csv('10_parameters.csv')
 
     # concat them
-    final_results = pd.concat([final_results_1, final_results_2, final_results_3,final_results_4,final_results_5,final_results_6,final_results_7,final_results_8,final_results_9,final_results_10])
-    all_parameters = pd.concat([all_parameters_1, all_parameters_2,all_parameters_3,all_parameters_4,all_parameters_5,all_parameters_6,all_parameters_7,all_parameters_8,all_parameters_9,all_parameters_10])
+    # final_results = pd.concat([final_results_1, final_results_2, final_results_3,final_results_4,final_results_5,final_results_6,final_results_7,final_results_8,final_results_9,final_results_10])
+    # all_parameters = pd.concat([all_parameters_1, all_parameters_2,all_parameters_3,all_parameters_4,all_parameters_5,all_parameters_6,all_parameters_7,all_parameters_8,all_parameters_9,all_parameters_10])
 
     # separate out the first and last runs (the 2005-2009 runs are already tagged accepted/rejected)
     first_ode = final_results.loc[final_results['time'] <= 2008.75]
@@ -671,10 +632,9 @@ def top_one_perc():
     (second_ode['woodland'] <= 3.7) & (second_ode['woodland'] >= 3.3) &
     (second_ode['thornyScrub'] <= 14.4) & (second_ode['thornyScrub'] >= 9.7)]
 
-    with open("passed_lastHabitatFilters_ps1_stable.txt", "w") as text_file:
-        print("number of simulations: {}".format(len(final_results_filtered)), file=text_file)
-
-    print("passed habitat filters",len(final_results_filtered))
+    print("number of simulations",len(final_results_filtered) )
+    # with open("passed_lastHabitatFilters_ps2_unstable.txt", "w") as text_file:
+    #     print("number of simulations: {}".format(len(final_results_filtered)), file=text_file)
 
     # take the top 1% of those that passed the habitats, and tag these as accepted - this one is already looking at just last year
     best_results = final_results_filtered.nlargest(round(final_results_filtered.shape[0]*0.01), 'passed_filters') # pick top 1% of filters
@@ -688,14 +648,15 @@ def top_one_perc():
     # concat the first and second odes
     final_results = pd.concat([first_ode, second_ode])
     
-    with open("passed_all_filters_ps1_stable.txt", "w") as text_file:
+    with open("passed_all_filters.txt", "w") as text_file:
         print("number of simulations: {}".format(len(best_results)), file=text_file)
 
-    final_results.to_csv("all_runs_ps1_stable.csv")
-    all_parameters.to_csv("all_parameters_ps1_stable.csv")
+    final_results.to_csv("all_runs.csv")
+    all_parameters.to_csv("all_parameters.csv")
 
 
-# top_one_perc()
+top_one_perc()
+
 
 
 # # # # ---------------------- ODE #3: projecting 10 years (2018-2028) -------------------------
@@ -703,11 +664,8 @@ def top_one_perc():
 def histograms_corrMatrix():
 
     # open the csv
-    all_parameters = pd.read_csv('all_parameters_ps1_stable.csv').iloc[:,1:]
-    # number_passed = 415 #ps2 - unstable
-    # number_passed = 401 #ps1 - unstable
-    number_passed = 400 #ps1 - stable
-    # number_passed = 361 #ps2 - stable
+    all_parameters = pd.read_csv('all_parameters_ps2_unstable.csv').iloc[:,1:]
+    number_passed = 2045 #ps1 - stable
 
     accepted_parameters = all_parameters.loc[(all_parameters['accepted?'] == 'Accepted')]
     # look at growth rates
@@ -775,39 +733,17 @@ def histograms_corrMatrix():
         cbar_kws={"shrink": .5},  # Extra kwargs for the legend; in this case, shrink by 50%
     )
     heatmap.figure.tight_layout()
-    plt.savefig('corr_matrix_ps1_stable.png')
+    plt.savefig('corr_matrix.png')
     plt.show()
 
-    #  significant variables (19/49) - ps1-unstable
-    # significant_variables = ["grasslandParkland","thornyScrub",
-    # "fallow_fallow","fallow_scrub","grass_roe","grass_scrub","grass_wood",
-    # "cattle_grass","cattle_cattle",
-    # "red_grass","red_red","red_scrub","red_wood",
-    # "roe_roe","roe_scrub","pig_scrub",
-    # "scrub_fallow","scrub_wood","wood_scrub"]
-
-    # significant variables - ps2-unstable
-    # significant_variables = ["grasslandParkland","thornyScrub","woodland",
-    # "fallow_fallow","cattle_grass","cattle_cattle",
-    # "red_grass","red_red","red_scrub","red_wood","roe_roe","roe_scrub","roe_wood",
-    # "pig_pig","pig_scrub","pig_wood","scrub_fallow","wood_wood"]
-
-    # # # significant variables (17) - ps1-stable
-    significant_variables = ["grasslandParkland","thornyScrub",
-    "fallow_fallow","fallow_scrub","fallow_wood",
-    "grass_grass","cattle_grass",
-    "cattle_cattle","cattle_wood",
-    "red_grass","red_red","red_scrub","red_wood", 
-    "roe_roe","roe_scrub",
-    "scrub_wood","wood_scrub"]
-
-    # significant variables (19) - ps2-stable
-    # significant_variables = ["grasslandParkland","thornyScrub",
-    # "fallow_fallow","fallow_scrub","grass_roe","grass_scrub","grass_wood",
-    # "cattle_grass","cattle_cattle",
-    # "red_grass","red_red","red_scrub","red_wood",
-    # "roe_roe","roe_scrub","pig_scrub",
-    # "scrub_fallow","scrub_wood","wood_scrub"]
+    # # # significant variables (21) - ps1-stable
+    significant_variables = ["grasslandParkland","thornyScrub","woodland",
+    "pony_grass","pony_scrub","pony_wood","fallow_scrub",
+    "grass_grass","cattle_grass","cattle_scrub","cattle_wood",
+    "red_scrub","roe_grass","roe_scrub","roe_wood",
+    "pig_grass","pig_scrub",
+    "pig_wood","scrub_fallow","scrub_scrub","wood_scrub"
+ ]
 
 
     count=1
@@ -825,7 +761,7 @@ def histograms_corrMatrix():
 
 def reality_1(): # remove primary producers, consumers should decline to zero 
     # open the csv
-    all_parameters = pd.read_csv('all_parameters_ps1_stable.csv')
+    all_parameters = pd.read_csv('all_parameters_ps2_unstable.csv')
     # how many simulations were accepted? 
     number_accepted = (len(all_parameters.loc[(all_parameters['accepted?'] == "Accepted")]))/(len(species)*2)
 
@@ -885,7 +821,7 @@ def reality_1(): # remove primary producers, consumers should decline to zero
     g.fig.suptitle('Reality check: No primary producers')
 
     plt.tight_layout()
-    plt.savefig('reality_check_noFood_stable_ps1.png')
+    plt.savefig('reality_check_noFood.png')
 
     plt.show()
 
@@ -894,8 +830,8 @@ def reality_1(): # remove primary producers, consumers should decline to zero
 
 def reality_2(): # herbivores overloaded
     # open the csv
-    final_results = pd.read_csv('all_runs_ps1_stable.csv')
-    all_parameters = pd.read_csv('all_parameters_ps1_stable.csv')
+    final_results = pd.read_csv('all_runs_ps2_unstable.csv')
+    all_parameters = pd.read_csv('all_parameters_ps2_unstable.csv')
 
     # how many simulations were accepted? 
     number_accepted = (len(all_parameters.loc[(all_parameters['accepted?'] == "Accepted")]))/(len(species)*2)
@@ -915,13 +851,13 @@ def reality_2(): # herbivores overloaded
 
     for r, A in zip(accepted_r, np.array_split(A_reality,number_accepted)):
         # give herbivores 0 diag they don't decline - we want to make sure habitats decline
-        A[[0],0] = 0
-        A[[1],1] = 0
-        A[[3],3] = 0
-        A[[4],4] = 0
-        A[[5],5] = 0
-        A[[6],6] = 0
-        realityCheck_ABC = solve_ivp(ecoNetwork, (2005, 2055), X0,  t_eval = t, args=(A, r), method = 'RK23') 
+        A[[0],2] = 5
+        A[[1],2] = 5
+        A[[3],2] = 5
+        A[[4],2] = 5
+        A[[5],2] = 5
+        A[[6],2] = 5
+        realityCheck_ABC = solve_ivp(ecoNetwork_nor, (2005, 2055), X0,  t_eval = t, args=(A, r), method = 'RK23') 
         # append results
         all_runs_realityCheck = np.append(all_runs_realityCheck, realityCheck_ABC.y)
         all_times_realityCheck = np.append(all_times_realityCheck, realityCheck_ABC.t)
@@ -963,7 +899,7 @@ def reality_2(): # herbivores overloaded
     g.fig.suptitle('Reality check: Overloaded herbivores')
 
     plt.tight_layout()
-    plt.savefig('reality_check_overloadedHerbs_stable_ps1.png')
+    plt.savefig('reality_check_overloadedHerbs.png')
 
     plt.show()
 
@@ -971,8 +907,8 @@ def reality_2(): # herbivores overloaded
 
 def reality_3(): # run for 100 years with no herbivory or woodland
     # open the csv
-    final_results = pd.read_csv('all_runs_ps1_stable.csv')
-    all_parameters = pd.read_csv('all_parameters_ps1_stable.csv')
+    final_results = pd.read_csv('all_runs_ps2_unstable.csv')
+    all_parameters = pd.read_csv('all_parameters_ps2_unstable.csv')
 
     # how many simulations were accepted? 
     number_accepted = (len(all_parameters.loc[(all_parameters['accepted?'] == "Accepted")]))/(len(species)*2)
@@ -1034,15 +970,15 @@ def reality_3(): # run for 100 years with no herbivory or woodland
     g.fig.suptitle('Reality check: No woodland, consumers')
 
     plt.tight_layout()
-    plt.savefig('reality_check_noHerbivoryWood_stable_ps1.png')
+    plt.savefig('reality_check_noHerbivoryWood.png')
 
     plt.show()
 
 
 def reality_4(): # run for 100 years with no herbivory, scrub or wood
     # open the csv
-    final_results = pd.read_csv('all_runs_ps1_stable.csv')
-    all_parameters = pd.read_csv('all_parameters_ps1_stable.csv')
+    final_results = pd.read_csv('all_runs_ps2_unstable.csv')
+    all_parameters = pd.read_csv('all_parameters_ps2_unstable.csv')
 
     # how many simulations were accepted? 
     number_accepted = (len(all_parameters.loc[(all_parameters['accepted?'] == "Accepted")]))/(len(species)*2)
@@ -1105,7 +1041,7 @@ def reality_4(): # run for 100 years with no herbivory, scrub or wood
     g.fig.suptitle('Reality check: No woodland, scrubland, consumers')
 
     plt.tight_layout()
-    plt.savefig('reality_check_noHerbivoryWoodScrub_stable_ps1.png')
+    plt.savefig('reality_check_noHerbivoryWoodScrub.png')
 
     plt.show()
 
@@ -1113,8 +1049,8 @@ def reality_4(): # run for 100 years with no herbivory, scrub or wood
 
 def reality_5(): # run for 100 years with no herbivory
     # open the csv
-    final_results = pd.read_csv('all_runs_ps1_stable.csv')
-    all_parameters = pd.read_csv('all_parameters_ps1_stable.csv')
+    final_results = pd.read_csv('all_runs_ps2_unstable.csv')
+    all_parameters = pd.read_csv('all_parameters_ps2_unstable.csv')
 
     # how many simulations were accepted? 
     number_accepted = (len(all_parameters.loc[(all_parameters['accepted?'] == "Accepted")]))/(len(species)*2)
@@ -1133,7 +1069,7 @@ def reality_5(): # run for 100 years with no herbivory
     A_reality = interaction_strength_2.to_numpy()
 
     for r, A in zip(accepted_r, np.array_split(A_reality,number_accepted)):
-        realityCheck_ABC = solve_ivp(ecoNetwork, (2005, 2105), X0,  t_eval = t, args=(A, r), method = 'RK23') 
+        realityCheck_ABC = solve_ivp(ecoNetwork, (2005, 2105), X0,  t_eval = t, args=(A, r, "ps2"), method = 'RK23') 
         # append results
         all_runs_realityCheck = np.append(all_runs_realityCheck, realityCheck_ABC.y)
         all_times_realityCheck = np.append(all_times_realityCheck, realityCheck_ABC.t)
@@ -1175,7 +1111,7 @@ def reality_5(): # run for 100 years with no herbivory
     g.fig.suptitle('Reality check: No primary producers')
 
     plt.tight_layout()
-    plt.savefig('reality_check_noHerbivory_stable_ps1.png')
+    plt.savefig('reality_check_noHerbivory.png')
 
     plt.show()
 
@@ -1232,7 +1168,7 @@ def hist_passed_filters():
 
 def graph_accepted_rejected():
     # open dataframes
-    final_results = pd.read_csv('all_runs_ps1_stable.csv').iloc[:,2:]
+    final_results = pd.read_csv('all_runs_ps2_unstable.csv').iloc[:,2:]
     first_ode = final_results.loc[final_results['time'] <= 2008.75]
     second_ode = final_results.loc[final_results['time'] > 2008.75]
     # pick 100 runs (to not overload the ram) - first for accepted runs
@@ -1384,7 +1320,7 @@ def graph_accepted_rejected():
     f.axes[2].vlines(x=2020.75,ymin=0.18,ymax=0.41, color='r')
     f.axes[5].vlines(x=2020.75,ymin=1.7,ymax=6.7, color='r')
     f.axes[7].vlines(x=2020.75,ymin=9.7,ymax=14.4, color='r')
-    f.axes[8].vlines(x=2020.75,ymin=3.3,ymax=3.7, color='r')
+    f.axes[8].vlines(x=2020.75,ymin=2.8,ymax=4.6, color='r')
     f.axes[0].plot(2020, 0.65, 'go',markersize=2.5) # and forcings
     f.axes[1].plot(2020, 5.9, 'go',markersize=2.5) # and forcings
     f.axes[3].plot(2020, 1.5, 'go',markersize=2.5) # and forcings
@@ -1395,13 +1331,5 @@ def graph_accepted_rejected():
     f.fig.suptitle('Accepted vs. Rejected Runs')
     plt.tight_layout()
     plt.legend(labels=['Accepted Runs', 'Rejected Runs'],bbox_to_anchor=(2.2, 0), loc='lower right', fontsize=12)
-    plt.savefig('rejected_accepted_runs_ps1_stable.png')
+    plt.savefig('rejected_accepted_runs.png')
     plt.show()
-
-
-# hist_passed_filters()
-
-histograms_corrMatrix()
-# graph_accepted_rejected()
-# reality_4(), reality_5()
-# reality_2(), reality_3(), reality_1()

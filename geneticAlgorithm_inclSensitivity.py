@@ -10,17 +10,34 @@ import itertools as IT
 import numpy.matlib
 from geneticalgorithm import geneticalgorithm as ga
 import seaborn as sns
+import math
 
 
 # # # # # --------- MINIMIZATION ----------- # # # # # # #
 
 species = ['exmoorPony','fallowDeer','grasslandParkland','longhornCattle','redDeer','roeDeer','tamworthPig','thornyScrub','woodland']
 
+def ecoNetwork_nor(t, X, A, r):
+    # put things to zero if they go below a certain threshold
+    X[X<1e-8] = 0
+    return X * (r + np.matmul(A, X))
 
 def ecoNetwork(t, X, A, r):
     # put things to zero if they go below a certain threshold
     X[X<1e-8] = 0
+    
+    # consumers with PS2 have negative growth rate 
+    r[0] = np.log(1/(100*X[0])) if X[0] != 0 else 0
+    r[1] = np.log(1/(100*X[1])) if X[1] != 0 else 0
+    r[3] = np.log(1/(100*X[3])) if X[3] != 0 else 0
+    r[4] = np.log(1/(100*X[4])) if X[4] != 0 else 0
+    r[5] = np.log(1/(100*X[5])) if X[5] != 0 else 0
+    r[6] = np.log(1/(100*X[6])) if X[6] != 0 else 0
+
     return X * (r + np.matmul(A, X))
+
+
+
 
 def run_model(X0, A, r):
     
@@ -167,20 +184,23 @@ def run_model(X0, A, r):
     return last_year_1, last_year_2, last_values_2015, last_values_2016, last_values_2017, last_values_2018, last_values_2019, y_2
 
 
-def reality_1(A, r): # remove primary producers, consumers should decline to zero 
-    t = np.linspace(2015, 2016, 10)
-    X0 = [1, 1, 0, 1, 1, 1, 1, 0, 0] # no primary producers, only consumers
-    realityCheck_ABC = solve_ivp(ecoNetwork, (2015, 2016), X0,  t_eval = t, args=(A, r), method = 'RK23') 
+def reality_1(A, r): # scrub without consumers or woodland
+    t = np.linspace(2005, 2055, 10)
+    X0 = [0, 0, 1, 0, 0, 0, 0, 1, 0] # no herbivores
+    r[8] = 0
+    realityCheck_ABC = solve_ivp(ecoNetwork, (2005, 2055), X0,  t_eval = t, args=(A, r), method = 'RK23') 
     realityCheck_1 = (np.vstack(np.hsplit(realityCheck_ABC.y.reshape(len(species), 10).transpose(),1)))
     realityCheck_1 = pd.DataFrame(data=realityCheck_1, columns=species)
     realityCheck_1['time'] = realityCheck_ABC.t
     return realityCheck_1
 
 
-def reality_2(A, r): # thorny scrub should increase to 50% with no herbivory
-    t = np.linspace(2005, 2020, 10)
-    X0 = [0, 0, 1, 0, 0, 0, 0, 1, 1] # no herbivores
-    realityCheck_ABC = solve_ivp(ecoNetwork, (2005, 2020), X0,  t_eval = t, args=(A, r), method = 'RK23') 
+def reality_2(A, r): # grassland with no scrub or woodland
+    t = np.linspace(2005, 2055, 10)
+    X0 = [0, 0, 1, 0, 0, 0, 0, 0, 0]
+    r[7] = 0
+    r[8] = 0
+    realityCheck_ABC = solve_ivp(ecoNetwork, (2005, 2055), X0,  t_eval = t, args=(A, r), method = 'RK23') 
     realityCheck_2 = (np.vstack(np.hsplit(realityCheck_ABC.y.reshape(len(species), 10).transpose(),1)))
     realityCheck_2 = pd.DataFrame(data=realityCheck_2, columns=species)
     realityCheck_2['time'] = realityCheck_ABC.t
@@ -195,43 +215,32 @@ def reality_3(A, r): # no herbivores
     realityCheck_3['time'] = realityCheck_ABC.t
     return realityCheck_3
 
-def reality_4(A, r): # overloaded herbivores
-    t = np.linspace(2005, 2105, 100)
-    X0 = [2, 2, 1, 2, 2, 2, 2, 1, 1] # overloaded consumers
-    # consumers are invincible (could represent supplementary feeding)
-    A[[0],0] = 0
-    A[[1],1] = 0
-    A[[3],3] = 0
-    A[[4],4] = 0
-    A[[5],5] = 0
-    A[[6],6] = 0
-    realityCheck_ABC = solve_ivp(ecoNetwork, (2005, 2105), X0,  t_eval = t, args=(A, r), method = 'RK23') 
-    realityCheck_4 = (np.vstack(np.hsplit(realityCheck_ABC.y.reshape(len(species), 100).transpose(),1)))
-    realityCheck_4 = pd.DataFrame(data=realityCheck_4, columns=species)
-    realityCheck_4['time'] = realityCheck_ABC.t
-    return realityCheck_4
 
 def objectiveFunction(x):
-    # only primary producers should have intrinsic growth rate
-    x = np.insert(x,0,0)
-    x = np.insert(x,1,0)
-    x = np.insert(x,3,0)
-    x = np.insert(x,4,0)
-    x = np.insert(x,5,0)
-    x = np.insert(x,6,0)
+    # define X0
+    X0 = [0,0,1,0,0,1,0,1,1]
+
+    # with PS2, consumers have a negative r
+    x = np.insert(x,0,-4.61)
+    x = np.insert(x,1,-4.61)
+    x = np.insert(x,3,-4.61)
+    x = np.insert(x,4,-4.61)
+    x = np.insert(x,5,-4.61) # roe are the only ones present
+    x = np.insert(x,6,-4.61)
+
     r =  x[0:9]
+
     # insert interaction matrices of 0
     # pony
+    x = np.insert(x,9,0)
     x = np.insert(x,10,0)
-    x = np.insert(x,11,0)
     x = np.insert(x,12,0)
     x = np.insert(x,13,0)
     x = np.insert(x,14,0)
     x = np.insert(x,15,0)
-    x = np.insert(x,16,0)
-    x = np.insert(x,17,0)
     # fallow
     x = np.insert(x,18,0)
+    x = np.insert(x,19,0)
     x = np.insert(x,21,0)
     x = np.insert(x,22,0)
     x = np.insert(x,23,0)
@@ -239,6 +248,7 @@ def objectiveFunction(x):
     # cattle
     x = np.insert(x,36,0)
     x = np.insert(x,37,0)
+    x = np.insert(x,39,0)
     x = np.insert(x,40,0)
     x = np.insert(x,41,0)
     x = np.insert(x,42,0)
@@ -246,6 +256,7 @@ def objectiveFunction(x):
     x = np.insert(x,45,0)
     x = np.insert(x,46,0)
     x = np.insert(x,48,0)
+    x = np.insert(x,49,0)
     x = np.insert(x,50,0)
     x = np.insert(x,51,0)
     # roe
@@ -253,6 +264,7 @@ def objectiveFunction(x):
     x = np.insert(x,55,0)
     x = np.insert(x,57,0) 
     x = np.insert(x,58,0)
+    x = np.insert(x,59,0)
     x = np.insert(x,60,0)
     # pig
     x = np.insert(x,63,0)
@@ -260,12 +272,12 @@ def objectiveFunction(x):
     x = np.insert(x,66,0)
     x = np.insert(x,67,0)
     x = np.insert(x,68,0)
+    x = np.insert(x,69,0)
     # scrub
     x = np.insert(x,74,0)
     # wood
     x = np.insert(x,83,0)
-    # define X0
-    X0 = [0,0,1,0,0,1,0,1,1]
+
     # define interaction strength
     interaction_strength = x[9:90]
     interaction_strength = pd.DataFrame(data=interaction_strength.reshape(9,9),index = species, columns=species)
@@ -273,15 +285,15 @@ def objectiveFunction(x):
 
     # run the model
     last_year_1, last_year_2, last_values_2015, last_values_2016, last_values_2017, last_values_2018, last_values_2019, y_2 = run_model(X0, A, r)
-    # run the reality checks
-    # realityCheck_1 = reality_1(A,r)
-    # realityCheck_1_last_year = realityCheck_1.loc[realityCheck_1['time'] == 2016]
+    # run the reality checks - this one's for scrub
+    realityCheck_1 = reality_1(A,r)
+    realityCheck_1_last_year = realityCheck_1.loc[realityCheck_1['time'] == 2055]
+    # grassland without competition
     realityCheck_2 = reality_2(A,r)
+    realityCheck_2_last_year = realityCheck_2.loc[realityCheck_2['time'] == 2055]
+    # reality check 3
     realityCheck_3 = reality_3(A,r)
-    realityCheck_2_fifteen_years = realityCheck_2.loc[realityCheck_2['time'] == 2020]
-    realityCheck_2_fifty_years = realityCheck_3.loc[realityCheck_3['time'] == 2055]
-    # realityCheck_4 = reality_4(A,r)
-    # realityCheck_4_last_year = realityCheck_4.loc[realityCheck_4['time'] == 2105]
+    realityCheck_3_fifty_years = realityCheck_3.loc[realityCheck_3['time'] == 2055]
 
     # find runs with outputs closest to the middle of the filtering conditions
     result = ( 
@@ -290,123 +302,84 @@ def objectiveFunction(x):
         (((last_year_1[5]-2.2)/2.2)**2) + 
         (((last_year_1[7]-3)/3)**2) + 
         (((last_year_1[8]-2)/2)**2) + 
-        # # 2015
-        # (((last_values_2015[0]-0.44)/0.44)**2) + 
-        # (((last_values_2015[1]-3.3)/3.3)**2) + 
-        (((last_values_2015[3]-2.5)/2.5)**2) +
-        # (((last_values_2015[4]-1)/1)**2) +
-        # (((last_values_2015[6]-1.1)/1.1)**2) +
+        # 2015
+        (((last_values_2015[0]-0.44)/0.44)**2) + 
+        (((last_values_2015[1]-3.3)/3.3)**2) + 
+        (((last_values_2015[3]-2.5))**2) +
+        (((last_values_2015[4]-1)/1)**2) +
+        (((last_values_2015[6]-1.1)/1.1)**2) +
         # # 2016
-        # (((last_values_2016[0]-0.47)/0.47)**2) + 
-        # (((last_values_2016[1]-3.9)/3.9)**2) + 
+        (((last_values_2016[0]-0.47)/0.47)**2) + 
+        (((last_values_2016[1]-3.9)*3)**2) + 
         (((last_values_2016[3]-2.1)/2.1)**2) +
-        # (((last_values_2016[4]-2)/2)**2) +
-        # (((last_values_2016[6]-0.88)/0.88)**2) +
-        # # # # 2017
-        # (((last_values_2017[0]-0.44)/0.44)**2) + 
-        # (((last_values_2017[1]-6)/6)**2) +
+        (((last_values_2016[4]-2)/2)**2) +
+        (((last_values_2016[6]-0.88)/0.88)**2) +
+        # # 2017
+        (((last_values_2017[0]-0.44)*10)**2) + 
+        (((last_values_2017[1]-6)*2)**2) +
         (((last_values_2017[3]-2.1)/2.1)**2) +
-        # (((last_values_2017[4]-1.1)/1.1)**2) +
-        # (((last_values_2017[6]-1.1)/1.1)**2) +
-        # # # # 2018
-        # (((last_values_2018[1]-7.5)/7.5)**2) +
+        (((last_values_2017[4]-1.1)*10)**2) +
+        (((last_values_2017[6]-1.1)/1.1)**2) +
+        # # # 2018
+        (((last_values_2018[1]-7.5)*2)**2) +
         (((last_values_2018[3]-2.2)/2.2)**2) + 
-        # (((last_values_2018[4]-1.9)/1.9)**2) + 
-        # (((last_values_2018[6]-1.2)/1.2)**2) +
-        # 2019
-        # (((last_values_2019[1]-8.3)/8.3)**2) + 
+        (((last_values_2018[4]-1.9)*6)**2) + 
+        (((last_values_2018[6]-1.2)/1.2)**2) +
+        # # # 2019
+        (((last_values_2019[1]-8.3)*2)**2) + 
         (((last_values_2019[3]-2.1)/2.1)**2) + 
-        # (((last_values_2019[4]-2.9)/2.9)**2) + 
-        # (((last_values_2019[6]-0.5)/0.5)**2) + 
-        # # 2020
-        # (((last_year_2[0]-0.7)/0.7)**2) + 
+        (((last_values_2019[4]-2.9)*6)**2) + 
+        (((last_values_2019[6]-0.5)/0.5)**2) + 
+        # 2020
+        (((last_year_2[0]-0.7)*5)**2) + 
         (((last_year_2[2]-0.3))**2) +
         (((last_year_2[5]-4.2)/4.2)**2) + 
-        # (((last_year_2[6]-1)/1)**2) + 
-        (((last_year_2[7]-12.1)/12.1)**2) +
-        (((last_year_2[8]-3.5))**2)
+        (((last_year_2[6]-1)/1)**2) + 
+        (((last_year_2[7]-12.1))**2) +
+        (((last_year_2[8]-3.7)*4)**2)
         
-        # sensitivity test 1 - no primary producers, so consumers should = 0
-        # (((realityCheck_1_last_year.iloc[0]['exmoorPony']-0))**2) +
-        # (((realityCheck_1_last_year.iloc[0]['fallowDeer']-0))**2) +
-        # (((realityCheck_1_last_year.iloc[0]['longhornCattle']-0))**2) +
-        # (((realityCheck_1_last_year.iloc[0]['roeDeer']-0))**2) +
-        # (((realityCheck_1_last_year.iloc[0]['redDeer']-0))**2) +
-        # (((realityCheck_1_last_year.iloc[0]['tamworthPig']-0))**2) +
-        # sensitivity test 2 - no consumers, so approx. 80% woodland after 50 yrs, 50% scrub in 15 years 
-        # scrub - 4.3% in 2005 
-        # # woodland - 5.8% in 2005
-        # (((realityCheck_2_fifteen_years.iloc[0]['thornyScrub']-23.6))**2) +
-        # (((realityCheck_2_fifty_years.iloc[0]['woodland']-17.2))**2)
-        # (((realityCheck_2_fifty_years.iloc[0]['thornyScrub']-4))**2) + # scrub should decline as woodland increases
-        # (((realityCheck_2_fifty_years.iloc[0]['grasslandParkland']-0))**2) # scrub should decline as woodland increases
-
-        # # last reality check, woodland and scrub should be zero
-        # (((realityCheck_4_last_year.iloc[0]['woodland']-0))**2) +
-        # (((realityCheck_4_last_year.iloc[0]['thornyScrub']-0))**2) 
+        # # reality check - scrubland should be 23.3
+        # (((realityCheck_1_last_year.iloc[0]['thornyScrub']-23.3)/23.3)**2) + 
+        # # sensitivity test 2 
+        # (((realityCheck_2_last_year.iloc[0]['grasslandParkland']-1.1)/1.1)**2) + 
+        # # sensitivity test 3
+        # (((realityCheck_3_fifty_years.iloc[0]['woodland']-17.2))**2)
     )
 
     # print the output
-    if result < 100:
+    if result < 20:
         print(result)
     return (result)
 
 
-
 def run_optimizer():
     bds = np.array([
-    #     # growth
-    #     [0.65,0.67],[0.44,0.45],[0.28,0.29],
-    #     # exmoor pony
-    #     [-0.04,-0.03],
-    #     # fallow deer
-    #     [-0.14,-0.13],[0.15,0.23],[0.05,0.09],[0.07,0.15],    
-    #     # grassland parkland
-    #     [-0.025,0],[-0.025,0],[-0.77,-0.76],[-0.025,0],[-0.025,0],[-0.025,0],[-0.025,0],[-0.03,-0.02],[-0.03,-0.02],
-    #     # longhorn cattle
-    #     [0.79,0.8],[-0.59,-0.58],[0.073,0.074],[0.13,0.14],
-    #     # red deer
-    #     [0.4,0.45],[-0.37,-0.35],[0.04,0.05],[0.07,0.08],
-    #     # roe deer
-    #     [0.36,0.38],[-0.76,-0.75],[0.26,0.27],[0.27,0.28],
-    #     # tamworth pig  
-    #     [0.34,0.35],[-0.75,-0.74],[0.062,0.063],[0.16,0.17],
-    #     # thorny scrubland
-    #     [-0.1,-0.001],[-0.1,-0.001],[-0.1,-0.001],[-0.1,-0.001],[-0.1,-0.001],[-0.1,-0.001],[-0.01,-0.002],[-0.1,-0.01],
-    #     # woodland
-    #     [-0.25,0],[-0.25,0],[-0.4,0],[-0.25,0],[-0.25,0],[-0.25,0],[0.18,0.19],[-0.21,-0.2],
-    # ])
-
         # growth
-        [0.88,0.89],[0.44,0.46],[0.08,0.1],
+        [0.91,0.92],[0.34,0.35],[0.5,0.5],
         # exmoor pony
-        [-10,-5],
+        [2.7,2.75],[0.16,0.17],[0.4,0.42],    
         # fallow deer
-        [-3,-2],[0,10],[0,10],[0,10],    
-        # [-27.5,-27.4],[14.1,14.2],[12,12.1],[24.8,24.9],    
-        # grassland parkland - 1.1
-        [-0.01,-0.001],[-0.01,-0.001],[-0.77,-0.75],[-0.01,-0.001],[-0.01,-0.001],[-0.01,-0.001],[-0.01,-0.001],[-0.15,-0.08],[-0.15,-0.08],
+        [3.8,4],[0.36,0.37],[0.48,0.5],  
+        # grassland parkland 
+        [-0.0025,-0.001],[-0.0035,-0.003],[-0.83,-0.82],[-0.015,-0.0093],[-0.003,-0.0025],[-0.001,-0.0009],[-0.009,-0.005],[-0.046,-0.044],[-0.049,-0.048],
         # longhorn cattle
-        [0,10],[-10,-5],[0,10],[0,10],    
-        # [63.6,63.7],[-54,-53.9],[7.4,7.5],[9.6,9.7],
+        [4.95,5],[0.21,0.22],[0.39,0.4],    
         # red deer
-        [0,10],[-3,-2],[0,10],[0,10],    
-        # [31.8,31.9],[-38.4,-38.3],[5.8,5.9],[17,17.1],
+        [2.8,2.9],[0.29,0.31],[0.42,0.43],   
         # roe deer
-        [0,10],[-2,-1],[0,10],[0,10],    
-        # [40.2,40.3],[-44.6,-44.5],[14.4,14.5],[21.4,21.5],
+        [3.8,3.9],[0.1,0.3],[0.1,0.3],    
         # tamworth pig 
-        [0,5],[-1.5,-1],[0,10],[0,10],    
-        # [35.1,35.2],[-64.2,-64],[2.6,2.7],[9.9,10],
-        # thorny scrubland - should be 23.3 
-        [-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[-0.025,-0.02],[-0.07,-0.06],
+        [3.65,3.7],[0.22,0.23],[0.4,0.41],    
+        # thorny scrubland
+        [-0.003,-0.001],[-0.01,-0.005],[-0.006,-0.005],[-0.005,-0.0032],[-0.0025,-0.0021],[-0.002,-0.0015],[-0.016,-0.015],[-0.023,-0.022],
         # woodland
-        [-0.1,-0.0075],[-0.1,-0.0075],[-0.1,-0.0075],[-0.1,-0.0075],[-0.1,-0.0075],[-0.01,-0.0075],[0.001,0.5],[-0.005,-0.001],
+        [-0.0042,-0.004],[-0.0059,-0.0058],[-0.0083,-0.0082],[-0.004,-0.0039],[-0.0032,-0.0031],[-0.0037,-0.0035],[0.005,0.008],[-0.0063,-0.0061],
     ])
 
+    
 
-    algorithm_param = {'max_num_iteration': 10,\
-                    'population_size':5000,\
+    algorithm_param = {'max_num_iteration': 1,\
+                    'population_size':1,\
                     'mutation_probability':0.1,\
                     'elit_ratio': 0.01,\
                     'crossover_probability': 0.5,\
@@ -414,11 +387,11 @@ def run_optimizer():
                     'crossover_type':'uniform',\
                     'max_iteration_without_improv':None}
 
-    optimization =  ga(function = objectiveFunction, dimension = 49, variable_type = 'real',variable_boundaries= bds, algorithm_parameters = algorithm_param, function_timeout=30)
+    optimization =  ga(function = objectiveFunction, dimension = 46, variable_type = 'real',variable_boundaries= bds, algorithm_parameters = algorithm_param, function_timeout=30)
     optimization.run()
     print(optimization)
-    with open('optimization_outputs_ps2.txt', 'w') as f:
-        print(optimization.output_dict, file=f)
+    # with open('optimization_outputs_ps2.txt', 'w') as f:
+    #     print(optimization.output_dict, file=f)
     return optimization.output_dict
 
 
@@ -432,23 +405,22 @@ def graph_results():
     # define X0
     X0 = [0,0,1,0,0,1,0,1,1]
     # fill in the zeroes
-    output_parameters["variable"] = np.insert(output_parameters["variable"],0,0)
-    output_parameters["variable"] = np.insert(output_parameters["variable"],1,0)
-    output_parameters["variable"] = np.insert(output_parameters["variable"],3,0)
-    output_parameters["variable"] = np.insert(output_parameters["variable"],4,0)
-    output_parameters["variable"] = np.insert(output_parameters["variable"],5,0)
-    output_parameters["variable"] = np.insert(output_parameters["variable"],6,0)
+    output_parameters["variable"] = np.insert(output_parameters["variable"],0,-4.61)
+    output_parameters["variable"] = np.insert(output_parameters["variable"],1,-4.61)
+    output_parameters["variable"] = np.insert(output_parameters["variable"],3,-4.61)
+    output_parameters["variable"] = np.insert(output_parameters["variable"],4,-4.61)
+    output_parameters["variable"] = np.insert(output_parameters["variable"],5,-4.61)
+    output_parameters["variable"] = np.insert(output_parameters["variable"],6,-4.61)
     # pony
+    output_parameters["variable"] = np.insert(output_parameters["variable"],9,0)
     output_parameters["variable"] = np.insert(output_parameters["variable"],10,0)
-    output_parameters["variable"] = np.insert(output_parameters["variable"],11,0)
     output_parameters["variable"] = np.insert(output_parameters["variable"],12,0)
     output_parameters["variable"] = np.insert(output_parameters["variable"],13,0)
     output_parameters["variable"] = np.insert(output_parameters["variable"],14,0)
     output_parameters["variable"] = np.insert(output_parameters["variable"],15,0)
-    output_parameters["variable"] = np.insert(output_parameters["variable"],16,0)
-    output_parameters["variable"] = np.insert(output_parameters["variable"],17,0)
     # fallow
     output_parameters["variable"] = np.insert(output_parameters["variable"],18,0)
+    output_parameters["variable"] = np.insert(output_parameters["variable"],19,0)
     output_parameters["variable"] = np.insert(output_parameters["variable"],21,0)
     output_parameters["variable"] = np.insert(output_parameters["variable"],22,0)
     output_parameters["variable"] = np.insert(output_parameters["variable"],23,0)
@@ -456,6 +428,7 @@ def graph_results():
     # cattle
     output_parameters["variable"] = np.insert(output_parameters["variable"],36,0)
     output_parameters["variable"] = np.insert(output_parameters["variable"],37,0)
+    output_parameters["variable"] = np.insert(output_parameters["variable"],39,0)
     output_parameters["variable"] = np.insert(output_parameters["variable"],40,0)
     output_parameters["variable"] = np.insert(output_parameters["variable"],41,0)
     output_parameters["variable"] = np.insert(output_parameters["variable"],42,0)
@@ -463,6 +436,7 @@ def graph_results():
     output_parameters["variable"] = np.insert(output_parameters["variable"],45,0)
     output_parameters["variable"] = np.insert(output_parameters["variable"],46,0)
     output_parameters["variable"] = np.insert(output_parameters["variable"],48,0)
+    output_parameters["variable"] = np.insert(output_parameters["variable"],49,0)
     output_parameters["variable"] = np.insert(output_parameters["variable"],50,0)
     output_parameters["variable"] = np.insert(output_parameters["variable"],51,0)
     # roe
@@ -470,6 +444,7 @@ def graph_results():
     output_parameters["variable"] = np.insert(output_parameters["variable"],55,0)
     output_parameters["variable"] = np.insert(output_parameters["variable"],57,0) 
     output_parameters["variable"] = np.insert(output_parameters["variable"],58,0)
+    output_parameters["variable"] = np.insert(output_parameters["variable"],59,0)
     output_parameters["variable"] = np.insert(output_parameters["variable"],60,0)
     # pig
     output_parameters["variable"] = np.insert(output_parameters["variable"],63,0)
@@ -477,6 +452,8 @@ def graph_results():
     output_parameters["variable"] = np.insert(output_parameters["variable"],66,0)
     output_parameters["variable"] = np.insert(output_parameters["variable"],67,0)
     output_parameters["variable"] = np.insert(output_parameters["variable"],68,0)
+    output_parameters["variable"] = np.insert(output_parameters["variable"],69,0)
+
     # scrub
     output_parameters["variable"] = np.insert(output_parameters["variable"],74,0)
     # wood
@@ -594,7 +571,7 @@ def graph_results():
     f.axes[2].vlines(x=15.75,ymin=0.18,ymax=0.41, color='r')
     f.axes[5].vlines(x=15.75,ymin=1.7,ymax=6.7, color='r')
     f.axes[7].vlines(x=15.75,ymin=9.7,ymax=14.4, color='r')
-    f.axes[8].vlines(x=15.75,ymin=3.3,ymax=3.7, color='r')
+    f.axes[8].vlines(x=15.75,ymin=2.8,ymax=4.6, color='r')
     f.axes[0].plot(15, 0.65, 'go',markersize=2.5) # and forcings
     f.axes[1].plot(15, 5.9, 'go',markersize=2.5) # and forcings
     f.axes[3].plot(15, 1.5, 'go',markersize=2.5) # and forcings
@@ -604,14 +581,14 @@ def graph_results():
     # show plot
     f.fig.suptitle('Optimiser outputs: second parameter set')
     plt.tight_layout()
-    plt.savefig('optimiser_outputs.png')
+    # plt.savefig('optimiser_outputs.png')
     plt.show()
 
 
 
     # now reality check 1
     t = np.linspace(2015, 2016, 10)
-    X0 = [1, 1, 0, 1, 1, 1, 1, 0, 0] # no primary producers, only consumers
+    X0 = [100, 1000, 0, 1, 1, 1, 1, 0, 0] # no primary producers, only consumers
     realityCheck_ABC = solve_ivp(ecoNetwork, (2015, 2020), X0,  t_eval = t, args=(A, r), method = 'RK23') 
     realityCheck_1 = (np.vstack(np.hsplit(realityCheck_ABC.y.reshape(len(species), 10).transpose(),1)))
     realityCheck_1 = pd.DataFrame(data=realityCheck_1, columns=species)
@@ -645,14 +622,14 @@ def graph_results():
         ax.fill_between(ax.lines[1].get_xdata(),ax.lines[1].get_ydata(), ax.lines[2].get_ydata(), color = '#6788ee', alpha =0.2)
     g.fig.suptitle('Reality check: No primary producers')
     plt.tight_layout()
-    plt.savefig('reality_check_noFood.png')
+    # plt.savefig('reality_check_noFood.png')
     plt.show()
 
 
     # now reality check 2
-    t = np.linspace(2005, 2105, 100)
+    t = np.linspace(2005, 2020, 100)
     X0 = [0, 0, 1, 0, 0, 0, 0, 1, 1] # no herbivores
-    realityCheck_ABC = solve_ivp(ecoNetwork, (2005, 2105), X0,  t_eval = t, args=(A, r), method = 'RK23') 
+    realityCheck_ABC = solve_ivp(ecoNetwork, (2005, 2020), X0,  t_eval = t, args=(A, r), method = 'RK23') 
     realityCheck_2 = (np.vstack(np.hsplit(realityCheck_ABC.y.reshape(len(species), 100).transpose(),1)))
     realityCheck_2 = pd.DataFrame(data=realityCheck_2, columns=species)
     realityCheck_2['time'] = realityCheck_ABC.t
@@ -685,21 +662,22 @@ def graph_results():
         ax.fill_between(ax.lines[1].get_xdata(),ax.lines[1].get_ydata(), ax.lines[2].get_ydata(), color = '#6788ee', alpha =0.2)
     g.fig.suptitle('Reality check: No consumers')
     plt.tight_layout()
-    plt.savefig('reality_check_noConsumers.png')
+    # plt.savefig('reality_check_noConsumers.png')
     plt.show()
 
 
 
     # now reality check 3
     t = np.linspace(2005, 2105, 100)
-    X0 = [2, 2, 1, 2, 2, 2, 2, 1, 1] # overloaded consumers
-    A[[0],0] = 0
-    A[[1],1] = 0
-    A[[3],3] = 0
-    A[[4],4] = 0
-    A[[5],5] = 0
-    A[[6],6] = 0
-    realityCheck_ABC = solve_ivp(ecoNetwork, (2005, 2105), X0,  t_eval = t, args=(A, r), method = 'RK23') 
+    X0 = [2, 2, 1, 2, 2, 2, 2, 1, 1] # overloaded consumers, no negative r
+    A[[0],2] = 1
+    A[[1],2] = 1
+    A[[3],2] = 1
+    A[[4],2] = 1
+    A[[5],2] = 1
+    A[[6],2] = 1
+
+    realityCheck_ABC = solve_ivp(ecoNetwork_nor, (2005, 2105), X0,  t_eval = t, args=(A, r), method = 'RK23') 
     realityCheck_3 = (np.vstack(np.hsplit(realityCheck_ABC.y.reshape(len(species), 100).transpose(),1)))
     realityCheck_3 = pd.DataFrame(data=realityCheck_3, columns=species)
     realityCheck_3['time'] = realityCheck_ABC.t
@@ -732,7 +710,7 @@ def graph_results():
         ax.fill_between(ax.lines[1].get_xdata(),ax.lines[1].get_ydata(), ax.lines[2].get_ydata(), color = '#6788ee', alpha =0.2)
     g.fig.suptitle('Reality check: Overloaded consumers')
     plt.tight_layout()
-    plt.savefig('reality_check_overloadConsumers.png')
+    # plt.savefig('reality_check_overloadConsumers.png')
     plt.show()
 
 
@@ -775,7 +753,7 @@ def graph_results():
         ax.fill_between(ax.lines[1].get_xdata(),ax.lines[1].get_ydata(), ax.lines[2].get_ydata(), color = '#6788ee', alpha =0.2)
     g.fig.suptitle('Reality check: No woodland or consumers')
     plt.tight_layout()
-    plt.savefig('reality_check_scrubLevelling.png')
+    # plt.savefig('reality_check_scrubLevelling.png')
     plt.show()
 
 
@@ -818,7 +796,7 @@ def graph_results():
         ax.fill_between(ax.lines[1].get_xdata(),ax.lines[1].get_ydata(), ax.lines[2].get_ydata(), color = '#6788ee', alpha =0.2)
     g.fig.suptitle('Reality check: Grassland only')
     plt.tight_layout()
-    plt.savefig('reality_check_grassLevelling.png')
+    # plt.savefig('reality_check_grassLevelling.png')
     plt.show()
 
 

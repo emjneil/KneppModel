@@ -15,11 +15,20 @@ species = ['exmoorPony','fallowDeer','grasslandParkland','longhornCattle','redDe
 def ecoNetwork(t, X, A, r):
     # put things to zero if they go below a certain threshold
     X[X<1e-8] = 0
+
+    # consumers with PS2 have negative growth rate 
+    r[0] = np.log(1/(100*X[0])) if X[0] != 0 else 0
+    r[1] = np.log(1/(100*X[1])) if X[1] != 0 else 0
+    r[3] = np.log(1/(100*X[3])) if X[3] != 0 else 0
+    r[4] = np.log(1/(100*X[4])) if X[4] != 0 else 0
+    r[5] = np.log(1/(100*X[5])) if X[5] != 0 else 0
+    r[6] = np.log(1/(100*X[6])) if X[6] != 0 else 0
     return X * (r + np.matmul(A, X))
+
 
 # first - forecast 50 years 
 def run_model():
-    all_parameters = pd.read_csv('all_parameters_ps1_stable.csv')
+    all_parameters = pd.read_csv('all_parameters_ps2_unstable.csv')
     # how many were accepted? 
     number_accepted = (len(all_parameters.loc[(all_parameters['accepted?'] == "Accepted")]))/(len(species)*2)
     # get the accepted parameters
@@ -227,14 +236,14 @@ def run_model():
     final_outputs = (np.vstack(np.hsplit(all_runs_backcast.reshape(len(species)*int(number_accepted), 348).transpose(),number_accepted)))
     final_outputs = pd.DataFrame(data=final_outputs, columns=species)
     final_outputs['time'] = all_times_backcast
-    final_outputs.to_csv("forecasting_ps1_stable.csv")
+    final_outputs.to_csv("forecasting_ps2_unstable.csv")
 
 run_model()
 
 
 # next, assess the counterfactual
 def counterfactual():
-    all_parameters = pd.read_csv('all_parameters_ps1_stable.csv')
+    all_parameters = pd.read_csv('all_parameters_ps2_unstable.csv')
     # how many were accepted? 
     number_accepted = (len(all_parameters.loc[(all_parameters['accepted?'] == "Accepted")]))/(len(species)*2)
     # get the accepted parameters
@@ -257,15 +266,15 @@ def counterfactual():
     combined_runs = (np.vstack(np.hsplit(all_runs.reshape(len(species)*int(number_accepted), 200).transpose(),number_accepted)))
     combined_runs = pd.DataFrame(data=combined_runs, columns=species)
     combined_runs['time'] = all_times
-    combined_runs.to_csv("counterfactual_ps1_stable.csv")
+    combined_runs.to_csv("counterfactual_ps2_unstable.csv")
 
 counterfactual()
 
 # graph those two 
 def graph_forecasting():
-    forecasting = pd.read_csv("forecasting_ps1_stable.csv").iloc[:,1:]
+    forecasting = pd.read_csv("forecasting_ps2_unstable.csv").iloc[:,1:]
     forecasting['runType'] = "forecasting"
-    counterfactual = pd.read_csv("counterfactual_ps1_stable.csv").iloc[:,1:]
+    counterfactual = pd.read_csv("counterfactual_ps2_unstable.csv").iloc[:,1:]
     counterfactual['runType'] = "counterfactual"
     # concat them
     final_results = pd.concat([forecasting, counterfactual])
@@ -321,7 +330,7 @@ def graph_forecasting():
     f.fig.suptitle('Forecasting vs. Counterfactual')
     plt.tight_layout()
     plt.legend(labels=['Forecasting current dynamics', 'Counterfactual'],bbox_to_anchor=(2.2, 0), loc='lower right', fontsize=12)
-    plt.savefig('counterfactual_ps1_stable.png')
+    plt.savefig('counterfactual.png')
     plt.show()
 
 graph_forecasting()

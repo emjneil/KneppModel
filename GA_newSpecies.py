@@ -19,6 +19,16 @@ species = ['exmoorPony','fallowDeer','grasslandParkland','longhornCattle','redDe
 def ecoNetwork(t, X, A, r):
     # put things to zero if they go below a certain threshold
     X[X<1e-8] = 0
+
+    # consumers with PS2 have negative growth rate 
+    r[0] = np.log(1/(100*X[0])) if X[0] != 0 else 0
+    r[1] = np.log(1/(100*X[1])) if X[1] != 0 else 0
+    r[3] = np.log(1/(100*X[3])) if X[3] != 0 else 0
+    r[4] = np.log(1/(100*X[4])) if X[4] != 0 else 0
+    r[5] = np.log(1/(100*X[5])) if X[5] != 0 else 0
+    r[6] = np.log(1/(100*X[6])) if X[6] != 0 else 0
+    r[9] = np.log(1/(100*X[9])) if X[9] != 0 else 0
+
     return X * (r + np.matmul(A, X))
 
 def run_model(X0, A, r):
@@ -222,67 +232,45 @@ def objectiveFunction(x):
 
     X0 = [0, 0, 1, 0, 0, 1, 0, 1, 1, 0]
 
-    r = [0, 0, 0.82, 0, 0, 0, 0, 0.44, 0.12, 0] # ps1
-    # r =  [0, 0, 0.81, 0, 0, 0, 0, 0.45, 0.09,0]  # ps2
+    r = [0, 0, 0.91, 0, 0, 0, 0, 0.35, 0.11, 0]  # ps2
 
     A = [
-    # exmoor pony - special case, no growth
-    [-0.038, 0, 0, 0, 0, 0, 0, 0, 0,0],
-    # fallow deer 
-    [0, -0.15, 0.41, 0, 0, 0, 0, 0.084, 0.15,0],
-    # grassland parkland
-    [-0.0032, -0.0042, -0.97, -0.0042, -0.0019, -0.00092, -0.0059, -0.034, -0.054,x[0]],
-    # longhorn cattle  
-    [0, 0, 0.79, -0.59, 0, 0, 0, 0.073, 0.13,0],
-    # red deer  
-    [0, 0, 0.66, 0, -0.4, 0, 0, 0.052, 0.082,0],
-    # roe deer 
-    [0, 0, 0.59, 0, 0, -0.76, 0, 0.26, 0.27,0],
-    # tamworth pig 
-    [0, 0, 0.34, 0, 0,0, -0.75, 0.062, 0.16,0],  
-    # thorny scrub
-    [-0.006, -0.00012, 0, -0.0033, -0.007, -0.0029, -0.0061, -0.02, -0.033,x[1]],
-    # woodland
-    [-0.0025, -0.0026, 0, -0.0011, -0.0021, -0.0045, -0.0036, 0.0027, -0.0086,x[2]],
-    # new species
-    [0,0,x[3],0,0,0,0,x[4],x[5],x[6]]
-]
+        # exmoor pony - special case, no growth
+        [0, 0, 2.7, 0, 0, 0, 0, 0.17, 0.4, 0],
+        # fallow deer 
+        [0, 0, 3.81, 0, 0, 0, 0, 0.37, 0.49, 0],
+        # grassland parkland
+        [-0.0024, -0.0032, -0.83, -0.015, -0.003, -0.00092, -0.0082, -0.046, -0.049, x[0]],
+        # longhorn cattle  
+        [0, 0, 4.99, 0, 0, 0, 0, 0.21, 0.4, 0],
+        # red deer  
+        [0, 0, 2.8, 0, 0, 0, 0, 0.29, 0.42, 0],
+        # roe deer 
+        [0, 0, 4.9, 0, 0, 0, 0, 0.25, 0.38, 0],
+        # tamworth pig 
+        [0, 0, 3.7, 0, 0,0, 0, 0.23, 0.41, 0],  
+        # thorny scrub
+        [-0.0014, -0.005, 0, -0.0051, -0.0039, -0.0023, -0.0018, -0.015, -0.022, x[1]],
+        # woodland
+        [-0.0041, -0.0058, 0, -0.0083, -0.004, -0.0032, -0.0037, 0.0079, -0.0062, x[2]],
+        # new species
+        [0,0,x[3],0,0,0,0,x[4],x[5],0]
 
-    # A =     [
-    #     # exmoor pony - special case, no growth
-    #     [-17.0, 0, 0, 0, 0, 0, 0, 0, 0,0],
-    #     # fallow deer 
-    #     [0, -27.5, 14.1, 0, 0, 0, 0, 12.0, 24.8,0],
-    #     # grassland parkland
-    #     [-0.0028, -0.0026, -0.99, -0.0029, -0.0008, -0.0032, -0.0033, -0.032, -0.0831,x[0]],
-    #     # longhorn cattle  
-    #     [0, 0, 63.6, -54, 0, 0, 0, 7.4, 9.6,0],
-    #     # red deer  
-    #     [0, 0, 31.8, 0, -38.4, 0, 0, 5.8, 17,0],
-    #     # roe deer 
-    #     [0, 0,40.2, 0, 0, -44.6, 0, 14.4, 21.4,0],
-    #     # tamworth pig 
-    #     [0, 0, 35.1, 0, 0,0, -64.2, 2.6, 9.9,0],  
-    #     # thorny scrub
-    #     [-0.00078, -0.00024, 0, -0.0023, -0.0036, -0.006, -0.0053, -0.02, -0.043,x[1]],
-    #     # woodland
-    #     [-0.00008, -0.00075, 0, -0.00077, -0.00076, -0.00073, -0.0004, 0.0034, -0.0054,x[2]],
-    #     # new species
-    #     [0,0,x[3],0,0,0,0,x[4],x[5],x[6]]
-    # ]
+        ]
+
 
     # run the model
     last_year_1,y_2 = run_model(X0, A, r)
     # find runs with outputs closest to the middle of the filtering conditions
     result = ( 
         # want 25% grassland - 0.3; 10% = 0.1
-        (((last_year_1[2]-0.56))**2) +
-        (((last_year_1[7]-5.8))**2)
-        # (((last_year_1[8]-4.3))**2) # 25%
+        # (((last_year_1[8]-8.6))**2) # 50% wood
+        # (((last_year_1[8]-7.8))**2) # 45% wood
+        (((last_year_1[8]-4.3))**2) # 25% wood
 
         )
     # print the output
-    if result < 10:
+    if result < 1:
         print(result)
     return (result)
 
@@ -290,15 +278,13 @@ def objectiveFunction(x):
 def run_optimizer():
     bds = np.array([
         # new species impacts
-        [-0.1,0],[-0.1,0],[-0.1,0],
+        [-0.0035,-0.001],[-0.1,0],[-0.1,0],
         # gains from habitats
-        [0,1],[0,1],[0,1],
-        # negative diagonal
-        [-1,0]
+        [0,5],[0,1],[0,1],
     ])
 
-    algorithm_param = {'max_num_iteration': 5,\
-                    'population_size':1000,\
+    algorithm_param = {'max_num_iteration': 25,\
+                    'population_size':150,\
                     'mutation_probability':0.1,\
                     'elit_ratio': 0.01,\
                     'crossover_probability': 0.5,\
@@ -306,7 +292,7 @@ def run_optimizer():
                     'crossover_type':'uniform',\
                     'max_iteration_without_improv':None}
 
-    optimization =  ga(function = objectiveFunction, dimension = 7, variable_type = 'real',variable_boundaries= bds, algorithm_parameters = algorithm_param, function_timeout=30)
+    optimization =  ga(function = objectiveFunction, dimension = 6, variable_type = 'real',variable_boundaries= bds, algorithm_parameters = algorithm_param, function_timeout=30)
     optimization.run()
     print(optimization)
     with open('optimize_newSpecies_ps2.txt', 'w') as f:
@@ -321,7 +307,7 @@ def graph_results():
     X0 = [0,0,1,0,0,1,0,1,1,0]
 
     # open the other parameters
-    all_parameters = pd.read_csv('all_parameters_ps1_unstable.csv')
+    all_parameters = pd.read_csv('all_parameters_ps2_unstable.csv')
     # how many were accepted? 
     number_accepted = (len(all_parameters.loc[(all_parameters['accepted?'] == "Accepted")]))/((len(species)-1)*2)
     # get the accepted parameters
@@ -360,7 +346,7 @@ def graph_results():
         # woodland
         [A[8,0], A[8,1], 0, A[8,3], A[8,4], A[8,5], A[8,6], A[8,7], A[8,8],output_parameters["variable"][2]],
         # new species
-        [0,0,output_parameters["variable"][3],0,0,0,0,output_parameters["variable"][4],output_parameters["variable"][5],output_parameters["variable"][6]]
+        [0,0,output_parameters["variable"][3],0,0,0,0,output_parameters["variable"][4],output_parameters["variable"][5],0]
 ]       
         # start the first run
         t_init = np.linspace(2005, 2008.75, 12)
@@ -585,7 +571,7 @@ def graph_results():
         ax.set_xlabel('Time (Years)')
 
     # show plot
-    f.fig.suptitle('Engineering towards a grassland-dominant mosaic ecosystem')
+    f.fig.suptitle('Engineering towards an ecosystem with 25% woodland')
 
     plt.tight_layout()
     plt.savefig('engineering_newSpecies_ps1_unstable.png')

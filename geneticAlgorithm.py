@@ -306,16 +306,7 @@ def objectiveFunction(x):
     # else:
     #     return 1e5
     
-#  PS1:                                                                          
-#  [ 0.78682475  0.31741647  0.09996903 -0.05014727 -0.30114024  0.50259624
-#   0.15556726  0.21236035 -0.00752402 -0.00426753 -0.99655814 -0.00269986
-#  -0.00240701 -0.00305205 -0.01926811 -0.02339029 -0.07712044  0.73625849
-#  -0.7074312   0.11399694  0.11607176  0.55157858 -0.75375631  0.13736587
-#   0.24774307  0.40221588 -0.76514982  0.26742526  0.26136752  0.49424095
-#  -0.81545783  0.10409119  0.10722544 -0.00855345 -0.00511527 -0.00421695
-#  -0.00487159 -0.00507799 -0.02539618 -0.00774082 -0.02427517 -0.00415809
-#  -0.00209986 -0.00304694 -0.00197189 -0.00140445 -0.00248006  0.00129173
-#  -0.00552949]
+
 
 
 def run_optimizer():
@@ -358,6 +349,8 @@ def run_optimizer():
     with open('optimization_outputs.txt', 'w') as f:
         print(optimization.output_dict, file=f)
     return optimization.output_dict
+
+
 
 
 
@@ -478,7 +471,7 @@ def graph_results():
     f.fig.suptitle('Optimiser outputs: first parameter set')
 
     plt.tight_layout()
-    plt.savefig('optimiser_outputs.png')
+    plt.savefig('optimiser_outputs_test.png')
     plt.show()
 
 graph_results()

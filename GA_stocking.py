@@ -20,7 +20,17 @@ species = ['exmoorPony','fallowDeer','grasslandParkland','longhornCattle','redDe
 def ecoNetwork(t, X, A, r):
     # put things to zero if they go below a certain threshold
     X[X<1e-8] = 0
+
+    # consumers with PS2 have negative growth rate 
+    r[0] = np.log(1/(100*X[0])) if X[0] != 0 else 0
+    r[1] = np.log(1/(100*X[1])) if X[1] != 0 else 0
+    r[3] = np.log(1/(100*X[3])) if X[3] != 0 else 0
+    r[4] = np.log(1/(100*X[4])) if X[4] != 0 else 0
+    r[5] = np.log(1/(100*X[5])) if X[5] != 0 else 0
+    r[6] = np.log(1/(100*X[6])) if X[6] != 0 else 0
     return X * (r + np.matmul(A, X))
+
+
 
 def run_model(X0, A, r, exmoor_stocking, fallow_stocking, longhorn_stocking, red_stocking, tamworth_stocking):
     all_times = []
@@ -210,6 +220,8 @@ def run_model(X0, A, r, exmoor_stocking, fallow_stocking, longhorn_stocking, red
     y_2['time'] = combined_times
     # choose the final year (we want to compare the final year to the middle of the filters)
     last_year_1 = y_2.loc[y_2['time'] == 2119.75]
+    # last_year_1 = y_2.loc[y_2['time'] == 2069.75]
+
     last_year_1 = last_year_1.drop('time', axis=1).values.flatten()
     return last_year_1, y_2
 
@@ -225,59 +237,40 @@ def objectiveFunction(x):
 
     X0 = [0, 0, 1, 0, 0, 1, 0, 1, 1]
 
-    r = [0, 0, 0.66, 0, 0, 0, 0, 0.45, 0.28] # ps1
-    # r =  [0, 0, 0.81, 0, 0, 0, 0, 0.45, 0.09]  # ps2
+
+    r = [0, 0, 0.91, 0, 0, 0, 0, 0.35, 0.11]  # ps2
 
     A = [
-    # exmoor pony - special case, no growth
-    [-0.038, 0, 0, 0, 0, 0, 0, 0, 0],
-    # fallow deer 
-    [0, -0.14, 0.19, 0, 0, 0, 0, 0.075, 0.11],
-    # grassland parkland
-    [-0.022, -0.0087, -0.76, -0.016, -0.0011, -0.021, -0.013, -0.020, -0.025],
-    # longhorn cattle  
-    [0, 0, 0.79, -0.59, 0, 0, 0, 0.074, 0.14],
-    # red deer  
-    [0, 0, 0.42, 0, -0.36, 0, 0, 0.049, 0.080],
-    # roe deer 
-    [0, 0, 0.36, 0, 0, -0.76, 0, 0.26, 0.27],
-    # tamworth pig 
-    [0, 0, 0.35, 0, 0,0, -0.74, 0.063, 0.17],  
-    # thorny scrub
-    [-0.071, -0.0013, 0, -0.013, -0.02, -0.0071, -0.022, -0.0023, -0.073],
-    # woodland
-    [-0.015, -0.026, 0, -0.27, -0.11, -0.13, -0.091, 0.19, -0.20]
-]
-
-    # A =     [
-    #     # exmoor pony - special case, no growth
-    #     [-17.0, 0, 0, 0, 0, 0, 0, 0, 0],
-    #     # fallow deer 
-    #     [0, -27.5, 14.1, 0, 0, 0, 0, 12.0, 24.8],
-    #     # grassland parkland
-    #     [-0.0028, -0.0026, -0.99, -0.0029, -0.0008, -0.0032, -0.0033, -0.032, -0.0831],
-    #     # longhorn cattle  
-    #     [0, 0, 63.6, -54, 0, 0, 0, 7.4, 9.6],
-    #     # red deer  
-    #     [0, 0, 31.8, 0, -38.4, 0, 0, 5.8, 17],
-    #     # roe deer 
-    #     [0, 0,40.2, 0, 0, -44.6, 0, 14.4, 21.4],
-    #     # tamworth pig 
-    #     [0, 0, 35.1, 0, 0,0, -64.2, 2.6, 9.9],  
-    #     # thorny scrub
-    #     [-0.00078, -0.00024, 0, -0.0023, -0.0036, -0.006, -0.0053, -0.02, -0.043],
-    #     # woodland
-    #     [-0.00008, -0.00075, 0, -0.00077, -0.00076, -0.00073, -0.0004, 0.0034, -0.0054]
-    # ]
+            # exmoor pony - special case, no growth
+            [0, 0, 2.7, 0, 0, 0, 0, 0.17, 0.4],
+            # fallow deer 
+            [0, 0, 3.81, 0, 0, 0, 0, 0.37, 0.49],
+            # grassland parkland
+            [-0.0024, -0.0032, -0.83, -0.015, -0.003, -0.00092, -0.0082, -0.046, -0.049],
+            # longhorn cattle  
+            [0, 0, 4.99, 0, 0, 0, 0, 0.21, 0.4],
+            # red deer  
+            [0, 0, 2.8, 0, 0, 0, 0, 0.29, 0.42],
+            # roe deer 
+            [0, 0, 4.9, 0, 0, 0, 0, 0.25, 0.38],
+            # tamworth pig 
+            [0, 0, 3.7, 0, 0,0, 0, 0.23, 0.41],  
+            # thorny scrub
+            [-0.0014, -0.005, 0, -0.0051, -0.0039, -0.0023, -0.0018, -0.015, -0.022],
+            # woodland
+            [-0.0041, -0.0058, 0, -0.0083, -0.004, -0.0032, -0.0037, 0.0079, -0.0062]
+            ]
 
     # run the model
     last_year_1,y_2 = run_model(X0, A, r, exmoor_stocking, fallow_stocking, longhorn_stocking, red_stocking, tamworth_stocking)
     # find runs with outputs closest to the middle of the filtering conditions
     result = ( 
-        # want 25% grassland - 0.3; 10% = 0.1
-        (((last_year_1[2]-0.56))**2) 
-        # (((last_year_1[7]-11.6))**2)
-        # (((last_year_1[8]-4.3))**2) # 25% wood
+        # (((last_year_1[2]-0.37))**2)
+        # (((last_year_1[7]-5.8))**2) # 25% grass and scrub
+        # (((last_year_1[8]-8.6))**2) # 50% wood
+        # (((last_year_1[8]-7.8))**2) # 45% wood
+        (((last_year_1[8]-4.3))**2) # 25% wood
+
         )
     # print the output
     if result < 1:
@@ -290,12 +283,13 @@ def objectiveFunction(x):
 def run_optimizer():
     bds = np.array([
         # exmoor, fallow, longhorn, red, tamworth stocking densities
-          [-1,1],[-1,1],[-1,1],[-1,1],[-1,1]
+        #   [-1,5],[-1,3],[-1,5],[-1,5],[-1,5]
+          [0,50],[0,0],[0,0],[0,0],[0,0]
 
     ])
 
-    algorithm_param = {'max_num_iteration': 5,\
-                    'population_size':10,\
+    algorithm_param = {'max_num_iteration': 10,\
+                    'population_size':250,\
                     'mutation_probability':0.1,\
                     'elit_ratio': 0.01,\
                     'crossover_probability': 0.5,\
@@ -306,7 +300,7 @@ def run_optimizer():
     optimization =  ga(function = objectiveFunction, dimension = 5, variable_type = 'real',variable_boundaries= bds, algorithm_parameters = algorithm_param, function_timeout=30)
     optimization.run()
     print(optimization)
-    with open('grasslandOptimize_ps1.txt', 'w') as f:
+    with open('woodland_stocking_optimize_ps1.txt', 'w') as f:
         print(optimization.output_dict, file=f)
     return optimization.output_dict
 
@@ -325,7 +319,7 @@ def graph_results():
     tamworth_stocking = output_parameters["variable"][4]
 
     # open the other parameters
-    all_parameters = pd.read_csv('all_parameters_ps1_unstable.csv')
+    all_parameters = pd.read_csv('all_parameters_ps2_unstable.csv')
     # how many were accepted? 
     number_accepted = (len(all_parameters.loc[(all_parameters['accepted?'] == "Accepted")]))/(len(species)*2)
     # get the accepted parameters
@@ -566,15 +560,13 @@ def graph_results():
         ax.set_xlabel('Time (Years)')
 
     # show plot
-    f.fig.suptitle('Engineering towards 50% grassland')
+    f.fig.suptitle('Engineering towards 25% woodland')
 
     plt.tight_layout()
-    plt.savefig('engineering_grassland_ps1_unstable.png')
+    plt.savefig('engineering_woodland.png')
     plt.show()
 
 
-
-# graph_results()
 
 
 
@@ -592,29 +584,29 @@ def graph_single():
     red_stocking = output_parameters["variable"][3]
     tamworth_stocking = output_parameters["variable"][4]
 
-    r = [0, 0, 0.66, 0, 0, 0, 0, 0.45, 0.28] # ps1
 
+    r = [0, 0, 0.91, 0, 0, 0, 0, 0.35, 0.11]  # ps2
 
     A = [
-    # exmoor pony - special case, no growth
-    [-0.038, 0, 0, 0, 0, 0, 0, 0, 0],
-    # fallow deer 
-    [0, -0.14, 0.19, 0, 0, 0, 0, 0.075, 0.11],
-    # grassland parkland
-    [-0.022, -0.0087, -0.76, -0.016, -0.0011, -0.021, -0.013, -0.020, -0.025],
-    # longhorn cattle  
-    [0, 0, 0.79, -0.59, 0, 0, 0, 0.074, 0.14],
-    # red deer  
-    [0, 0, 0.42, 0, -0.36, 0, 0, 0.049, 0.080],
-    # roe deer 
-    [0, 0, 0.36, 0, 0, -0.76, 0, 0.26, 0.27],
-    # tamworth pig 
-    [0, 0, 0.35, 0, 0,0, -0.74, 0.063, 0.17],  
-    # thorny scrub
-    [-0.071, -0.0013, 0, -0.013, -0.02, -0.0071, -0.022, -0.0023, -0.073],
-    # woodland
-    [-0.015, -0.026, 0, -0.27, -0.11, -0.13, -0.091, 0.19, -0.20]
-]
+            # exmoor pony - special case, no growth
+            [0, 0, 2.7, 0, 0, 0, 0, 0.17, 0.4],
+            # fallow deer 
+            [0, 0, 3.81, 0, 0, 0, 0, 0.37, 0.49],
+            # grassland parkland
+            [-0.0024, -0.0032, -0.83, -0.015, -0.003, -0.00092, -0.0082, -0.046, -0.049],
+            # longhorn cattle  
+            [0, 0, 4.99, 0, 0, 0, 0, 0.21, 0.4],
+            # red deer  
+            [0, 0, 2.8, 0, 0, 0, 0, 0.29, 0.42],
+            # roe deer 
+            [0, 0, 4.9, 0, 0, 0, 0, 0.25, 0.38],
+            # tamworth pig 
+            [0, 0, 3.7, 0, 0,0, 0, 0.23, 0.41],  
+            # thorny scrub
+            [-0.0014, -0.005, 0, -0.0051, -0.0039, -0.0023, -0.0018, -0.015, -0.022],
+            # woodland
+            [-0.0041, -0.0058, 0, -0.0083, -0.004, -0.0032, -0.0037, 0.0079, -0.0062]
+            ]
     # start the first run
     t_init = np.linspace(2005, 2008.75, 12)
     results = solve_ivp(ecoNetwork, (2005, 2008.75), X0,  t_eval = t_init, args=(A, r), method = 'RK23')
@@ -797,6 +789,7 @@ def graph_single():
     final_results = (np.vstack(np.hsplit(all_runs_single.reshape(len(species)*int(1), 348).transpose(),1)))
     final_results = pd.DataFrame(data=final_results, columns=species)
     final_results['time'] = all_times_single
+    print(final_results.loc[final_results['time'] == 2119.75])
 
 
     # put it in a dataframe
@@ -833,11 +826,26 @@ def graph_single():
         ax.set_xlabel('Time (Years)')
 
     # show plot
-    f.fig.suptitle('Engineering towards a mosaic ecosystem')
+    f.fig.suptitle('Optimising stocking density towards a goal of 55% woodland')
 
     plt.tight_layout()
-    plt.savefig('engineering_grassland_ps1_unstable_single.png')
+    plt.savefig('55_woodland_ps1_unstable_single.png')
     plt.show()
 
 
-graph_results()
+graph_single()
+# graph_results()
+
+
+def graph_stocking():
+    df = pd.read_excel("stocking_outputs_wood.xlsx")
+    print(df)
+
+    g = sns.FacetGrid(df, col="Species", hue="Experiment")
+    g.map_dataframe(sns.barplot, data=df, x="Experiment", y="Number")
+
+    plt.show()
+
+
+
+# graph_stocking()
