@@ -1,7 +1,4 @@
-/old_outputs/
-/new_outputs/
-/new_outputs_ps/
-/raw_data/
+/final_outputs/
 /__pycache__/
 /.history/
 .DS_Store

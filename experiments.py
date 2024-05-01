@@ -28,7 +28,7 @@ def ecoNetwork(t, X, A, r):
 
 # first - forecast 50 years 
 def run_model():
-    all_parameters = pd.read_csv('all_parameters_ps2_unstable.csv')
+    all_parameters = pd.read_csv('all_parameters.csv')
     # how many were accepted? 
     number_accepted = (len(all_parameters.loc[(all_parameters['accepted?'] == "Accepted")]))/(len(species)*2)
     # get the accepted parameters
@@ -36,7 +36,7 @@ def run_model():
     accepted_growth = accepted_parameters.loc[accepted_parameters['growth'].notnull(), ['growth']]
     accepted_r = pd.DataFrame(accepted_growth.values.reshape(int(number_accepted), len(species)), columns = species).to_numpy()
     # select accepted interaction strengths
-    interaction_strength_2 = accepted_parameters.drop(["Unnamed: 0.1",'X0', 'growth', 'ID', 'accepted?'], axis=1).dropna()
+    interaction_strength_2 = accepted_parameters.drop(["Unnamed: 0",'X0', 'growth', 'ID', 'accepted?'], axis=1).dropna()
     A_reality = interaction_strength_2.to_numpy()
     X0 = [0, 0, 1, 0, 0, 1, 0, 1, 1]
 
@@ -236,14 +236,16 @@ def run_model():
     final_outputs = (np.vstack(np.hsplit(all_runs_backcast.reshape(len(species)*int(number_accepted), 348).transpose(),number_accepted)))
     final_outputs = pd.DataFrame(data=final_outputs, columns=species)
     final_outputs['time'] = all_times_backcast
-    final_outputs.to_csv("forecasting_ps2_unstable.csv")
+    final_outputs.to_csv("forecasting.csv")
 
 run_model()
 
 
+
+
 # next, assess the counterfactual
 def counterfactual():
-    all_parameters = pd.read_csv('all_parameters_ps2_unstable.csv')
+    all_parameters = pd.read_csv('all_parameters.csv')
     # how many were accepted? 
     number_accepted = (len(all_parameters.loc[(all_parameters['accepted?'] == "Accepted")]))/(len(species)*2)
     # get the accepted parameters
@@ -251,7 +253,7 @@ def counterfactual():
     accepted_growth = accepted_parameters.loc[accepted_parameters['growth'].notnull(), ['growth']]
     accepted_r = pd.DataFrame(accepted_growth.values.reshape(int(number_accepted), len(species)), columns = species).to_numpy()
     # select accepted interaction strengths
-    interaction_strength_2 = accepted_parameters.drop(["Unnamed: 0.1",'X0', 'growth', 'ID', 'accepted?'], axis=1).dropna()
+    interaction_strength_2 = accepted_parameters.drop(["Unnamed: 0",'X0', 'growth', 'ID', 'accepted?'], axis=1).dropna()
     A_reality = interaction_strength_2.to_numpy()
     X0 = [0, 0, 1, 0, 0, 1, 0, 1, 1]
     all_runs = []
@@ -266,15 +268,15 @@ def counterfactual():
     combined_runs = (np.vstack(np.hsplit(all_runs.reshape(len(species)*int(number_accepted), 200).transpose(),number_accepted)))
     combined_runs = pd.DataFrame(data=combined_runs, columns=species)
     combined_runs['time'] = all_times
-    combined_runs.to_csv("counterfactual_ps2_unstable.csv")
+    combined_runs.to_csv("counterfactual.csv")
 
 counterfactual()
 
 # graph those two 
 def graph_forecasting():
-    forecasting = pd.read_csv("forecasting_ps2_unstable.csv").iloc[:,1:]
+    forecasting = pd.read_csv("forecasting.csv").iloc[:,1:]
     forecasting['runType'] = "forecasting"
-    counterfactual = pd.read_csv("counterfactual_ps2_unstable.csv").iloc[:,1:]
+    counterfactual = pd.read_csv("counterfactual.csv").iloc[:,1:]
     counterfactual['runType'] = "counterfactual"
     # concat them
     final_results = pd.concat([forecasting, counterfactual])

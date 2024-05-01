@@ -42,8 +42,7 @@ def ecoNetwork(t, X, A, r):
 
 def run_model():
     # open the accepted parameters
-    # all_parameters = pd.read_csv('all_parameters_ps1_unstable.csv')
-    # all_parameters = pd.read_csv('all_parameters_ps2_unstable.csv')
+    # all_parameters = pd.read_csv('all_parameters.csv')
 
     # accepted_parameters = all_parameters.loc[(all_parameters['accepted?'] == "Accepted")].iloc[:,1:]
 
@@ -59,7 +58,7 @@ def run_model():
     # interaction_strength_2 = interaction_strength_2.dropna()
     # A_accepted = interaction_strength_2.to_numpy()
 
-    temporary_r = [0, 0, 0.91, 0, 0, 0, 0, 0.35, 0.11]  # ps2
+    temporary_r = [0, 0, 0.91, 0, 0, 0, 0, 0.35, 0.11] 
 
     temporary_A = [
             # exmoor pony - special case, no growth
@@ -366,12 +365,12 @@ def run_model():
             parameter_names.append(str(parameter))
     # append to dataframe
     merged_dfs = pd.concat([pd.DataFrame({'Filters': sensitivity_results_list}), pd.DataFrame({'Percentage': perc_numbers}),(pd.DataFrame({'Parameter Name': parameter_names}).reset_index(drop=True))], axis=1)
-    merged_dfs.to_csv("sensitivity_table_ps1_unstable.csv")
+    merged_dfs.to_csv("sensitivity_table.csv")
 
 
 def plot_sensitivity(): 
     # open df 
-    merged_dfs = pd.read_csv("sensitivity_table_ps1_unstable.csv")
+    merged_dfs = pd.read_csv("sensitivity_table.csv")
     merged_dfs = merged_dfs.rename(columns={'Parameter Name': 'Parameter_Name'})
 
     # change the columns for those we don't want to focus on
@@ -403,7 +402,7 @@ def plot_sensitivity():
     plt.ylabel('Percentage of filters passed')
     plt.legend(title='Parameters', loc='lower right')
     plt.tight_layout()
-    plt.savefig('ks-test-all-parameters_ps1_unstable.png')
+    plt.savefig('sensitivity_ouput.png')
 
     plt.show()
 

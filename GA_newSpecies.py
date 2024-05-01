@@ -307,7 +307,7 @@ def graph_results():
     X0 = [0,0,1,0,0,1,0,1,1,0]
 
     # open the other parameters
-    all_parameters = pd.read_csv('all_parameters_ps2_unstable.csv')
+    all_parameters = pd.read_csv('all_parameters.csv')
     # how many were accepted? 
     number_accepted = (len(all_parameters.loc[(all_parameters['accepted?'] == "Accepted")]))/((len(species)-1)*2)
     # get the accepted parameters
@@ -574,7 +574,7 @@ def graph_results():
     f.fig.suptitle('Engineering towards an ecosystem with 25% woodland')
 
     plt.tight_layout()
-    plt.savefig('engineering_newSpecies_ps1_unstable.png')
+    plt.savefig('engineering_newSpecies.png')
     plt.show()
 
 

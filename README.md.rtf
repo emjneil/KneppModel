@@ -1,0 +1,20 @@
+
+1. First, use genetic algorithms to identify a parameter set that passes the empirical data and some additional constraints. 
+    File to use - GA_with_constraints.py
+
+2. Run the GA many times and check how many failed the constraints 
+    File - GA_check_failed_constraints.py 
+    Visualise outputs - GA_compile_failed_constraints.ipynb
+    Outputs folder - /passed_constraints_ga
+
+3. Run the model 1 mil times using +- 10% around the GA output as the prior
+    File - run_eem_process.py
+    Outputs - accepted_runs.csv
+                accepted_parameters.csv
+
+4. Run experiments on the accepted runs 
+    File - experiments.py
+
+5. Run GA experiments to explore parameters for stocking densities and/or new species' interaction strengths
+    Files - GA_newSpecies.py     
+            GA_stocking.py

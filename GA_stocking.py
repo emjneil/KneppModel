@@ -319,7 +319,7 @@ def graph_results():
     tamworth_stocking = output_parameters["variable"][4]
 
     # open the other parameters
-    all_parameters = pd.read_csv('all_parameters_ps2_unstable.csv')
+    all_parameters = pd.read_csv('all_parameters.csv')
     # how many were accepted? 
     number_accepted = (len(all_parameters.loc[(all_parameters['accepted?'] == "Accepted")]))/(len(species)*2)
     # get the accepted parameters
@@ -829,7 +829,7 @@ def graph_single():
     f.fig.suptitle('Optimising stocking density towards a goal of 55% woodland')
 
     plt.tight_layout()
-    plt.savefig('55_woodland_ps1_unstable_single.png')
+    plt.savefig('55_woodland.png')
     plt.show()
 
 

@@ -141,7 +141,7 @@ def filterRuns_1():
     ]
     print("number accepted, first ODE:", accepted_simulations.shape)
 
-    with open("10_passed_2009_filters_ps2_unstable.txt", "w") as text_file:
+    with open("10_passed_2009_filters.txt", "w") as text_file:
         print("number of simulations: {}".format(accepted_simulations.shape), file=text_file)
 
     # match ID number in accepted_simulations to its parameters in all_parameters
@@ -572,55 +572,53 @@ def filterRuns():
 
 def top_one_perc():
 
-    # # open the final result csvs - change IDs
-    # final_results_1 = pd.read_csv('1_runs_ps2_unstable.csv')
-    # final_results_2 = pd.read_csv('2_runs_ps2_unstable.csv')
-    # final_results_2['ID'] = final_results_2['ID'] + 100_000
-    # final_results_3 = pd.read_csv('3_runs_ps2_unstable.csv')
-    # final_results_3['ID'] = final_results_3['ID'] + 200_000
-    # final_results_4 = pd.read_csv('4_runs_ps2_unstable.csv')
-    # final_results_4['ID'] = final_results_4['ID'] + 300_000
-    # final_results_5 = pd.read_csv('5_runs_ps2_unstable.csv')
-    # final_results_5['ID'] = final_results_5['ID'] + 400_000
-    # final_results_6 = pd.read_csv('6_runs_ps2_unstable.csv')
-    # final_results_6['ID'] = final_results_6['ID'] + 500_000
-    # final_results_7 = pd.read_csv('7_runs_ps2_unstable.csv')
-    # final_results_7['ID'] = final_results_7['ID'] + 600_000
-    # final_results_8 = pd.read_csv('8_runs_ps2_unstable.csv')
-    # final_results_8['ID'] = final_results_8['ID'] + 700_000
-    # final_results_9 = pd.read_csv('9_runs_ps2_unstable.csv')
-    # final_results_9['ID'] = final_results_9['ID'] + 800_000
-    # final_results_10 = pd.read_csv('10_runs_ps2_unstable.csv')
-    # final_results_10['ID'] = final_results_10['ID'] + 900_000
+    # open the final result csvs - change IDs
+    final_results_1 = pd.read_csv('1_runs_ps2_unstable.csv')
+    final_results_2 = pd.read_csv('2_runs_ps2_unstable.csv')
+    final_results_2['ID'] = final_results_2['ID'] + 100_000
+    final_results_3 = pd.read_csv('3_runs_ps2_unstable.csv')
+    final_results_3['ID'] = final_results_3['ID'] + 200_000
+    final_results_4 = pd.read_csv('4_runs_ps2_unstable.csv')
+    final_results_4['ID'] = final_results_4['ID'] + 300_000
+    final_results_5 = pd.read_csv('5_runs_ps2_unstable.csv')
+    final_results_5['ID'] = final_results_5['ID'] + 400_000
+    final_results_6 = pd.read_csv('6_runs_ps2_unstable.csv')
+    final_results_6['ID'] = final_results_6['ID'] + 500_000
+    final_results_7 = pd.read_csv('7_runs_ps2_unstable.csv')
+    final_results_7['ID'] = final_results_7['ID'] + 600_000
+    final_results_8 = pd.read_csv('8_runs_ps2_unstable.csv')
+    final_results_8['ID'] = final_results_8['ID'] + 700_000
+    final_results_9 = pd.read_csv('9_runs_ps2_unstable.csv')
+    final_results_9['ID'] = final_results_9['ID'] + 800_000
+    final_results_10 = pd.read_csv('10_runs_ps2_unstable.csv')
+    final_results_10['ID'] = final_results_10['ID'] + 900_000
 
-    final_results = pd.read_csv('10_runs.csv')
 
-    # # and parameters
-    # all_parameters_1 = pd.read_csv('1_parameters_ps2_unstable.csv')
-    # all_parameters_2 = pd.read_csv('2_parameters_ps2_unstable.csv')
-    # all_parameters_2['ID'] = all_parameters_2['ID'] + 100_000
-    # all_parameters_3 = pd.read_csv('3_parameters_ps2_unstable.csv')
-    # all_parameters_3['ID'] = all_parameters_3['ID'] + 200_000
-    # all_parameters_4 = pd.read_csv('4_parameters_ps2_unstable.csv')
-    # all_parameters_4['ID'] = all_parameters_4['ID'] + 300_000
-    # all_parameters_5 = pd.read_csv('5_parameters_ps2_unstable.csv')
-    # all_parameters_5['ID'] = all_parameters_5['ID'] + 400_000
-    # all_parameters_6 = pd.read_csv('6_parameters_ps2_unstable.csv')
-    # all_parameters_6['ID'] = all_parameters_6['ID'] + 500_000
-    # all_parameters_7 = pd.read_csv('7_parameters_ps2_unstable.csv')
-    # all_parameters_7['ID'] = all_parameters_7['ID'] + 600_000
-    # all_parameters_8 = pd.read_csv('8_parameters_ps2_unstable.csv')
-    # all_parameters_8['ID'] = all_parameters_8['ID'] + 700_000
-    # all_parameters_9 = pd.read_csv('9_parameters_ps2_unstable.csv')
-    # all_parameters_9['ID'] = all_parameters_9['ID'] + 800_000
-    # all_parameters_10 = pd.read_csv('10_parameters_ps2_unstable.csv')
-    # all_parameters_10['ID'] = all_parameters_10['ID'] + 900_000
+    # and parameters
+    all_parameters_1 = pd.read_csv('1_parameters_ps2_unstable.csv')
+    all_parameters_2 = pd.read_csv('2_parameters_ps2_unstable.csv')
+    all_parameters_2['ID'] = all_parameters_2['ID'] + 100_000
+    all_parameters_3 = pd.read_csv('3_parameters_ps2_unstable.csv')
+    all_parameters_3['ID'] = all_parameters_3['ID'] + 200_000
+    all_parameters_4 = pd.read_csv('4_parameters_ps2_unstable.csv')
+    all_parameters_4['ID'] = all_parameters_4['ID'] + 300_000
+    all_parameters_5 = pd.read_csv('5_parameters_ps2_unstable.csv')
+    all_parameters_5['ID'] = all_parameters_5['ID'] + 400_000
+    all_parameters_6 = pd.read_csv('6_parameters_ps2_unstable.csv')
+    all_parameters_6['ID'] = all_parameters_6['ID'] + 500_000
+    all_parameters_7 = pd.read_csv('7_parameters_ps2_unstable.csv')
+    all_parameters_7['ID'] = all_parameters_7['ID'] + 600_000
+    all_parameters_8 = pd.read_csv('8_parameters_ps2_unstable.csv')
+    all_parameters_8['ID'] = all_parameters_8['ID'] + 700_000
+    all_parameters_9 = pd.read_csv('9_parameters_ps2_unstable.csv')
+    all_parameters_9['ID'] = all_parameters_9['ID'] + 800_000
+    all_parameters_10 = pd.read_csv('10_parameters_ps2_unstable.csv')
+    all_parameters_10['ID'] = all_parameters_10['ID'] + 900_000
 
-    all_parameters = pd.read_csv('10_parameters.csv')
 
     # concat them
-    # final_results = pd.concat([final_results_1, final_results_2, final_results_3,final_results_4,final_results_5,final_results_6,final_results_7,final_results_8,final_results_9,final_results_10])
-    # all_parameters = pd.concat([all_parameters_1, all_parameters_2,all_parameters_3,all_parameters_4,all_parameters_5,all_parameters_6,all_parameters_7,all_parameters_8,all_parameters_9,all_parameters_10])
+    final_results = pd.concat([final_results_1, final_results_2, final_results_3,final_results_4,final_results_5,final_results_6,final_results_7,final_results_8,final_results_9,final_results_10])
+    all_parameters = pd.concat([all_parameters_1, all_parameters_2,all_parameters_3,all_parameters_4,all_parameters_5,all_parameters_6,all_parameters_7,all_parameters_8,all_parameters_9,all_parameters_10])
 
     # separate out the first and last runs (the 2005-2009 runs are already tagged accepted/rejected)
     first_ode = final_results.loc[final_results['time'] <= 2008.75]
@@ -633,7 +631,7 @@ def top_one_perc():
     (second_ode['thornyScrub'] <= 14.4) & (second_ode['thornyScrub'] >= 9.7)]
 
     print("number of simulations",len(final_results_filtered) )
-    # with open("passed_lastHabitatFilters_ps2_unstable.txt", "w") as text_file:
+    # with open("passed_lastHabitatFilters.txt", "w") as text_file:
     #     print("number of simulations: {}".format(len(final_results_filtered)), file=text_file)
 
     # take the top 1% of those that passed the habitats, and tag these as accepted - this one is already looking at just last year
@@ -655,7 +653,7 @@ def top_one_perc():
     all_parameters.to_csv("all_parameters.csv")
 
 
-top_one_perc()
+# top_one_perc()
 
 
 
@@ -664,8 +662,8 @@ top_one_perc()
 def histograms_corrMatrix():
 
     # open the csv
-    all_parameters = pd.read_csv('all_parameters_ps2_unstable.csv').iloc[:,1:]
-    number_passed = 2045 #ps1 - stable
+    all_parameters = pd.read_csv('all_parameters.csv').iloc[:,1:]
+    number_passed = 2045
 
     accepted_parameters = all_parameters.loc[(all_parameters['accepted?'] == 'Accepted')]
     # look at growth rates
@@ -736,7 +734,7 @@ def histograms_corrMatrix():
     plt.savefig('corr_matrix.png')
     plt.show()
 
-    # # # significant variables (21) - ps1-stable
+    # # # significant variables (21) 
     significant_variables = ["grasslandParkland","thornyScrub","woodland",
     "pony_grass","pony_scrub","pony_wood","fallow_scrub",
     "grass_grass","cattle_grass","cattle_scrub","cattle_wood",
@@ -756,12 +754,16 @@ def histograms_corrMatrix():
         count+=1
 
 
+histograms_corrMatrix()
+
+
+
 
 # # # # # ------ Reality checks -------
 
 def reality_1(): # remove primary producers, consumers should decline to zero 
     # open the csv
-    all_parameters = pd.read_csv('all_parameters_ps2_unstable.csv')
+    all_parameters = pd.read_csv('all_parameters.csv')
     # how many simulations were accepted? 
     number_accepted = (len(all_parameters.loc[(all_parameters['accepted?'] == "Accepted")]))/(len(species)*2)
 
@@ -830,8 +832,8 @@ def reality_1(): # remove primary producers, consumers should decline to zero
 
 def reality_2(): # herbivores overloaded
     # open the csv
-    final_results = pd.read_csv('all_runs_ps2_unstable.csv')
-    all_parameters = pd.read_csv('all_parameters_ps2_unstable.csv')
+    final_results = pd.read_csv('all_runs.csv')
+    all_parameters = pd.read_csv('all_parameters.csv')
 
     # how many simulations were accepted? 
     number_accepted = (len(all_parameters.loc[(all_parameters['accepted?'] == "Accepted")]))/(len(species)*2)
@@ -907,8 +909,8 @@ def reality_2(): # herbivores overloaded
 
 def reality_3(): # run for 100 years with no herbivory or woodland
     # open the csv
-    final_results = pd.read_csv('all_runs_ps2_unstable.csv')
-    all_parameters = pd.read_csv('all_parameters_ps2_unstable.csv')
+    final_results = pd.read_csv('all_runs.csv')
+    all_parameters = pd.read_csv('all_parameters.csv')
 
     # how many simulations were accepted? 
     number_accepted = (len(all_parameters.loc[(all_parameters['accepted?'] == "Accepted")]))/(len(species)*2)
@@ -977,8 +979,8 @@ def reality_3(): # run for 100 years with no herbivory or woodland
 
 def reality_4(): # run for 100 years with no herbivory, scrub or wood
     # open the csv
-    final_results = pd.read_csv('all_runs_ps2_unstable.csv')
-    all_parameters = pd.read_csv('all_parameters_ps2_unstable.csv')
+    final_results = pd.read_csv('all_runs.csv')
+    all_parameters = pd.read_csv('all_parameters.csv')
 
     # how many simulations were accepted? 
     number_accepted = (len(all_parameters.loc[(all_parameters['accepted?'] == "Accepted")]))/(len(species)*2)
@@ -1049,8 +1051,8 @@ def reality_4(): # run for 100 years with no herbivory, scrub or wood
 
 def reality_5(): # run for 100 years with no herbivory
     # open the csv
-    final_results = pd.read_csv('all_runs_ps2_unstable.csv')
-    all_parameters = pd.read_csv('all_parameters_ps2_unstable.csv')
+    final_results = pd.read_csv('all_runs.csv')
+    all_parameters = pd.read_csv('all_parameters.csv')
 
     # how many simulations were accepted? 
     number_accepted = (len(all_parameters.loc[(all_parameters['accepted?'] == "Accepted")]))/(len(species)*2)
@@ -1116,59 +1118,11 @@ def reality_5(): # run for 100 years with no herbivory
     plt.show()
 
 
-# histograms of passed filters
-def hist_passed_filters():
-    # open the csvs and look at one year, and only at accepted runs
-
-    final_results_ps1 = pd.read_csv('all_runs_ps1_unstable.csv')
-    final_results_ps1["parameter_set"] = "PS1 - no stability"
-    final_results_ps1 = final_results_ps1.loc[(final_results_ps1['accepted?'] == "Accepted") & (final_results_ps1['time'] == 2020.75)] 
-
-    print(((final_results_ps1[["passed_filters"]])/29).mean())
-    final_results_ps2 = pd.read_csv('all_runs_ps2_unstable.csv')
-    final_results_ps2["parameter_set"] = "PS2 - no stability"
-    final_results_ps2 = final_results_ps2.loc[(final_results_ps2['accepted?'] == "Accepted") & (final_results_ps2['time'] == 2020.75)] 
-    print(((final_results_ps2[["passed_filters"]])/29).mean())
-
-    final_results_ps1_stable = pd.read_csv('all_runs_ps1_stable.csv')
-    final_results_ps1_stable["parameter_set"] = "PS1 - with stability"
-    final_results_ps1_stable = final_results_ps1_stable.loc[(final_results_ps1_stable['accepted?'] == "Accepted") & (final_results_ps1_stable['time'] == 2020.75)] 
-    print(((final_results_ps1_stable[["passed_filters"]])/29).mean())
-
-    final_results_ps2_stable = pd.read_csv('all_runs_ps2_stable.csv')
-    final_results_ps2_stable["parameter_set"] = "PS2 - with stability"
-    final_results_ps2_stable = final_results_ps2_stable.loc[(final_results_ps2_stable['accepted?'] == "Accepted") & (final_results_ps2_stable['time'] == 2020.75)] 
-    print(((final_results_ps2_stable[["passed_filters"]])/29).mean())
-
-
-    # concat them
-    filters = pd.concat([final_results_ps1, final_results_ps2, final_results_ps1_stable, final_results_ps2_stable]).reset_index(drop=True)
-    # histogram of percentage filters passed for the accepted runs
-    filters["passed_filters"] = (filters[["passed_filters"]])/29 # show percentage passed
-
-    # d = np.diff(np.unique(filters[['passed_filters']])).min()
-    # left_of_first_bin = np.unique(filters[['passed_filters']]).min() - float(d)/2
-    # right_of_last_bin = np.unique(filters[['passed_filters']]).max() + float(d)/2
-
-    fig, ax = plt.subplots()
-    # sns.histplot(
-    #     data=filters, x='passed_filters', multiple='stack',
-    #     ax=ax, palette="hls", hue='parameter_set', bins=np.arange(left_of_first_bin, right_of_last_bin + d, d)
-    # )
-    sns.histplot(
-        data=filters, x='passed_filters', multiple='stack',
-        ax=ax, palette="hls", hue='parameter_set'
-    )
-    plt.xlabel("Percentage of filters passed")
-    plt.ylabel("Count")
-    plt.title("Percentage of filters passed by the accepted runs")
-    plt.savefig('histograms_filters_withStability')
-    plt.show()
 
 
 def graph_accepted_rejected():
     # open dataframes
-    final_results = pd.read_csv('all_runs_ps2_unstable.csv').iloc[:,2:]
+    final_results = pd.read_csv('all_runs.csv').iloc[:,2:]
     first_ode = final_results.loc[final_results['time'] <= 2008.75]
     second_ode = final_results.loc[final_results['time'] > 2008.75]
     # pick 100 runs (to not overload the ram) - first for accepted runs

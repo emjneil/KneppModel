@@ -11,20 +11,22 @@ import numpy.matlib
 from geneticalgorithm import geneticalgorithm as ga
 import seaborn as sns
 import math
-import random
 
 
 # # # # # --------- MINIMIZATION ----------- # # # # # # #
 
 species = ['exmoorPony','fallowDeer','grasslandParkland','longhornCattle','redDeer','roeDeer','tamworthPig','thornyScrub','woodland']
 
-
+def ecoNetwork_nor(t, X, A, r):
+    # put things to zero if they go below a certain threshold
+    X[X<1e-8] = 0
+    return X * (r + np.matmul(A, X))
 
 def ecoNetwork(t, X, A, r):
     # put things to zero if they go below a certain threshold
     X[X<1e-8] = 0
     
-    # consumers have negative growth rate 
+    # consumers with PS2 have negative growth rate 
     r[0] = np.log(1/(100*X[0])) if X[0] != 0 else 0
     r[1] = np.log(1/(100*X[1])) if X[1] != 0 else 0
     r[3] = np.log(1/(100*X[3])) if X[3] != 0 else 0
@@ -33,17 +35,6 @@ def ecoNetwork(t, X, A, r):
     r[6] = np.log(1/(100*X[6])) if X[6] != 0 else 0
 
     return X * (r + np.matmul(A, X))
-
-
-def ecoNetwork_nor(t, X, A, r):
-    # put things to zero if they go below a certain threshold
-    X[X<1e-8] = 0
-    
-    return X * (r + np.matmul(A, X))
-
-
-
-
 
 
 
@@ -193,10 +184,6 @@ def run_model(X0, A, r):
     return last_year_1, last_year_2, last_values_2015, last_values_2016, last_values_2017, last_values_2018, last_values_2019, y_2
 
 
-
-
-
-
 def reality_1(A, r): # scrub without consumers or woodland
     t = np.linspace(2005, 2055, 10)
     X0 = [0, 0, 1, 0, 0, 0, 0, 1, 0] # no herbivores
@@ -206,8 +193,6 @@ def reality_1(A, r): # scrub without consumers or woodland
     realityCheck_1 = pd.DataFrame(data=realityCheck_1, columns=species)
     realityCheck_1['time'] = realityCheck_ABC.t
     return realityCheck_1
-
-
 
 
 def reality_2(A, r): # grassland with no scrub or woodland
@@ -221,8 +206,6 @@ def reality_2(A, r): # grassland with no scrub or woodland
     realityCheck_2['time'] = realityCheck_ABC.t
     return realityCheck_2
 
-
-
 def reality_3(A, r): # no herbivores
     t = np.linspace(2005, 2055, 10)
     X0 = [0, 0, 1, 0, 0, 0, 0, 1, 1] # no herbivores
@@ -233,18 +216,17 @@ def reality_3(A, r): # no herbivores
     return realityCheck_3
 
 
-
-
 def objectiveFunction(x):
     # define X0
     X0 = [0,0,1,0,0,1,0,1,1]
 
-    x = np.insert(x,0,-4.6)
-    x = np.insert(x,1,-4.6)
-    x = np.insert(x,3,-4.6)
-    x =np.insert(x,4,-4.6)
-    x =np.insert(x,5,-4.6)
-    x = np.insert(x,6,-4.6)
+    # with PS2, consumers have a negative r -4.61 if set
+    x = np.insert(x,0,0)
+    x = np.insert(x,1,0)
+    x = np.insert(x,3,0)
+    x = np.insert(x,4,0)
+    x = np.insert(x,5,0) # roe are the only ones present
+    x = np.insert(x,6,0)
 
     r =  x[0:9]
 
@@ -313,7 +295,6 @@ def objectiveFunction(x):
     realityCheck_3 = reality_3(A,r)
     realityCheck_3_fifty_years = realityCheck_3.loc[realityCheck_3['time'] == 2055]
 
-
     # find runs with outputs closest to the middle of the filtering conditions
     result = ( 
         # 2009 filtering conditions
@@ -345,9 +326,9 @@ def objectiveFunction(x):
         (((last_values_2018[4]-1.9)/1.9)**2) + 
         (((last_values_2018[6]-1.2)/1.2)**2) +
         # # # 2019
-        ((((last_values_2019[1]-8.3)/8.3)*2)**2) + 
+        (((last_values_2019[1]-8.3)/8.3)**2) + 
         (((last_values_2019[3]-2.1)/2.1)**2) + 
-        ((((last_values_2019[4]-2.9)/2.9)*6)**2) + 
+        (((last_values_2019[4]-2.9)/2.9)**2) + 
         (((last_values_2019[6]-0.5)/0.5)**2) + 
         # 2020
         (((last_year_2[0]-0.7)/0.7)**2) + 
@@ -355,48 +336,49 @@ def objectiveFunction(x):
         (((last_year_2[5]-4.2)/4.2)**2) + 
         (((last_year_2[6]-1)/1)**2) + 
         (((last_year_2[7]-12.1)/12.1)**2) +
-        (((last_year_2[8]-3.7)/3.7)**2) + 
+        (((last_year_2[8]-3.7)/3.7)**2) +
         
-        # reality check - scrubland should be 23.3
+        # constraint - scrubland should be 23.3
         (((realityCheck_1_last_year.iloc[0]['thornyScrub']-23.3)/23.3)**2) + 
-        # sensitivity test 2 
+        # constraint
         (((realityCheck_2_last_year.iloc[0]['grasslandParkland']-1.1)/1.1)**2) + 
-        # sensitivity test 3
+        # constraint
         (((realityCheck_3_fifty_years.iloc[0]['woodland']-17.2)/17.2)**2)
     )
 
-    if result < 7:
+    # print the output
+    if result < 10:
         print(result)
     return (result)
-
 
 
 def run_optimizer():
 
     bds = np.array([
-    # growth
-    [0.5,1],[0,0.5],[0,0.2],
-    # exmoor pony
-    [0,5],[0,1],[0,1],    
-    # fallow deer
-    [0,5],[0,1],[0,1],  
-    # grassland parkland 
-    [-0.1,0],[-0.1,0],[-1,-0.4],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],
-    # longhorn cattle
-    [0,5],[0,1],[0,1],    
-    # red deer
-    [0,5],[0,1],[0,1], 
-    # roe deer
-    [0,5],[0,1],[0,1],  
-    # tamworth pig 
-    [0,5],[0,1],[0,1],     
-    # thorny scrubland
-    [-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[-0.05,0],[-0.1,0],
-    # woodland
-    [-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[0,1],[-0.015,0],
+        # growth
+        [0.5,1],[0,0.5],[0,0.2],
+        # exmoor pony
+        [0,5],[0,1],[0,1],    
+        # fallow deer
+        [0,5],[0,1],[0,1],  
+        # grassland parkland 
+        [-0.1,0],[-0.1,0],[-1,-0.4],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],
+        # longhorn cattle
+        [0,5],[0,1],[0,1],    
+        # red deer
+        [0,5],[0,1],[0,1],   
+        # roe deer
+        [0,5],[0,1],[0,1],    
+        # tamworth pig 
+        [0,5],[0,1],[0,1],    
+        # thorny scrubland
+        [-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],
+        # woodland
+        [-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[0,1],[-0.025,0],
     ])
+        
 
-
+        # zoomed in to accepted PS params 
     # bds = np.array([
     #     # growth
     #     [0.91,0.92],[0.34,0.35],[0.1,0.12],
@@ -411,7 +393,7 @@ def run_optimizer():
     #     # red deer
     #     [2.8,2.9],[0.29,0.31],[0.42,0.43],   
     #     # roe deer
-    #     [3.8,3.9],[0.1,0.3],[0.1,0.3],    
+    #     [4.8,4.9],[0.1,0.3],[0.1,0.3],    
     #     # tamworth pig 
     #     [3.65,3.7],[0.22,0.23],[0.4,0.41],    
     #     # thorny scrubland
@@ -420,20 +402,23 @@ def run_optimizer():
     #     [-0.0042,-0.004],[-0.0059,-0.0058],[-0.0083,-0.0082],[-0.004,-0.0039],[-0.0032,-0.0031],[-0.0037,-0.0035],[0.005,0.008],[-0.0063,-0.0061],
     # ])
 
-    algorithm_param = {'max_num_iteration':25,\
-                    'population_size': 5000,\
+    
+
+    algorithm_param = {'max_num_iteration': 25,\
+                    'population_size':500,\
                     'mutation_probability':0.1,\
                     'elit_ratio': 0.01,\
                     'crossover_probability': 0.5,\
                     'parents_portion': 0.3,\
                     'crossover_type':'uniform',\
-                    'max_iteration_without_improv':10}
+                    'max_iteration_without_improv':None}
 
     optimization =  ga(function = objectiveFunction, dimension = 46, variable_type = 'real',variable_boundaries= bds, algorithm_parameters = algorithm_param, function_timeout=30)
     optimization.run()
+    print(optimization)
+    # with open('optimization_outputs_ps2.txt', 'w') as f:
+    #     print(optimization.output_dict, file=f)
     return optimization.output_dict
-
-
 
 
 
@@ -443,18 +428,15 @@ def run_optimizer():
 def graph_results():
 
     output_parameters = run_optimizer()
-
-    output_df = pd.DataFrame(output_parameters)
-
     # define X0
     X0 = [0,0,1,0,0,1,0,1,1]
     # fill in the zeroes
-    output_parameters["variable"] = np.insert(output_parameters["variable"],0,-4.6)
-    output_parameters["variable"] = np.insert(output_parameters["variable"],1,-4.6)
-    output_parameters["variable"] = np.insert(output_parameters["variable"],3,-4.6)
-    output_parameters["variable"] = np.insert(output_parameters["variable"],4,-4.6)
-    output_parameters["variable"] = np.insert(output_parameters["variable"],5,-4.6)
-    output_parameters["variable"] = np.insert(output_parameters["variable"],6,-4.6)
+    output_parameters["variable"] = np.insert(output_parameters["variable"],0,-4.61)
+    output_parameters["variable"] = np.insert(output_parameters["variable"],1,-4.61)
+    output_parameters["variable"] = np.insert(output_parameters["variable"],3,-4.61)
+    output_parameters["variable"] = np.insert(output_parameters["variable"],4,-4.61)
+    output_parameters["variable"] = np.insert(output_parameters["variable"],5,-4.61)
+    output_parameters["variable"] = np.insert(output_parameters["variable"],6,-4.61)
     # pony
     output_parameters["variable"] = np.insert(output_parameters["variable"],9,0)
     output_parameters["variable"] = np.insert(output_parameters["variable"],10,0)
@@ -504,7 +486,6 @@ def graph_results():
     output_parameters["variable"] = np.insert(output_parameters["variable"],83,0)
     # define parameters
     r = output_parameters["variable"][0:9]
-
     interaction_strength = output_parameters["variable"][9:90]
     interaction_strength = pd.DataFrame(data=interaction_strength.reshape(9,9),index = species, columns=species)
     A = interaction_strength.to_numpy()
@@ -631,52 +612,50 @@ def graph_results():
 
 
 
-
-
-
-
     # now reality check 1
-    t = np.linspace(2015, 2016, 2)
-    X0 = [1, 1, 0, 1, 1, 1, 1, 0, 0] # no primary producers, only consumers
-
-    realityCheck_ABC = solve_ivp(ecoNetwork, (2015, 2016), X0,  t_eval = t, args=(A, r), method = 'RK23') 
-    realityCheck_1 = (np.vstack(np.hsplit(realityCheck_ABC.y.reshape(len(species), 2).transpose(),1)))
+    t = np.linspace(2015, 2016, 10)
+    X0 = [100, 1000, 0, 1, 1, 1, 1, 0, 0] # no primary producers, only consumers
+    realityCheck_ABC = solve_ivp(ecoNetwork, (2015, 2020), X0,  t_eval = t, args=(A, r), method = 'RK23') 
+    realityCheck_1 = (np.vstack(np.hsplit(realityCheck_ABC.y.reshape(len(species), 10).transpose(),1)))
     realityCheck_1 = pd.DataFrame(data=realityCheck_1, columns=species)
     realityCheck_1['time'] = realityCheck_ABC.t
     # extract the node values from all dataframes
     final_runs1 = realityCheck_1.drop(['time'], axis=1).values.flatten()
     # we want species column to be spec1,spec2,spec3,spec4, etc.
-    species_realityCheck = np.tile(species, (2))
+    species_realityCheck = np.tile(species, (10))
     # time 
     firstODEyears = np.repeat(realityCheck_1['time'],len(species))
     # put it in a dataframe
     final_df = pd.DataFrame(
         {'Abundance %': final_runs1, 'Ecosystem Element': species_realityCheck, 'Time': firstODEyears})
-
-    # at time 1, all herbivores should be < 0.01
-    last_time = final_df.loc[final_df["Time"] == 2016]
-    # print(last_time)
-
-    if last_time.loc[last_time['Ecosystem Element'] == 'exmoorPony', 'Abundance %'].item() < 0.1 and last_time.loc[last_time['Ecosystem Element'] == 'fallowDeer', 'Abundance %'].item() < 0.1 and last_time.loc[last_time['Ecosystem Element'] == 'longhornCattle', 'Abundance %'].item() < 0.1 and last_time.loc[last_time['Ecosystem Element'] == 'redDeer', 'Abundance %'].item() < 0.1 and last_time.loc[last_time['Ecosystem Element'] == 'roeDeer', 'Abundance %'].item() < 0.1 and last_time.loc[last_time['Ecosystem Element'] == 'tamworthPig', 'Abundance %'].item() < 0.1:
-        output_df["Constraint 1"] = 1
-    else:
-        output_df["Constraint 1"] = 0
-
+    # calculate median 
+    m = final_df.groupby(['Time', 'Ecosystem Element'])[['Abundance %']].apply(np.median)
+    m.name = 'Median'
+    final_df = final_df.join(m, on=['Time','Ecosystem Element'])
+    # calculate quantiles
+    perc1 = final_df.groupby(['Time','Ecosystem Element'])['Abundance %'].quantile(.95)
+    perc1.name = 'ninetyfivePerc'
+    final_df = final_df.join(perc1, on=['Time','Ecosystem Element'])
+    perc2 = final_df.groupby(['Time', 'Ecosystem Element'])['Abundance %'].quantile(.05)
+    perc2.name = "fivePerc"
+    final_df = final_df.join(perc2, on=['Time','Ecosystem Element'])
     # graph it
     g = sns.FacetGrid(final_df, col="Ecosystem Element", col_wrap=3, sharey = False)
-    g.map(sns.lineplot, 'Time', 'Abundance %')
+    g.map(sns.lineplot, 'Time', 'Median')
+    g.map(sns.lineplot, 'Time', 'fivePerc')
+    g.map(sns.lineplot, 'Time', 'ninetyfivePerc')
+    for ax in g.axes.flat:
+        ax.fill_between(ax.lines[1].get_xdata(),ax.lines[1].get_ydata(), ax.lines[2].get_ydata(), color = '#6788ee', alpha =0.2)
     g.fig.suptitle('Reality check: No primary producers')
     plt.tight_layout()
+    # plt.savefig('reality_check_noFood.png')
     plt.show()
 
 
-
-
-
-    # now reality check 2 - woodland should level out; scrub should increase at onset
-    t = np.linspace(2005, 2105, 100)
+    # now reality check 2
+    t = np.linspace(2005, 2020, 100)
     X0 = [0, 0, 1, 0, 0, 0, 0, 1, 1] # no herbivores
-    realityCheck_ABC = solve_ivp(ecoNetwork, (2005, 2105), X0,  t_eval = t, args=(A, r), method = 'RK23') 
+    realityCheck_ABC = solve_ivp(ecoNetwork, (2005, 2020), X0,  t_eval = t, args=(A, r), method = 'RK23') 
     realityCheck_2 = (np.vstack(np.hsplit(realityCheck_ABC.y.reshape(len(species), 100).transpose(),1)))
     realityCheck_2 = pd.DataFrame(data=realityCheck_2, columns=species)
     realityCheck_2['time'] = realityCheck_ABC.t
@@ -689,41 +668,34 @@ def graph_results():
     # put it in a dataframe
     final_df = pd.DataFrame(
         {'Abundance %': final_runs1, 'Ecosystem Element': species_realityCheck, 'Time': firstODEyears})
-
-    last_time = final_df.loc[final_df["Time"] == 2105]
-
-    # if thorny scrub is not > woodland and grass at approx. 15 years and woodland not > scrub and grass at 45 years, fail
-    max_scrub_time = final_df.loc[final_df["Time"] > 2015]
-    all_scrub_time = max_scrub_time.loc[max_scrub_time["Time"] < 2020]
-    # pick a year to look at 
-    time_options = random.choice(list(all_scrub_time.Time.unique()))
-    scrub_time = final_df.loc[final_df["Time"] == time_options]
-
-    if (scrub_time.loc[scrub_time['Ecosystem Element'] == 'thornyScrub', 'Abundance %'].item() > scrub_time.loc[scrub_time['Ecosystem Element'] == 'woodland', 'Abundance %'].item() and scrub_time.loc[scrub_time['Ecosystem Element'] == 'thornyScrub', 'Abundance %'].item() > scrub_time.loc[scrub_time['Ecosystem Element'] == 'grasslandParkland', 'Abundance %'].item()) and (last_time.loc[last_time['Ecosystem Element'] == 'woodland', 'Abundance %'].item() > last_time.loc[last_time['Ecosystem Element'] == 'thornyScrub', 'Abundance %'].item() and last_time.loc[last_time['Ecosystem Element'] == 'woodland', 'Abundance %'].item() > last_time.loc[last_time['Ecosystem Element'] == 'grasslandParkland', 'Abundance %'].item()):
-        output_df["Constraint 2"] = 1
-    else:
-        output_df["Constraint 2"] = 0
+    # calculate median 
+    m = final_df.groupby(['Time', 'Ecosystem Element'])[['Abundance %']].apply(np.median)
+    m.name = 'Median'
+    final_df = final_df.join(m, on=['Time','Ecosystem Element'])
+    # calculate quantiles
+    perc1 = final_df.groupby(['Time','Ecosystem Element'])['Abundance %'].quantile(.95)
+    perc1.name = 'ninetyfivePerc'
+    final_df = final_df.join(perc1, on=['Time','Ecosystem Element'])
+    perc2 = final_df.groupby(['Time', 'Ecosystem Element'])['Abundance %'].quantile(.05)
+    perc2.name = "fivePerc"
+    final_df = final_df.join(perc2, on=['Time','Ecosystem Element'])
+    # graph it
     g = sns.FacetGrid(final_df, col="Ecosystem Element", col_wrap=3, sharey = False)
-    g.map(sns.lineplot, 'Time', 'Abundance %')
+    g.map(sns.lineplot, 'Time', 'Median')
+    g.map(sns.lineplot, 'Time', 'fivePerc')
+    g.map(sns.lineplot, 'Time', 'ninetyfivePerc')
+    for ax in g.axes.flat:
+        ax.fill_between(ax.lines[1].get_xdata(),ax.lines[1].get_ydata(), ax.lines[2].get_ydata(), color = '#6788ee', alpha =0.2)
     g.fig.suptitle('Reality check: No consumers')
     plt.tight_layout()
+    # plt.savefig('reality_check_noConsumers.png')
     plt.show()
 
-    # if woodland hasn't levelled out at 17.2, fail
-    if last_time.loc[last_time['Ecosystem Element'] == 'woodland', 'Abundance %'].item() > 15.48 and last_time.loc[last_time['Ecosystem Element'] == 'woodland', 'Abundance %'].item() < 18.92:
-        output_df["Constraint 6"] = 1
-    else:
-        output_df["Constraint 6"] = 0
-
-     
 
 
-
-
-
-    # now reality check 3: overloaded consumers, no negative r
+    # now reality check 3
     t = np.linspace(2005, 2105, 100)
-    X0 = [2, 2, 1, 2, 2, 2, 2, 1, 1]
+    X0 = [2, 2, 1, 2, 2, 2, 2, 1, 1] # overloaded consumers, no negative r
     A[[0],2] = 1
     A[[1],2] = 1
     A[[3],2] = 1
@@ -744,24 +716,28 @@ def graph_results():
     # put it in a dataframe
     final_df = pd.DataFrame(
         {'Abundance %': final_runs1, 'Ecosystem Element': species_realityCheck, 'Time': firstODEyears})
-    
-    # if all habitats aren't < 0.01 after 100 years, fail
-    last_time = final_df.loc[final_df["Time"] == 2105]
-
-    if last_time.loc[last_time['Ecosystem Element'] == 'grasslandParkland', 'Abundance %'].item() > 0.01 or last_time.loc[last_time['Ecosystem Element'] == 'woodland', 'Abundance %'].item() > 0.01 or last_time.loc[last_time['Ecosystem Element'] == 'thornyScrub', 'Abundance %'].item() > 0.01:
-        output_df["Constraint 3"] = 0
-    else:
-        output_df["Constraint 3"] = 1
+    # calculate median 
+    m = final_df.groupby(['Time', 'Ecosystem Element'])[['Abundance %']].apply(np.median)
+    m.name = 'Median'
+    final_df = final_df.join(m, on=['Time','Ecosystem Element'])
+    # calculate quantiles
+    perc1 = final_df.groupby(['Time','Ecosystem Element'])['Abundance %'].quantile(.95)
+    perc1.name = 'ninetyfivePerc'
+    final_df = final_df.join(perc1, on=['Time','Ecosystem Element'])
+    perc2 = final_df.groupby(['Time', 'Ecosystem Element'])['Abundance %'].quantile(.05)
+    perc2.name = "fivePerc"
+    final_df = final_df.join(perc2, on=['Time','Ecosystem Element'])
     # graph it
     g = sns.FacetGrid(final_df, col="Ecosystem Element", col_wrap=3, sharey = False)
-    g.map(sns.lineplot, 'Time', 'Abundance %')
+    g.map(sns.lineplot, 'Time', 'Median')
+    g.map(sns.lineplot, 'Time', 'fivePerc')
+    g.map(sns.lineplot, 'Time', 'ninetyfivePerc')
+    for ax in g.axes.flat:
+        ax.fill_between(ax.lines[1].get_xdata(),ax.lines[1].get_ydata(), ax.lines[2].get_ydata(), color = '#6788ee', alpha =0.2)
     g.fig.suptitle('Reality check: Overloaded consumers')
     plt.tight_layout()
+    # plt.savefig('reality_check_overloadConsumers.png')
     plt.show()
-
-
-
-
 
 
 
@@ -783,21 +759,28 @@ def graph_results():
     # put it in a dataframe
     final_df = pd.DataFrame(
         {'Abundance %': final_runs1, 'Ecosystem Element': species_realityCheck, 'Time': firstODEyears})
-    last_time = final_df.loc[final_df["Time"] == 2105]
-
-    # if scrubland hasn't levelled out around 23.3, fail
-    if last_time.loc[last_time['Ecosystem Element'] == 'thornyScrub', 'Abundance %'].item() > 20.97 and last_time.loc[last_time['Ecosystem Element'] == 'thornyScrub', 'Abundance %'].item() < 25.63:
-        output_df["Constraint 5"] = 1
-    else:
-        output_df["Constraint 5"] = 0
+    # calculate median 
+    m = final_df.groupby(['Time', 'Ecosystem Element'])[['Abundance %']].apply(np.median)
+    m.name = 'Median'
+    final_df = final_df.join(m, on=['Time','Ecosystem Element'])
+    # calculate quantiles
+    perc1 = final_df.groupby(['Time','Ecosystem Element'])['Abundance %'].quantile(.95)
+    perc1.name = 'ninetyfivePerc'
+    final_df = final_df.join(perc1, on=['Time','Ecosystem Element'])
+    perc2 = final_df.groupby(['Time', 'Ecosystem Element'])['Abundance %'].quantile(.05)
+    perc2.name = "fivePerc"
+    final_df = final_df.join(perc2, on=['Time','Ecosystem Element'])
+    # graph it
     g = sns.FacetGrid(final_df, col="Ecosystem Element", col_wrap=3, sharey = False)
-    g.map(sns.lineplot, 'Time', 'Abundance %')
+    g.map(sns.lineplot, 'Time', 'Median')
+    g.map(sns.lineplot, 'Time', 'fivePerc')
+    g.map(sns.lineplot, 'Time', 'ninetyfivePerc')
+    for ax in g.axes.flat:
+        ax.fill_between(ax.lines[1].get_xdata(),ax.lines[1].get_ydata(), ax.lines[2].get_ydata(), color = '#6788ee', alpha =0.2)
     g.fig.suptitle('Reality check: No woodland or consumers')
     plt.tight_layout()
+    # plt.savefig('reality_check_scrubLevelling.png')
     plt.show()
-
-
-
 
 
     # now reality check 5 - grassland should level out at 1.1
@@ -819,69 +802,30 @@ def graph_results():
     # put it in a dataframe
     final_df = pd.DataFrame(
         {'Abundance %': final_runs1, 'Ecosystem Element': species_realityCheck, 'Time': firstODEyears})
-
-    last_time = final_df.loc[final_df["Time"] == 2105]
-
-    # if scrubland hasn't levelled out around 23.3, fail
-    if last_time.loc[last_time['Ecosystem Element'] == 'grasslandParkland', 'Abundance %'].item() > 0.99 and last_time.loc[last_time['Ecosystem Element'] == 'grasslandParkland', 'Abundance %'].item() < 1.21:
-        output_df["Constraint 4"] = 1
-    else:
-        output_df["Constraint 4"] = 0
+    # calculate median 
+    m = final_df.groupby(['Time', 'Ecosystem Element'])[['Abundance %']].apply(np.median)
+    m.name = 'Median'
+    final_df = final_df.join(m, on=['Time','Ecosystem Element'])
+    # calculate quantiles
+    perc1 = final_df.groupby(['Time','Ecosystem Element'])['Abundance %'].quantile(.95)
+    perc1.name = 'ninetyfivePerc'
+    final_df = final_df.join(perc1, on=['Time','Ecosystem Element'])
+    perc2 = final_df.groupby(['Time', 'Ecosystem Element'])['Abundance %'].quantile(.05)
+    perc2.name = "fivePerc"
+    final_df = final_df.join(perc2, on=['Time','Ecosystem Element'])
+    # graph it
     g = sns.FacetGrid(final_df, col="Ecosystem Element", col_wrap=3, sharey = False)
-    g.map(sns.lineplot, 'Time', 'Abundance %')
+    g.map(sns.lineplot, 'Time', 'Median')
+    g.map(sns.lineplot, 'Time', 'fivePerc')
+    g.map(sns.lineplot, 'Time', 'ninetyfivePerc')
+    for ax in g.axes.flat:
+        ax.fill_between(ax.lines[1].get_xdata(),ax.lines[1].get_ydata(), ax.lines[2].get_ydata(), color = '#6788ee', alpha =0.2)
     g.fig.suptitle('Reality check: Grassland only')
     plt.tight_layout()
+    # plt.savefig('reality_check_grassLevelling.png')
     plt.show()
 
 
 
-    return output_df
 
-
-
-
-
-# keep track of everything
-final_df = {}
-variables_used = {}
-
-for n in range(10):
-
-    print(n)
-
-    output_df = graph_results()
-
-    print(output_df)
-
-    if output_df["Constraint 1"][0].item() + output_df["Constraint 2"][0].item()+ output_df["Constraint 3"][0].item() + output_df["Constraint 4"][0].item() + output_df["Constraint 5"][0].item() + output_df["Constraint 6"][0].item() == 6:
-        print("passed all")
-        passed_all = 1
-    else: 
-        passed_all = 0
-
-
-
-    # then append outputs
-    final_df[n] = {"Run number": n, 
-                            "Fit": output_df["function"][0].item(), 
-                            "Passed Constraint 1": output_df["Constraint 1"][0].item(),
-                            "Passed Constraint 2": output_df["Constraint 2"][0].item(),
-                            "Passed Constraint 3": output_df["Constraint 3"][0].item(),
-                            "Passed Constraint 4": output_df["Constraint 4"][0].item(),
-                            "Passed Constraint 5": output_df["Constraint 5"][0].item(),
-                            "Passed Constraint 6": output_df["Constraint 6"][0].item(),
-                            "Passed All Constraints": passed_all,
-
-    }
-
-    variables_used[n] = output_df["variable"]
-
-
-all_df = pd.DataFrame.from_dict(final_df, "index")
-all_variables = pd.DataFrame.from_dict(variables_used, "index")
-
-print(all_df)
-
-# and save to csv
-all_df.to_csv("all_df_ga_manualadjustments_6.csv")
-all_variables.to_csv("all_variables_ga_manualadjustments_6.csv")
+graph_results()
