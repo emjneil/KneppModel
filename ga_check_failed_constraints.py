@@ -383,7 +383,7 @@ def run_optimizer():
         # grassland parkland 
         [-0.05,0],[-0.05,0],[-1,-0.4],[-0.05,0],[-0.05,0],[-0.05,0],[-0.05,0],[-0.05,0],[-0.05,0],
         # longhorn cattle
-        [2,5],[0,0.5],[0,0.5],    
+        [2.5,5],[0,0.5],[0,0.5],    
         # red deer
         [2.5,5],[0,0.5],[0,0.5],   
         # roe deer
@@ -397,6 +397,7 @@ def run_optimizer():
     ])
 
 
+    # zoomed in to the accepted param set
     # bds = np.array([
     #     # growth
     #     [0.91,0.92],[0.34,0.35],[0.1,0.12],
