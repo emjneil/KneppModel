@@ -365,7 +365,7 @@ def objectiveFunction(x):
         (((realityCheck_3_fifty_years.iloc[0]['woodland']-17.2)/17.2)**2)
     )
 
-    if result < 7:
+    if result < 5:
         print(result)
     return (result)
 
@@ -375,25 +375,25 @@ def run_optimizer():
 
     bds = np.array([
         # growth
-        [0.5,1],[0,0.5],[0,0.2],
+        [0.5,1],[0,0.5],[0,0.15],
         # exmoor pony
-        [0,5],[0,1],[0,1],    
+        [2.5,5],[0,0.5],[0,0.5],    
         # fallow deer
-        [0,5],[0,1],[0,1],  
+        [2.5,5],[0,0.5],[0,0.5],  
         # grassland parkland 
-        [-0.1,0],[-0.1,0],[-1,-0.4],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],
+        [-0.05,0],[-0.05,0],[-1,-0.4],[-0.05,0],[-0.05,0],[-0.05,0],[-0.05,0],[-0.05,0],[-0.05,0],
         # longhorn cattle
-        [0,5],[0,1],[0,1],    
+        [2,5],[0,0.5],[0,0.5],    
         # red deer
-        [0,5],[0,1],[0,1],   
+        [2.5,5],[0,0.5],[0,0.5],   
         # roe deer
-        [0,5],[0,1],[0,1],    
+        [2.5,5],[0,0.5],[0,0.5],    
         # tamworth pig 
-        [0,5],[0,1],[0,1],    
+        [2.5,5],[0,0.5],[0,0.5],    
         # thorny scrubland
-        [-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],
+        [-0.05,0],[-0.05,0],[-0.05,0],[-0.05,0],[-0.05,0],[-0.05,0],[-0.025,0],[-0.05,0],
         # woodland
-        [-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[-0.1,0],[0,1],[-0.025,0],
+        [-0.05,0],[-0.05,0],[-0.05,0],[-0.05,0],[-0.05,0],[-0.05,0],[0,0.01],[-0.025,0],
     ])
 
 
@@ -420,8 +420,8 @@ def run_optimizer():
     #     [-0.0042,-0.004],[-0.0059,-0.0058],[-0.0083,-0.0082],[-0.004,-0.0039],[-0.0032,-0.0031],[-0.0037,-0.0035],[0.005,0.008],[-0.0063,-0.0061],
     # ])
 
-    algorithm_param = {'max_num_iteration':10,\
-                    'population_size': 150,\
+    algorithm_param = {'max_num_iteration':25,\
+                    'population_size': 1500,\
                     'mutation_probability':0.1,\
                     'elit_ratio': 0.01,\
                     'crossover_probability': 0.5,\
@@ -698,8 +698,6 @@ def graph_results():
     # pick a year to look at 
     time_options = random.choice(list(all_scrub_time.Time.unique()))
     scrub_time = final_df.loc[final_df["Time"] == time_options]
-    print(scrub_time)
-    print(last_time)
 
     # remember it's scaled to 1
     if (scrub_time.loc[scrub_time['Ecosystem Element'] == 'thornyScrub', 'Abundance %'].item() * 0.043 > scrub_time.loc[scrub_time['Ecosystem Element'] == 'woodland', 'Abundance %'].item() *0.058 and scrub_time.loc[scrub_time['Ecosystem Element'] == 'thornyScrub', 'Abundance %'].item() * 0.043 > scrub_time.loc[scrub_time['Ecosystem Element'] == 'grasslandParkland', 'Abundance %'].item() * 0.899) and (last_time.loc[last_time['Ecosystem Element'] == 'woodland', 'Abundance %'].item() *0.058 > last_time.loc[last_time['Ecosystem Element'] == 'thornyScrub', 'Abundance %'].item() *0.043 and last_time.loc[last_time['Ecosystem Element'] == 'woodland', 'Abundance %'].item() * 0.058 > last_time.loc[last_time['Ecosystem Element'] == 'grasslandParkland', 'Abundance %'].item() * 0.899):
@@ -707,7 +705,6 @@ def graph_results():
     else:
         output_df["Constraint 2"] = 0
     
-    print(output_df["Constraint 2"])
     g = sns.FacetGrid(final_df, col="Ecosystem Element", col_wrap=3, sharey = False)
     g.map(sns.lineplot, 'Time', 'Abundance %')
     g.fig.suptitle('Reality check: No consumers')
@@ -888,5 +885,5 @@ all_variables = pd.DataFrame.from_dict(variables_used, "index")
 print(all_df)
 
 # and save to csv
-all_df.to_csv("all_df_ga_manualadjustments_6.csv")
-all_variables.to_csv("all_variables_ga_manualadjustments_6.csv")
+all_df.to_csv("all_df_ga_manualadjustments_10.csv")
+all_variables.to_csv("all_variables_ga_manualadjustments_10.csv")

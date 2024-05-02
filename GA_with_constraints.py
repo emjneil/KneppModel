@@ -405,7 +405,7 @@ def run_optimizer():
     
 
     algorithm_param = {'max_num_iteration': 25,\
-                    'population_size':500,\
+                    'population_size':5000,\
                     'mutation_probability':0.1,\
                     'elit_ratio': 0.01,\
                     'crossover_probability': 0.5,\
